@@ -241,7 +241,7 @@ const Sidebar = ({ onLoadTemplate }: SidebarProps) => {
       <aside className={['border-r border-gray-800 bg-gray-900 h-full shadow-2xl flex flex-col transition-all duration-300 z-20', collapsed ? 'w-14' : 'w-72'].join(' ')}>
         
         <div className="flex items-center justify-between p-3 border-b border-gray-800">
-          {!collapsed && <div className="text-sm font-bold text-teal-400 uppercase tracking-widest">N2N Node Library</div>}
+          {!collapsed && <div className="text-sm font-bold text-teal-400 uppercase tracking-widest">VIPER Library</div>}
           <button onClick={() => setCollapsed(s => !s)} className="h-8 w-8 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center border border-gray-700">
             <svg className={`w-4 h-4 transition-transform ${collapsed ? '' : 'rotate-180'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 17l5-5-5-5M6 17l5-5-5-5" /></svg>
           </button>
@@ -321,7 +321,7 @@ const Sidebar = ({ onLoadTemplate }: SidebarProps) => {
           </div>
         ) : <div className="flex-1" />}
 
-        {!collapsed && <div className="p-3 text-[9px] text-center text-gray-600 border-t border-gray-800 font-mono tracking-widest uppercase">N2N Image Processing Framework</div>}
+        {!collapsed && <div className="p-3 text-[9px] text-center text-gray-600 border-t border-gray-800 font-mono tracking-widest uppercase">VIPER Framework</div>}
       </aside>
 
       {contextMenu.visible && (
