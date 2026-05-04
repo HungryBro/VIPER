@@ -1,0 +1,25 @@
+services:
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: viper_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: viper_user
+      POSTGRES_PASSWORD: viper_password
+      POSTGRES_DB: viper_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer
+    container_name: viper_db_web
+    restart: always
+    ports:
+      - "8080:8080" 
+    depends_on:
+      - postgres_db
+
+volumes:
+  postgres_data:

@@ -17,15 +17,15 @@ import SnakeNode from '../components/nodes/SnakeNode';
 import SaveImageNode from '../components/nodes/SaveImageNode';
 import SaveJsonNode from '../components/nodes/SaveJsonNode';
 
-import CLAHENode from '../components/nodes/CLAHE';
-import MSRCRNode from '../components/nodes/MSRCR';
-import ZeroDCENode from '../components/nodes/ZERO';
-import DnCNNNode from '../components/nodes/DCNN';
-import RealESRGANNode from '../components/nodes/REAL';
-import SwinIRNode from '../components/nodes/SWINIR';
-import DeepLabNode from '../components/nodes/DEEP';
-import MaskRCNNNode from '../components/nodes/MASK';
-import UNetNode from '../components/nodes/UNET';
+// import CLAHENode from '../components/nodes/CLAHE';
+// import MSRCRNode from '../components/nodes/MSRCR';
+// import ZeroDCENode from '../components/nodes/ZERO';
+// import DnCNNNode from '../components/nodes/DCNN';
+// import RealESRGANNode from '../components/nodes/REAL';
+// import SwinIRNode from '../components/nodes/SWINIR';
+// import DeepLabNode from '../components/nodes/DEEP';
+// import MaskRCNNNode from '../components/nodes/MASK';
+// import UNetNode from '../components/nodes/UNET';
 
 export const nodeTypes: NodeTypes = {
   'image-input': ImageInputNode,
@@ -44,28 +44,28 @@ export const nodeTypes: NodeTypes = {
   'save-image': SaveImageNode,
   'save-json': SaveJsonNode,
 
-  'clahe': CLAHENode,
+  // 'clahe': CLAHENode,
   
-  'msrcr': MSRCRNode,
+  // 'msrcr': MSRCRNode,
   
-  'zero': ZeroDCENode,
-  'zeroDce': ZeroDCENode, 
+  // 'zero': ZeroDCENode,
+  // 'zeroDce': ZeroDCENode, 
   
-  'dcnn': DnCNNNode,
-  'dncnn': DnCNNNode,     
+  // 'dcnn': DnCNNNode,
+  // 'dncnn': DnCNNNode,     
   
-  'real': RealESRGANNode,
-  'realesrgan': RealESRGANNode, 
+  // 'real': RealESRGANNode,
+  // 'realesrgan': RealESRGANNode, 
   
-  'swinir': SwinIRNode,
+  // 'swinir': SwinIRNode,
   
-  'deep': DeepLabNode,
-  'deeplab': DeepLabNode, 
+  // 'deep': DeepLabNode,
+  // 'deeplab': DeepLabNode, 
   
-  'mask': MaskRCNNNode,
-  'maskrcnn': MaskRCNNNode, 
+  // 'mask': MaskRCNNNode,
+  // 'maskrcnn': MaskRCNNNode, 
   
-  'unet': UNetNode,
+  // 'unet': UNetNode,
 };
 
 export const defaultEdgeOptions: DefaultEdgeOptions = {

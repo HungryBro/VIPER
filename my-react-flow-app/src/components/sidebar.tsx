@@ -99,33 +99,33 @@ const Sidebar = ({ onLoadTemplate }: SidebarProps) => {
       headerColor: 'text-teal-400', 
       algorithms: [{ type: 'image-input', label: 'Image Input', color: 'bg-teal-600' }] 
     },
-    { 
-      name: 'Enhancement', 
-      headerColor: 'text-indigo-500', 
-      algorithms: [
-        { type: 'clahe', label: 'CLAHE', color: 'bg-indigo-500' }, 
-        { type: 'msrcr', label: 'MSRCR Retinex', color: 'bg-indigo-500' }, 
-        { type: 'zeroDce', label: 'Zero-DCE Lighten', color: 'bg-indigo-500' }
-      ] 
-    },
-    { 
-      name: 'Restoration', 
-      headerColor: 'text-red-500', 
-      algorithms: [
-        { type: 'dncnn', label: 'DnCNN Denoise', color: 'bg-red-500' }, 
-        { type: 'realesrgan', label: 'Real-ESRGAN', color: 'bg-red-500' }, 
-        { type: 'swinir', label: 'SwinIR Transformer', color: 'bg-red-500' }
-      ] 
-    },
-    { 
-      name: 'Segmentation', 
-      headerColor: 'text-yellow-500', 
-      algorithms: [
-        { type: 'deeplab', label: 'DeepLab v3+', color: 'bg-yellow-500' }, 
-        { type: 'maskrcnn', label: 'Mask R-CNN', color: 'bg-yellow-500' }, 
-        { type: 'unet', label: 'U-Net', color: 'bg-yellow-500' }
-      ] 
-    },
+    // { 
+    //   name: 'Enhancement', 
+    //   headerColor: 'text-indigo-500', 
+    //   algorithms: [
+    //     { type: 'clahe', label: 'CLAHE', color: 'bg-indigo-500' }, 
+    //     { type: 'msrcr', label: 'MSRCR Retinex', color: 'bg-indigo-500' }, 
+    //     { type: 'zeroDce', label: 'Zero-DCE Lighten', color: 'bg-indigo-500' }
+    //   ] 
+    // },
+    // { 
+    //   name: 'Restoration', 
+    //   headerColor: 'text-red-500', 
+    //   algorithms: [
+    //     { type: 'dncnn', label: 'DnCNN Denoise', color: 'bg-red-500' }, 
+    //     { type: 'realesrgan', label: 'Real-ESRGAN', color: 'bg-red-500' }, 
+    //     { type: 'swinir', label: 'SwinIR Transformer', color: 'bg-red-500' }
+    //   ] 
+    // },
+    // { 
+    //   name: 'Segmentation', 
+    //   headerColor: 'text-yellow-500', 
+    //   algorithms: [
+    //     { type: 'deeplab', label: 'DeepLab v3+', color: 'bg-yellow-500' }, 
+    //     { type: 'maskrcnn', label: 'Mask R-CNN', color: 'bg-yellow-500' }, 
+    //     { type: 'unet', label: 'U-Net', color: 'bg-yellow-500' }
+    //   ] 
+    // },
     { 
       name: 'Feature Extraction', 
       headerColor: 'text-green-500', 
@@ -186,22 +186,22 @@ const Sidebar = ({ onLoadTemplate }: SidebarProps) => {
       let headerColor = 'text-teal-400';
       let sortOrder = 99;
 
-      if (t.color === 'indigo') { 
-        key = 'Enhancement'; 
-        headerColor = 'text-indigo-400'; 
-        sortOrder = 1; 
-      }
-      else if (t.color === 'red') { 
-        key = 'Restoration'; 
-        headerColor = 'text-red-400'; 
-        sortOrder = 2; 
-      }
-      else if (t.color === 'yellow') { 
-        key = 'Segmentation'; 
-        headerColor = 'text-yellow-400'; 
-        sortOrder = 3; 
-      }
-      else if (t.color === 'green') { key = 'Feature Extraction'; headerColor = 'text-green-400'; sortOrder = 4; }
+      // if (t.color === 'indigo') { 
+      //   key = 'Enhancement'; 
+      //   headerColor = 'text-indigo-400'; 
+      //   sortOrder = 1; 
+      // }
+      // else if (t.color === 'red') { 
+      //   key = 'Restoration'; 
+      //   headerColor = 'text-red-400'; 
+      //   sortOrder = 2; 
+      // }
+      // else if (t.color === 'yellow') { 
+      //   key = 'Segmentation'; 
+      //   headerColor = 'text-yellow-400'; 
+      //   sortOrder = 3; 
+      // }
+      if (t.color === 'green') { key = 'Feature Extraction'; headerColor = 'text-green-400'; sortOrder = 4; }
       else if (t.color === 'orange') { key = 'Matching'; headerColor = 'text-orange-400'; sortOrder = 5; }
       else if (t.color === 'purple') { key = 'Object Alignment'; headerColor = 'text-purple-400'; sortOrder = 6; }
       else if (t.color === 'pink') { key = 'Classification'; headerColor = 'text-pink-400'; sortOrder = 7; }

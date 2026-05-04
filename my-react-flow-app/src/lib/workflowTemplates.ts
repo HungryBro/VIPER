@@ -3,7 +3,7 @@ import type { Edge, Node } from 'reactflow';
 import type { CustomNodeData } from '../types';
 
 export type WorkflowTemplate = {
-  desc?: any;
+  desc?: unknown;
   name: string;
   descriptor?: { en: string; th: string }; 
   description: string;
@@ -36,12 +36,12 @@ import {
   BRISQUE_ASSESSMENT_TEMPLATE,
 } from './templates/quality';
 
-// 5. NEW TEMPLATES
-import { ENHANCEMENT_CLAHE_TEMPLATE } from './templates/enhancement';
+// 5. ENHANCEMENT
+// import { ENHANCEMENT_CLAHE_TEMPLATE } from './templates/enhancement';
 // 6. Restoration
-import { RESTORATION_REALESRGAN_TEMPLATE } from './templates/restoration';
+// import { RESTORATION_REALESRGAN_TEMPLATE } from './templates/restoration';
 // 7. Segmentation
-import { SEGMENTATION_DEEPLAB_TEMPLATE } from './templates/segmentation';
+// import { SEGMENTATION_DEEPLAB_TEMPLATE } from './templates/segmentation';
 
 
 export const TEMPLATES: WorkflowTemplate[] = [
@@ -53,7 +53,7 @@ export const TEMPLATES: WorkflowTemplate[] = [
   OTSU_CLASSIFICATION_TEMPLATE,
   SNAKE_CLASSIFICATION_TEMPLATE,
   OBJECT_ALIGNMENT_HOMOGRAPHY,
-  ENHANCEMENT_CLAHE_TEMPLATE,
-  RESTORATION_REALESRGAN_TEMPLATE,
-  SEGMENTATION_DEEPLAB_TEMPLATE,
+  // ENHANCEMENT_CLAHE_TEMPLATE,
+  // RESTORATION_REALESRGAN_TEMPLATE,
+  // SEGMENTATION_DEEPLAB_TEMPLATE,
 ];

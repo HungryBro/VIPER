@@ -1,4 +1,4 @@
-# server/algos/feature/sift_adapter.py
+ #server/algos/feature/sift_adapter.py
 
 import os, sys, json, uuid
 import hashlib 
@@ -127,11 +127,11 @@ def run(
             "processed_sift_dtype": str(gray.dtype)
         },
         "sift_parameters_used": {
-            "nfeatures": sift.getNFeatures(),
-            "nOctaveLayers": sift.getNOctaveLayers(),
-            "contrastThreshold": sift.getContrastThreshold(),
-            "edgeThreshold": sift.getEdgeThreshold(),
-            "sigma": sift.getSigma()
+            "nfeatures": config_map["nfeatures"],
+            "nOctaveLayers": config_map["nOctaveLayers"],
+            "contrastThreshold": config_map["contrastThreshold"],
+            "edgeThreshold": config_map["edgeThreshold"],
+            "sigma": config_map["sigma"]
         },
         "num_keypoints": len(kplist),
         "descriptor_dim": 128,
