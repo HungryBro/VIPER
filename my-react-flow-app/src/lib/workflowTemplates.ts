@@ -3,7 +3,7 @@ import type { Edge, Node } from 'reactflow';
 import type { CustomNodeData } from '../types';
 
 export type WorkflowTemplate = {
-  desc?: unknown;
+  desc?: any;
   name: string;
   descriptor?: { en: string; th: string }; 
   description: string;
