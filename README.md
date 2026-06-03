@@ -1,59 +1,74 @@
-# n2n-image-processing
+# VIPER — Visual Image Processing Pipeline Engine & Routing
+**Senior Project | Computer Engineering, Chitralada Technology Institute**
 
-# run frontend
-npm run dev
+Project VIPER is an end-to-end node-based image processing platform designed to transform complex, multi-stage backend processing workflows into intuitive, visual drag-and-drop pipelines. Built explicitly to replace traditional linear script execution, it allows operators to construct, evaluate, and monitor visual data routing through an interactive node-based UI — making complex backend pipelines visible and manageable.
 
-# run server 
-uvicorn server.main:app --reload 
+---
 
-# run pytest
-pytest -v project_n2n
+## 🏗️ System Architecture & Data Flow
 
-# OpenCV SURF & BRISQUE Setup for Project n2n
-1. การเตรียมซอร์สโค้ด (Source Preparation)
-ดาวน์โหลด OpenCV และโมดูลเสริม (Contrib) ไว้ที่หน้า Desktop:
+The platform separates layers cleanly between a reactive visual interface and a high-performance backend analytics engine. Data structures are parsed into structured JSON schemas, dispatched through a centralized router, and stored transactionally within a relational database.
 
-OpenCV Main: opencv
+<img width="864" height="390" alt="Screenshot 2569-02-22 at 00 28 02" src="https://github.com/user-attachments/assets/9b219e41-641e-4b05-94d2-55d908b14cc4" />
 
-OpenCV Contrib: opencv_contrib (จำเป็นสำหรับการใช้ SURF)
+---
 
-2. การกำหนดค่าการสร้าง (CMake Configuration)
-ใช้คำสั่ง cmake เพื่อสร้าง Makefile โดยมีการปรับแต่งพิเศษเพื่อข้ามบั๊กบน macOS 15 และ Apple Silicon:
-cmake -D CMAKE_BUILD_TYPE=RELEASE \
--D CMAKE_INSTALL_PREFIX=/usr/local \
--D OPENCV_ENABLE_NONFREE=ON \
--D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib/modules \
--D PYTHON3_EXECUTABLE=$(which python) \
--D PYTHON3_LIBRARY=/Library/Frameworks/Python.framework/Versions/3.11/lib/libpython3.11.dylib \
--D PYTHON3_INCLUDE_DIR=/Library/Frameworks/Python.framework/Versions/3.11/include/python3.11 \
--D PYTHON3_PACKAGES_PATH=$(python -c "import site; print(site.getsitepackages()[0])") \
--D BUILD_opencv_python3=ON \
--D BUILD_opencv_videoio=OFF \
--D BUILD_opencv_gapi=OFF \
--D BUILD_opencv_sfm=OFF \
--D BUILD_opencv_typing_stubs=OFF \
--D WITH_GSTREAMER=OFF \
--D WITH_FFMPEG=OFF \
-../opencv
+## 📡 Platform Interface & Live Workflow Evaluation
 
-3. การสร้างและติดตั้ง (Build & Install)
-รันคำสั่งเพื่อ Compile ซอร์สโค้ดและยัดไฟล์เข้าไปในระบบ:
-sudo make -j8        
-sudo make install  
+### 1. Unified Pipeline Canvas (Initial State)
+An interactive canvas designed with collapsible operations libraries (`Input`, `Enhancement`, `Segmentation`, `Feature Extraction`, `Matching`, etc.) supporting organized node selections.
 
-4. การทำทางลัด Library (Symbolic Link)
-เพื่อให้ Python ใน venv มองเห็น OpenCV ที่สร้างขึ้นใหม่:
-cd .venv/lib/python3.11/site-packages
-ln -sf cv2/python-3.11/cv2.cpython-311-darwin.so cv2.so
+<img width="1440" height="813" alt="Screenshot 2569-04-27 at 16 54 22" src="https://github.com/user-attachments/assets/033f0b60-432b-472e-adc4-7e0cedcdc7d0" />
 
-5. การติดตั้ง BRISQUE (Image Quality Check)
-ติดตั้งโมดูลวัดคุณภาพภาพโดย ห้ามรัน pip install opencv-python ทับเด็ดขาด:
-sudo chown -R $(whoami) .venv  
-pip install libsvm-official
-pip install brisque --no-deps  
-pip install requests urllib3 charset_normalizer 
+### 2. Live Complex Workflow Execution & System Logging
+Operators can build intricate computational graphics. As the tracking triggers, sequential system metrics provide real-time validation logs directly inside the monitoring layout.
 
-6. การตรวจสอบผลลัพธ์ (Verification)
-รันคำสั่งนี้เพื่อยืนยันว่าทุกอย่างพร้อมใช้งาน:
-python -c "import cv2; print('✅ Version:', cv2.__version__); print('✅ SURF Ready:', hasattr(cv2.xfeatures2d, 'SURF_create'))"
-python -c "import brisque; print('✅ BRISQUE Ready')"
+<img width="1440" height="815" alt="Screenshot 2569-04-27 at 16 54 07" src="https://github.com/user-attachments/assets/ffa89f71-3b67-40f8-a726-65f13de53075" />
+
+---
+
+## 🚀 Strict Quality Assurance & Test Suite Validation
+
+To guarantee system logic stability during high-throughput image routing and schema translation, the platform integrates a comprehensive automated testing matrix. 
+
+Executing the test suite demonstrates robust coverage across algorithmic edge-cases, data modeling integrity, and system rules, yielding zero execution regressions.
+
+<img width="1514" height="136" alt="Screenshot 2569-02-22 at 19 33 29" src="https://github.com/user-attachments/assets/52d33d32-8619-40b5-9324-9639c2246657" />
+
+---
+
+## ✨ Key Features
+
+- 🔀 **Visual Workflow Editor:** Interactive node-based pipeline builder using **React Flow** and **TypeScript**.
+- 🖼️ **Image Processing Engine:** Processes images through configurable pipeline stages with SURF feature detection and BRISQUE quality scoring via **OpenCV**.
+- 🗄️ **Relational Data Management:** Architected with a **PostgreSQL** schema to handle all pipeline transactions and enforce absolute data integrity.
+- ✅ **Automated Testing:** Comprehensive **Pytest** test suite covering functional edge cases, data constraints, and strict system rules.
+- 🐳 **Containerized Infrastructure:** Pre-configured with **Docker** and `docker-compose` for rapid deployment and easy multi-environment setup.
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+| :--- | :--- |
+| **Frontend Framework** | Next.js, React, TypeScript |
+| **Visual Library** | React Flow (Canvas) |
+| **Backend Engine** | Python, FastAPI |
+| **Database Management** | PostgreSQL |
+| **Image Processing** | OpenCV (SURF, BRISQUE) |
+| **Testing Automation** | Pytest |
+| **Infrastructure** | Docker, Docker Compose |
+
+---
+
+## 📁 Project Structure
+
+```text
+VIPER/
+├── my-react-flow-app/     # Next.js frontend with React Flow editor
+├── server/                # FastAPI backend & pipeline logic
+├── Image-to-Descriptor/   # OpenCV image processing modules
+├── tests/                 # Pytest test suite
+├── outputs/samples/       # Sample pipeline outputs
+├── Dockerfile
+└── docker-compose.yml
