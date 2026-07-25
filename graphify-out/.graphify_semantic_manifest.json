@@ -1,0 +1,17 @@
+{
+  "priority_documents": [
+    "README.md",
+    "SIDA/README 2.md",
+    "SIDA/README.md",
+    "SIDA/data/shapes_v2/README.md",
+    "SIDA/data/shapes_v2/locked_original/README.md",
+    "SIDA/docs/README_Week1.md",
+    "SIDA/docs/reports/GradCAM_Report.html",
+    "SIDA/docs/reports/SIDA.html",
+    "SIDA/docs/reports/SIDA_slides.html",
+    "SIDA/requirements.txt",
+    "docker-compose.yml",
+    "my-react-flow-app/README.md",
+    "requirements.txt"
+  ]
+}
