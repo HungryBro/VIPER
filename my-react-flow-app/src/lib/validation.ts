@@ -12,6 +12,7 @@ export type ValidationResult = {
 const NODE_RULES: Record<string, { inputs: string[]; output: string }> = {
   // --- Source ---
   'image-input': { inputs: [], output: 'image' },
+  'multi-image-input': { inputs: [], output: 'images' },
 
   // --- Features ---
   'sift': { inputs: ['image'], output: 'feature' },
@@ -50,6 +51,12 @@ const NODE_RULES: Record<string, { inputs: string[]; output: string }> = {
   // --- Classification / Logic ---
   'otsu': { inputs: ['image'], output: 'mask' },
   'snake': { inputs: ['image'], output: 'mask' },
+
+  // --- Object Detection / XAI ---
+  'yolo-dataset': { inputs: ['images'], output: 'dataset' },
+  'yolo-train': { inputs: ['dataset'], output: 'model' },
+  'yolo-detect': { inputs: ['image', 'model'], output: 'image' },
+  'yolo-gradcam': { inputs: ['image', 'model'], output: 'image' },
 
   // --- Quality Metrics ---
   'brisque': { inputs: ['image'], output: 'metric' },
@@ -155,6 +162,24 @@ export function validateNodeInput(
       }
       break;
 
+    case 'multi-image-input':
+      if (!Array.isArray(node.data?.payload?.dataset_images) || node.data.payload.dataset_images.length < 2) {
+        return { isValid: false, message: 'Upload at least 2 images for the YOLO dataset.' };
+      }
+      break;
+
+    case 'yolo-dataset':
+      if (inputCount < 1) {
+        return { isValid: false, message: 'Connect a Multi Image Input node before building the dataset.' };
+      }
+      break;
+
+    case 'yolo-train':
+      if (inputCount < 1 && !node.data?.payload?.params?.dataset_yaml) {
+        return { isValid: false, message: 'Connect a YOLO Dataset Builder or set a Dataset YAML path.' };
+      }
+      break;
+
     case 'bfmatcher':
     case 'flannmatcher':
       if (inputCount < 2) {
@@ -201,7 +226,7 @@ export function validateNodeInput(
       break;
 
     default:
-      if (inputCount < 1 && !['image-input'].includes(type)) {
+      if (inputCount < 1 && !['image-input', 'multi-image-input'].includes(type)) {
           return { isValid: false, message: 'Missing input connection.' };
       }
       break;

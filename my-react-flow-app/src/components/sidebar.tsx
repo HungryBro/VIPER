@@ -97,7 +97,10 @@ const Sidebar = ({ onLoadTemplate }: SidebarProps) => {
     { 
       name: 'Input', 
       headerColor: 'text-teal-400', 
-      algorithms: [{ type: 'image-input', label: 'Image Input', color: 'bg-teal-600' }] 
+      algorithms: [
+        { type: 'image-input', label: 'Image Input', color: 'bg-teal-600' },
+        { type: 'multi-image-input', label: 'Multi Image Input', color: 'bg-teal-600' },
+      ]
     },
     // { 
     //   name: 'Enhancement', 
@@ -158,6 +161,16 @@ const Sidebar = ({ onLoadTemplate }: SidebarProps) => {
         { type: 'otsu', label: "Otsu's Threshold", color: 'bg-pink-500' }, 
         { type: 'snake', label: 'Snake (Active Contour)', color: 'bg-pink-500' }
       ] 
+    },
+    {
+      name: 'Object Detection & XAI',
+      headerColor: 'text-cyan-400',
+      algorithms: [
+        { type: 'yolo-dataset', label: 'YOLO Dataset Builder', color: 'bg-cyan-600' },
+        { type: 'yolo-train', label: 'YOLO Train', color: 'bg-cyan-600' },
+        { type: 'yolo-detect', label: 'YOLO Detect / Test', color: 'bg-cyan-600' },
+        { type: 'yolo-gradcam', label: 'YOLO Grad-CAM', color: 'bg-cyan-600' },
+      ],
     },
     { 
       name: 'Quality Assessment', 

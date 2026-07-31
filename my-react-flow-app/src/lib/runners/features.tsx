@@ -16,7 +16,7 @@ export async function runFeature(
 
   const fail = async (msg: string) => {
     await updateNodeStatus(nodeId, 'fault', setNodes);
-    throw new Error(msg); 
+    throw new Error(msg);
   };
 
   const incoming = getIncoming(nodeId);
@@ -44,7 +44,7 @@ export async function runFeature(
   switch (node.type) {
     case 'sift': prefix = 'SIFT'; runner = runSift; break;
     case 'surf': prefix = 'SURF'; runner = runSurf; break;
-    case 'orb':  prefix = 'ORB';  runner = runOrb; break;
+    case 'orb': prefix = 'ORB'; runner = runOrb; break;
     default: return;
   }
 
@@ -57,40 +57,44 @@ export async function runFeature(
     const num_keypoints = resp.num_keypoints ?? resp.kps_count ?? 0;
     const visUrl = resp.vis_url ? abs(resp.vis_url) : undefined;
 
-    const foundShape = resp?.json_data?.image?.original_shape 
-                    || resp?.image_shape 
-                    || resp?.shape;
+    const foundShape = resp?.json_data?.image?.original_shape
+      || resp?.image_shape
+      || resp?.shape;
+
+    const backendWarning = (resp?.feature_backend || resp?.json_data?.feature_backend) === 'SIFT_FALLBACK'
+      ? 'SURF unavailable; used SIFT fallback'
+      : undefined;
 
     setNodes((nds) =>
       nds.map((n) =>
         n.id === nodeId
           ? {
-              ...n,
-              data: {
-                ...n.data,
-                status: 'success',
-                description: `Found ${num_keypoints} keypoints`,
-                payload: {
-                  ...(n.data as CustomNodeData)?.payload,
-                  ...resp, 
-                  params,
-                  json: resp,
-                  json_url: resp.json_url,
-                  result_image_url: visUrl,
+            ...n,
+            data: {
+              ...n.data,
+              status: 'success',
+              description: backendWarning || `Found ${num_keypoints} keypoints`,
+              payload: {
+                ...(n.data as CustomNodeData)?.payload,
+                ...resp,
+                params,
+                json: resp,
+                json_url: resp.json_url,
+                result_image_url: visUrl,
+                vis_url: visUrl,
+                output_image: visUrl,
+                num_keypoints: num_keypoints,
+
+                image_shape: foundShape,
+
+                output: {
                   vis_url: visUrl,
-                  output_image: visUrl,
-                  num_keypoints: num_keypoints,
-                  
-                  image_shape: foundShape,
-                  
-                  output: {
-                    vis_url: visUrl,
-                    json_url: resp.json_url,
-                    num_keypoints: num_keypoints
-                  }
-                },
-              } as CustomNodeData,
-            }
+                  json_url: resp.json_url,
+                  num_keypoints: num_keypoints
+                }
+              },
+            } as CustomNodeData,
+          }
           : n
       )
     );

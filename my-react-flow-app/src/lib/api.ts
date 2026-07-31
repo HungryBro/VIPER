@@ -33,6 +33,35 @@ export async function uploadImages(files: File[], signal?: AbortSignal) {
   return await resp.json();
 }
 
+// ---------- Object Detection / XAI ----------
+export async function runYOLOTrain(request: Record<string, any>, signal?: AbortSignal) {
+  const resp = await fetch(`${API_BASE}/api/detection/train`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request), signal,
+  });
+  return handleResponse(resp);
+}
+
+export async function createYOLODataset(request: Record<string, any>, signal?: AbortSignal) {
+  const resp = await fetch(`${API_BASE}/api/detection/dataset`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request), signal,
+  });
+  return handleResponse(resp);
+}
+
+export async function runYOLODetect(request: Record<string, any>, signal?: AbortSignal) {
+  const resp = await fetch(`${API_BASE}/api/detection/detect`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request), signal,
+  });
+  return handleResponse(resp);
+}
+
+export async function runYOLOGradCAM(request: Record<string, any>, signal?: AbortSignal) {
+  const resp = await fetch(`${API_BASE}/api/detection/gradcam`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request), signal,
+  });
+  return handleResponse(resp);
+}
+
 // ---------- 2. Feature Detection (SIFT, SURF, ORB) ----------
 export async function runSift(image_path: string, params?: Record<string, any>, signal?: AbortSignal) {
   const resp = await fetch(`${API_BASE}/api/feature/sift`, {

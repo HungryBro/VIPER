@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from .utils_io import save_upload, static_url, ensure_dirs, OUT, UPLOAD_DIR
 from .routers import (
     features, matching, alignment, quality, 
-    classification, 
+    classification, detection,
     # enhancement, restoration, segmentation
 )
 
@@ -33,6 +33,7 @@ app.include_router(matching.router,       prefix="/api/match")
 app.include_router(alignment.router,      prefix="/api/alignment")
 app.include_router(quality.router,        prefix="/api/quality")
 app.include_router(classification.router, prefix="/api/classify")
+app.include_router(detection.router,      prefix="/api/detection")
 # app.include_router(enhancement.router,    prefix="/api/enhancement")
 # app.include_router(restoration.router,    prefix="/api/restoration")
 # app.include_router(segmentation.router,   prefix="/api/segmentation")

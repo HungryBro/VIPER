@@ -2,6 +2,7 @@
 import { MarkerType, type NodeTypes, type DefaultEdgeOptions } from 'reactflow';
 
 import ImageInputNode from '../components/nodes/ImageInputNode';
+import MultiImageInputNode from '../components/nodes/MultiImageInputNode';
 import SiftNode from '../components/nodes/SiftNode';
 import SurfNode from '../components/nodes/SurfNode';
 import OrbNode from '../components/nodes/OrbNode';
@@ -16,6 +17,8 @@ import OtsuNode from '../components/nodes/OtsuNode';
 import SnakeNode from '../components/nodes/SnakeNode';
 import SaveImageNode from '../components/nodes/SaveImageNode';
 import SaveJsonNode from '../components/nodes/SaveJsonNode';
+import { YoloTrainNode, YoloDetectNode, YoloGradCAMNode } from '../components/nodes/YoloNodes';
+import YoloDatasetNode from '../components/nodes/YoloDatasetNode';
 
 // import CLAHENode from '../components/nodes/CLAHE';
 // import MSRCRNode from '../components/nodes/MSRCR';
@@ -29,6 +32,7 @@ import SaveJsonNode from '../components/nodes/SaveJsonNode';
 
 export const nodeTypes: NodeTypes = {
   'image-input': ImageInputNode,
+  'multi-image-input': MultiImageInputNode,
   sift: SiftNode,
   surf: SurfNode,
   orb: OrbNode,
@@ -43,6 +47,10 @@ export const nodeTypes: NodeTypes = {
   snake: SnakeNode,
   'save-image': SaveImageNode,
   'save-json': SaveJsonNode,
+  'yolo-dataset': YoloDatasetNode,
+  'yolo-train': YoloTrainNode,
+  'yolo-detect': YoloDetectNode,
+  'yolo-gradcam': YoloGradCAMNode,
 
   // 'clahe': CLAHENode,
   

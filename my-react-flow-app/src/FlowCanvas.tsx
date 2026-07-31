@@ -21,6 +21,8 @@ import { markStartThenRunning } from './lib/runners/utils';
 import { runEnhancement } from './lib/runners/enhancement';
 import { runRestoration } from './lib/runners/restoration';
 import { runSegmentation } from './lib/runners/segmentation';
+import { runDetectionNode } from './lib/runners/detection';
+import { runYOLODatasetNode } from './lib/runners/yoloDataset';
 
 // ---------- Hooks / Utils ----------
 import { useFlowHotkeys } from './hooks/useFlowHotkeys';
@@ -207,12 +209,20 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
             await new Promise(r => setTimeout(r, 100));
             break;
 
+          case 'multi-image-input':
+            if (!node.data.payload?.dataset_images?.length) throw new Error('No images uploaded yet.');
+            setNodes(nds => nds.map(n => n.id === nodeId ? { ...n, data: { ...n.data, status: 'success' as NodeStatus } } : n));
+            break;
+
+          case 'yolo-dataset': await runYOLODatasetNode(node as any, setNodes as any, freshNodes as any, freshEdges); break;
+
           case 'sift': case 'surf': case 'orb': await runFeature(node, setNodes, freshNodes, freshEdges); break;
           case 'brisque': case 'psnr': case 'ssim': await runQuality(node, setNodes, freshNodes, freshEdges); break;
           case 'bfmatcher': case 'flannmatcher': await runMatcher(node, setNodes, freshNodes, freshEdges); break;
           case 'homography-align': case 'affine-align': await runAlignment(node as any, setNodes as any, freshNodes, freshEdges); break;
           case 'otsu': await runOtsu(node as any, setNodes as any, freshNodes, freshEdges); break;
           case 'snake': await runSnakeRunner(node as any, setNodes as any, freshNodes, freshEdges); break;
+          case 'yolo-train': case 'yolo-detect': case 'yolo-gradcam': await runDetectionNode(node, setNodes, freshNodes, freshEdges); break;
           case 'clahe': case 'msrcr': case 'zero': case 'zerodce': case 'zero-dce': case 'zero_dce': await runEnhancement(node as any, setNodes as any, freshNodes, freshEdges); break;
           case 'dcnn': case 'dncnn': case 'swinir': case 'real': case 'realesrgan': await runRestoration(node as any, setNodes as any, freshNodes, freshEdges); break;
           case 'deep': case 'deeplab': case 'mask': case 'maskrcnn': case 'unet': await runSegmentation(node as any, setNodes as any, freshNodes, freshEdges); break;
@@ -226,6 +236,17 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           setNodes((nds) => nds.map((n) => {
             if (downstreamIds.has(n.id)) {
               const params = n.data.payload?.params;
+              if (n.type === 'yolo-dataset') {
+                return {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    status: 'idle',
+                    description: 'Images updated — annotations ready to build.',
+                    payload: { ...(n.data.payload || {}) },
+                  },
+                };
+              }
               return {
                 ...n,
                 data: {
@@ -290,10 +311,11 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           }
 
           const executionPriority: Record<string, number> = {
-            'image-input': 1,
+            'image-input': 1, 'multi-image-input': 1, 'yolo-dataset': 2,
             'dcnn': 10, 'dncnn': 10, 'swinir': 10, 'real': 10, 'realesrgan': 10,
             'clahe': 20, 'msrcr': 20, 'zero': 20, 'zerodce': 20, 'zero_dce': 20,
             'otsu': 30, 'snake': 30,
+            'yolo-train': 5, 'yolo-detect': 25, 'yolo-gradcam': 30,
             'deep': 35, 'deeplab': 35, 'unet': 35, 'mask': 35, 'maskrcnn': 35,
             'sift': 40, 'surf': 40, 'orb': 40,
             'bfmatcher': 50, 'flannmatcher': 50,

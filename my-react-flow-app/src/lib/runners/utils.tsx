@@ -52,43 +52,45 @@ export function findInputImage(
   nodes: RFNode[], 
   edges: Edge[]
 ): string | undefined {
-  const incoming = edges.find(e => e.target === nodeId && e.source !== nodeId);
-  if (!incoming) return undefined;
+  const parents = edges
+    .filter(e => e.target === nodeId && e.source !== nodeId)
+    .map(e => nodes.find(n => n.id === e.source))
+    .filter((parent): parent is RFNode => Boolean(parent?.data));
 
-  const parent = nodes.find(n => n.id === incoming.source);
-  if (!parent || !parent.data) return undefined;
-
-  const p = (parent.data.payload || parent.data.output) as any;
-  if (!p) return undefined;
+  for (const parent of parents) {
+    if (parent.type === 'yolo-train') continue;
+    const p = (parent.data.payload || parent.data.output) as any;
+    if (!p) continue;
   
-  if (typeof p.path === 'string') return p.path; 
-  if (typeof p.aligned_path === 'string') return p.aligned_path;
-  if (typeof p.image_path === 'string') return p.image_path;
-  if (typeof p.output_path === 'string') return p.output_path;
+    if (typeof p.path === 'string') return p.path;
+    if (typeof p.aligned_path === 'string') return p.aligned_path;
+    if (typeof p.image_path === 'string') return p.image_path;
+    if (typeof p.output_path === 'string') return p.output_path;
 
   
-  if (typeof p.url === 'string' && (p.url.startsWith('/static') || p.url.startsWith('http'))) {
+    if (typeof p.url === 'string' && (p.url.startsWith('/static') || p.url.startsWith('http'))) {
       return p.url;
-  }
-  if (typeof p.vis_url === 'string' && (p.vis_url.startsWith('/static') || p.vis_url.startsWith('http'))) {
+    }
+    if (typeof p.vis_url === 'string' && (p.vis_url.startsWith('/static') || p.vis_url.startsWith('http'))) {
       return p.vis_url;
-  }
-  if (typeof p.result_image_url === 'string' && (p.result_image_url.startsWith('/static') || p.result_image_url.startsWith('http'))) {
+    }
+    if (typeof p.result_image_url === 'string' && (p.result_image_url.startsWith('/static') || p.result_image_url.startsWith('http'))) {
       return p.result_image_url;
-  }
+    }
 
-  if (typeof p.name === 'string' && !p.url?.startsWith('blob:')) {
+    if (typeof p.name === 'string' && !p.url?.startsWith('blob:')) {
       return p.name; 
-  }
+    }
 
-  if (typeof p.output_image === 'string') return p.output_image;
-  if (typeof p.vis_url === 'string') return p.vis_url;
-  if (typeof p.url === 'string') return p.url; 
-  if (typeof p.aligned_url === 'string') return p.aligned_url;
+    if (typeof p.output_image === 'string') return p.output_image;
+    if (typeof p.vis_url === 'string') return p.vis_url;
+    if (typeof p.url === 'string') return p.url;
+    if (typeof p.aligned_url === 'string') return p.aligned_url;
 
-  if (p.output) {
-     if (typeof p.output.aligned_image === 'string') return p.output.aligned_image;
-     if (typeof p.output.aligned_path === 'string') return p.output.aligned_path;
+    if (p.output) {
+       if (typeof p.output.aligned_image === 'string') return p.output.aligned_image;
+       if (typeof p.output.aligned_path === 'string') return p.output.aligned_path;
+    }
   }
 
   return undefined;

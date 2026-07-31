@@ -44,6 +44,40 @@ Executing the test suite demonstrates robust coverage across algorithmic edge-ca
 - 🗄️ **Relational Data Management:** Architected with a **PostgreSQL** schema to handle all pipeline transactions and enforce absolute data integrity.
 - ✅ **Automated Testing:** Comprehensive **Pytest** test suite covering functional edge cases, data constraints, and strict system rules.
 - 🐳 **Containerized Infrastructure:** Pre-configured with **Docker** and `docker-compose` for rapid deployment and easy multi-environment setup.
+- 🔎 **YOLO & Explainable AI:** Train a YOLO model, run object detection, and inspect Grad-CAM heatmaps directly in a visual workflow.
+
+## YOLO and Grad-CAM workflow
+
+The `Object Detection & XAI` library group contains four nodes:
+
+1. **Multi Image Input** — upload the group of images used for training.
+2. **YOLO Dataset Builder** — connect Multi Image Input, define class names, draw bounding boxes, and build a YOLO directory and `data.yaml` automatically.
+3. **YOLO Train** — connect a Dataset Builder, set epochs, image size, and batch size. The node uses the fixed `yolo11n.pt` base model and outputs the path to `best.pt` when training succeeds.
+4. **YOLO Detect / Test** — connect an Image Input and optionally connect YOLO Train. Without a training connection it uses fixed `yolo11n.pt`.
+5. **YOLO Grad-CAM** — connect an image and optionally a trained model. It produces an overlay, a raw heatmap image, and compactness metrics.
+
+The implementation is fully contained in `server/algos/detection/` and does
+not import code, models, datasets, or paths from the former `SIDA/` experiment.
+The current UI fixes the base model to `yolo11n.pt`. Ultralytics downloads it
+on first use when it is not already cached. After training, Detect and Grad-CAM
+automatically use the connected run's `best.pt`. The Dataset Builder creates an
+80/20 train/validation split and accepts images with or without boxes, but at
+least one annotation is required.
+
+Grad-CAM results include `heatmap_compactness`, `largest_component_ratio`,
+`energy_in_boxes`, and `active_area_ratio`. A compact activation concentrated
+inside detected boxes produces a higher compactness score; treat this as an XAI
+diagnostic, not as a calibrated detection probability.
+
+Install the ML dependencies before starting the API:
+
+```bash
+pip install -r requirements.txt
+```
+
+The backend endpoints are `POST /api/detection/train`,
+`POST /api/detection/detect`, and `POST /api/detection/gradcam`. Generated files
+are written under `outputs/detection/` and served through `/static`.
 
 ---
 
