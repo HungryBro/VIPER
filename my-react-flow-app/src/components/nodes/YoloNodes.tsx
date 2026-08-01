@@ -24,19 +24,19 @@ const CONFIG = {
 const DEFAULTS: Record<Mode, Record<string, any>> = {
   train: {
     dataset_yaml: '',
-    model_path: 'yolo11n.pt',
+    model_path: 'models/yolo11n.pt',
     epochs: 50,
     image_size: 640,
     batch: 16,
   },
   detect: {
-    model_path: 'yolo11n.pt',
+    model_path: 'models/yolo11n.pt',
     confidence: 0.25,
     iou: 0.7,
     image_size: 640,
   },
   gradcam: {
-    model_path: 'yolo11n.pt',
+    model_path: 'models/yolo11n.pt',
     method: 'GradCAM',
     confidence: 0.2,
     target_layers: '',

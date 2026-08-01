@@ -15,7 +15,7 @@ import numpy as np
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
-DEFAULT_MODEL = "yolo11n.pt"
+DEFAULT_MODEL = "models/yolo11n.pt"
 
 
 def _require_file(value: str, label: str) -> Path:

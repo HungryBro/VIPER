@@ -219,6 +219,7 @@ const Sidebar = ({ onLoadTemplate }: SidebarProps) => {
       else if (t.color === 'purple') { key = 'Object Alignment'; headerColor = 'text-purple-400'; sortOrder = 6; }
       else if (t.color === 'pink') { key = 'Classification'; headerColor = 'text-pink-400'; sortOrder = 7; }
       else if (t.color === 'blue') { key = 'Quality Assessment'; headerColor = 'text-blue-400'; sortOrder = 8; }
+      else if (t.color === 'cyan') { key = 'Object Detection & XAI'; headerColor = 'text-cyan-400'; sortOrder = 9; }
 
       const cleanName = t.name.replace(/Lesson \d+: /g, '').trim();
 

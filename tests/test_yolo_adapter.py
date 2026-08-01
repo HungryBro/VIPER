@@ -112,9 +112,11 @@ def test_detect_rejects_missing_model(tmp_path: Path):
         yolo_adapter.detect(str(image), str(tmp_path), str(tmp_path / "missing.pt"))
 
 
-def test_model_alias_does_not_require_an_experiment_directory():
-    assert yolo_adapter.DEFAULT_MODEL == "yolo11n.pt"
-    assert yolo_adapter._resolve_model("yolo11n.pt") == "yolo11n.pt"
+def test_bundled_model_resolves_from_the_project_models_directory():
+    assert yolo_adapter.DEFAULT_MODEL == "models/yolo11n.pt"
+    assert yolo_adapter._resolve_model(yolo_adapter.DEFAULT_MODEL) == str(
+        (Path(__file__).resolve().parents[1] / yolo_adapter.DEFAULT_MODEL).resolve()
+    )
 
 
 def test_viper_runtime_has_no_sida_dependency():
@@ -151,4 +153,6 @@ def test_train_returns_best_model_for_downstream_nodes(tmp_path: Path, monkeypat
     assert Path(result["json_path"]).is_file()
     assert fake_model.train_kwargs["epochs"] == 2
     assert fake_model.train_kwargs["batch"] == 1
-    assert loaded_models == [yolo_adapter.DEFAULT_MODEL]
+    assert loaded_models == [
+        str((Path(__file__).resolve().parents[1] / yolo_adapter.DEFAULT_MODEL).resolve())
+    ]

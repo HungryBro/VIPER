@@ -1,6 +1,7 @@
 import { memo, useMemo, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { Handle, Position, type NodeProps, useEdges, useNodes, useReactFlow } from 'reactflow';
 import type { CustomNodeData } from '../../types';
+import { abs } from '../../lib/api';
 
 type Annotation = {
   class_id: number;
@@ -149,7 +150,7 @@ const YoloDatasetNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>)
           </div>
 
           <div className="relative overflow-hidden rounded border border-gray-600 bg-gray-950">
-            {current && <img src={current.url} alt={current.name} className="block h-auto w-full select-none" draggable={false} />}
+            {current && <img src={abs(current.url) || current.url} alt={current.name} className="block h-auto w-full select-none" draggable={false} />}
             {current && <svg className="nodrag nowheel absolute inset-0 h-full w-full cursor-crosshair" viewBox="0 0 1 1" preserveAspectRatio="none" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp}>
               {(current.annotations || []).map((box, index) => <g key={index}>
                 <rect x={box.x} y={box.y} width={box.width} height={box.height} fill="transparent" stroke={colour(box.class_id)} strokeWidth="0.006" />

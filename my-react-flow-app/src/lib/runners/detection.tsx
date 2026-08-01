@@ -7,7 +7,7 @@ import { findInputImage } from './utils';
 
 type RF = RFNode<CustomNodeData>;
 type SetNodes = React.Dispatch<React.SetStateAction<RF[]>>;
-const DEFAULT_MODEL = 'yolo11n.pt';
+const DEFAULT_MODEL = 'models/yolo11n.pt';
 
 function csvNumbers(value: unknown): number[] | undefined {
   if (Array.isArray(value)) return value.map(Number).filter(Number.isFinite);
@@ -71,7 +71,7 @@ export async function runDetectionNode(node: RF, setNodes: SetNodes, nodes: RF[]
 
   const imagePath = findInputImage(node.id, nodes, edges);
   if (!imagePath) throw new Error('Connect an Image Input or image-producing node.');
-  const modelPath = trainedModel(node.id, nodes, edges) || DEFAULT_MODEL;
+  const modelPath = trainedModel(node.id, nodes, edges) || params.model_path || DEFAULT_MODEL;
 
   if (node.type === 'yolo-detect') {
     const response = await runYOLODetect({ ...params, image_path: imagePath, model_path: modelPath }, signal);
