@@ -116,6 +116,15 @@ export async function createTemplateComment(
   }));
 }
 
+export async function deleteTemplateComment(
+  templateId: number,
+  commentId: number,
+): Promise<void> {
+  await readJson<unknown>(await apiFetch(`/api/templates/${templateId}/comments/${commentId}`, {
+    method: 'DELETE',
+  }));
+}
+
 export async function updateTemplateCommentsSetting(
   templateId: number,
   commentsEnabled: boolean,

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
@@ -197,6 +197,52 @@ def create_template_comment(
     )
     db.commit()
     return db.scalar(_comment_query().where(Comment.id == comment.id))
+
+
+@router.delete(
+    "/{template_id}/comments/{comment_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_template_comment(
+    template_id: int,
+    comment_id: int,
+    request: Request,
+    user: User = Depends(require_active_user),
+    db: Session = Depends(get_db),
+):
+    # Deleting an owned comment stays available even when new comments are closed.
+    _get_visible_template(db, template_id, user)
+    comment = db.scalar(
+        _comment_query().where(
+            Comment.id == comment_id,
+            Comment.template_id == template_id,
+        )
+    )
+    if comment is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment not found",
+        )
+    if comment.author_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only delete your own comments",
+        )
+
+    db.add(
+        AuditLog(
+            actor_id=user.id,
+            action="comment.delete",
+            target_type="comment",
+            target_id=str(comment.id),
+            details={"template_id": template_id},
+            request_path=str(request.url.path),
+            status_code=status.HTTP_204_NO_CONTENT,
+        )
+    )
+    db.delete(comment)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.patch("/{template_id}", response_model=TemplateDetail)

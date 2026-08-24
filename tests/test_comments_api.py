@@ -84,15 +84,35 @@ def test_user_can_write_and_read_template_comments():
             )
             comments = client.get(f"/api/templates/{template_id}/comments")
 
+            authenticate(client, owner.id)
+            forbidden_delete = client.delete(
+                f"/api/templates/{template_id}/comments/{created.json()['id']}"
+            )
+
+            authenticate(client, viewer.id)
+            deleted = client.delete(
+                f"/api/templates/{template_id}/comments/{created.json()['id']}"
+            )
+            comments_after_delete = client.get(f"/api/templates/{template_id}/comments")
+
         assert created.status_code == 201
         assert created.json()["body"] == "Very useful workflow"
         assert created.json()["author"]["display_name"] == "viewer"
         assert [comment["body"] for comment in comments.json()] == ["Very useful workflow"]
+        assert forbidden_delete.status_code == 403
+        assert forbidden_delete.json()["detail"] == "You can only delete your own comments"
+        assert deleted.status_code == 204
+        assert comments_after_delete.json() == []
 
         with Session(engine) as db:
-            audit = db.scalar(select(AuditLog).where(AuditLog.action == "comment.create"))
-            assert audit.actor_id == viewer.id
-            assert audit.details == {"template_id": template_id}
+            audits = db.scalars(
+                select(AuditLog)
+                .where(AuditLog.action.in_(["comment.create", "comment.delete"]))
+                .order_by(AuditLog.id)
+            ).all()
+            assert [audit.action for audit in audits] == ["comment.create", "comment.delete"]
+            assert all(audit.actor_id == viewer.id for audit in audits)
+            assert all(audit.details == {"template_id": template_id} for audit in audits)
     finally:
         app.dependency_overrides.clear()
 
@@ -125,6 +145,10 @@ def test_admin_can_disable_writes_while_existing_comments_remain_readable():
                 f"/api/templates/{template_id}/comments",
                 json={"body": "Should be blocked"},
             )
+            deleted_while_closed = client.delete(
+                f"/api/templates/{template_id}/comments/{before.json()['id']}"
+            )
+            comments_after_delete = client.get(f"/api/templates/{template_id}/comments")
 
             authenticate(client, admin.id)
             enabled = client.patch(
@@ -145,6 +169,8 @@ def test_admin_can_disable_writes_while_existing_comments_remain_readable():
         assert [item["body"] for item in still_readable.json()] == ["Written before closing"]
         assert blocked.status_code == 403
         assert blocked.json()["detail"] == "Comments are disabled for this template"
+        assert deleted_while_closed.status_code == 204
+        assert comments_after_delete.json() == []
         assert enabled.status_code == 200
         assert enabled.json()["comments_enabled"] is True
         assert after.status_code == 201

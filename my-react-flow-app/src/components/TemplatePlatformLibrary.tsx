@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import {
   createPlatformTemplate,
   createTemplateComment,
+  deleteTemplateComment,
   listMyTemplates,
   listPublicTemplates,
   listTemplateComments,
@@ -57,6 +58,7 @@ export default function TemplatePlatformLibrary({
   const [openCommentsId, setOpenCommentsId] = useState<number | null>(null);
   const [commentsLoadingId, setCommentsLoadingId] = useState<number | null>(null);
   const [commentBusyId, setCommentBusyId] = useState<number | null>(null);
+  const [commentDeleteBusyId, setCommentDeleteBusyId] = useState<number | null>(null);
   const [commentsByTemplate, setCommentsByTemplate] = useState<Record<number, TemplateComment[]>>({});
   const [commentDrafts, setCommentDrafts] = useState<Record<number, string>>({});
   const [error, setError] = useState('');
@@ -230,6 +232,26 @@ export default function TemplatePlatformLibrary({
     }
   };
 
+  const deleteComment = async (templateId: number, commentId: number) => {
+    if (!window.confirm('Delete this comment? This cannot be undone.')) return;
+
+    setCommentDeleteBusyId(commentId);
+    setError('');
+    setNotice('');
+    try {
+      await deleteTemplateComment(templateId, commentId);
+      setCommentsByTemplate((current) => ({
+        ...current,
+        [templateId]: (current[templateId] ?? []).filter((comment) => comment.id !== commentId),
+      }));
+      setNotice('Comment deleted.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to delete comment');
+    } finally {
+      setCommentDeleteBusyId(null);
+    }
+  };
+
   const changeCommentsEnabled = async (templateId: number, enabled: boolean) => {
     setBusyId(templateId);
     setError('');
@@ -395,7 +417,39 @@ export default function TemplatePlatformLibrary({
                         <div key={comment.id} className="rounded-md bg-gray-950/70 p-2">
                           <div className="flex items-center justify-between gap-2">
                             <span className="truncate text-[8px] font-bold text-indigo-300">{comment.author.display_name}</span>
-                            <span className="shrink-0 text-[7px] text-gray-600">{formatCommentDate(comment.created_at)}</span>
+                            <span className="flex shrink-0 items-center gap-1.5">
+                              <span className="text-[7px] text-gray-600">{formatCommentDate(comment.created_at)}</span>
+                              {user?.id === comment.author_id && (
+                                <button
+                                  type="button"
+                                  disabled={commentDeleteBusyId === comment.id}
+                                  onClick={() => void deleteComment(template.id, comment.id)}
+                                  title="Delete your comment"
+                                  aria-label="Delete your comment"
+                                  className="flex h-5 w-5 items-center justify-center rounded text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-500 disabled:opacity-50"
+                                >
+                                  {commentDeleteBusyId === comment.id ? (
+                                    <span aria-hidden="true" className="text-[9px]">…</span>
+                                  ) : (
+                                    <svg
+                                      aria-hidden="true"
+                                      className="h-3 w-3"
+                                      viewBox="0 0 24 24"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="2"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    >
+                                      <path d="M3 6h18" />
+                                      <path d="M8 6V4h8v2" />
+                                      <path d="m19 6-1 14H6L5 6" />
+                                      <path d="M10 10v6M14 10v6" />
+                                    </svg>
+                                  )}
+                                </button>
+                              )}
+                            </span>
                           </div>
                           <p className="mt-1 whitespace-pre-wrap break-words text-[9px] leading-relaxed text-gray-300">{comment.body}</p>
                         </div>
