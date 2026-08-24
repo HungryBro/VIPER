@@ -7,6 +7,7 @@ import Sidebar from './components/sidebar';
 import FlowCanvas, { type FlowCanvasHandle } from './FlowCanvas';
 import WorkflowControls from './components/WorkflowControls';
 import WorkflowTabs from './components/WorkflowTabs';
+import UserMenu from './components/UserMenu';
 
 import type { WorkflowTemplate } from './lib/workflowTemplates';
 import type { WorkflowTab, NodeStatus } from './types'; 
@@ -241,6 +242,7 @@ export default function App() {
     <div className="w-screen h-[100dvh] flex flex-col bg-gray-900 text-white overflow-hidden">
       <div className="relative z-30 bg-gray-900 shadow-lg border-b-2 border-teal-500 flex items-center justify-center p-2">
         <h1 className="text-lg md:text-2xl font-extrabold text-teal-400 tracking-wide drop-shadow-md">Visual Image Processing & Evaluation Resource (VIPER)</h1>
+        <UserMenu />
       </div>
       <WorkflowControls isRunning={isRunning} onStart={handleStart} onStop={handleStop} />
       <WorkflowTabs tabs={tabs.map(t => ({ id: t.id, name: t.name }))} activeTabId={activeTabId} onSwitch={handleSwitchTab} onAdd={handleAddTab} onClose={handleCloseTab} onRename={handleRenameTab} />

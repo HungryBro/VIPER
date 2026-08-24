@@ -1,5 +1,7 @@
 // src/lib/api.ts
-export const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:8000";
+import { API_BASE, apiFetch } from './http';
+
+export { API_BASE };
 
 
 export const abs = (url?: string) => {
@@ -24,7 +26,7 @@ async function handleResponse(resp: Response) {
 export async function uploadImages(files: File[], signal?: AbortSignal) {
   const formData = new FormData();
   for (const f of files) formData.append("files", f);
-  const resp = await fetch(`${API_BASE}/api/upload`, {
+  const resp = await apiFetch(`${API_BASE}/api/upload`, {
     method: "POST",
     body: formData,
     signal,
@@ -35,28 +37,28 @@ export async function uploadImages(files: File[], signal?: AbortSignal) {
 
 // ---------- Object Detection / XAI ----------
 export async function runYOLOTrain(request: Record<string, any>, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/detection/train`, {
+  const resp = await apiFetch(`${API_BASE}/api/detection/train`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request), signal,
   });
   return handleResponse(resp);
 }
 
 export async function createYOLODataset(request: Record<string, any>, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/detection/dataset`, {
+  const resp = await apiFetch(`${API_BASE}/api/detection/dataset`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request), signal,
   });
   return handleResponse(resp);
 }
 
 export async function runYOLODetect(request: Record<string, any>, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/detection/detect`, {
+  const resp = await apiFetch(`${API_BASE}/api/detection/detect`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request), signal,
   });
   return handleResponse(resp);
 }
 
 export async function runYOLOGradCAM(request: Record<string, any>, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/detection/gradcam`, {
+  const resp = await apiFetch(`${API_BASE}/api/detection/gradcam`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request), signal,
   });
   return handleResponse(resp);
@@ -64,7 +66,7 @@ export async function runYOLOGradCAM(request: Record<string, any>, signal?: Abor
 
 // ---------- 2. Feature Detection (SIFT, SURF, ORB) ----------
 export async function runSift(image_path: string, params?: Record<string, any>, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/feature/sift`, {
+  const resp = await apiFetch(`${API_BASE}/api/feature/sift`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image_path, params }),
@@ -74,7 +76,7 @@ export async function runSift(image_path: string, params?: Record<string, any>, 
 }
 
 export async function runSurf(image_path: string, params?: Record<string, any>, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/feature/surf`, {
+  const resp = await apiFetch(`${API_BASE}/api/feature/surf`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image_path, params }),
@@ -84,7 +86,7 @@ export async function runSurf(image_path: string, params?: Record<string, any>, 
 }
 
 export async function runOrb(image_path: string, params?: Record<string, any>, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/feature/orb`, {
+  const resp = await apiFetch(`${API_BASE}/api/feature/orb`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image_path, params }),
@@ -95,7 +97,7 @@ export async function runOrb(image_path: string, params?: Record<string, any>, s
 
 // ---------- 3. Enhancement ----------
 export async function runCLAHE(image_path: string, params?: Record<string, any>, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/enhancement/clahe`, {
+  const resp = await apiFetch(`${API_BASE}/api/enhancement/clahe`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image_path, params }),
@@ -105,7 +107,7 @@ export async function runCLAHE(image_path: string, params?: Record<string, any>,
 }
 
 export async function runMSRCR(image_path: string, params?: Record<string, any>, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/enhancement/msrcr`, {
+  const resp = await apiFetch(`${API_BASE}/api/enhancement/msrcr`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image_path, params }),
@@ -115,7 +117,7 @@ export async function runMSRCR(image_path: string, params?: Record<string, any>,
 }
 
 export async function runZeroDCE(image_path: string, params?: Record<string, any>, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/enhancement/zero_dce`, {
+  const resp = await apiFetch(`${API_BASE}/api/enhancement/zero_dce`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image_path, params }),
@@ -126,7 +128,7 @@ export async function runZeroDCE(image_path: string, params?: Record<string, any
 
 // ---------- 4. Matching & Alignment ----------
 export async function runBfmatcher(jsonA: string, jsonB: string, params?: any, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/match/bf`, {
+  const resp = await apiFetch(`${API_BASE}/api/match/bf`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ json_a: jsonA, json_b: jsonB, ...params }),
@@ -136,7 +138,7 @@ export async function runBfmatcher(jsonA: string, jsonB: string, params?: any, s
 }
 
 export async function runFlannmatcher(jsonA: string, jsonB: string, params?: any, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/match/flann`, {
+  const resp = await apiFetch(`${API_BASE}/api/match/flann`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ json_a: jsonA, json_b: jsonB, ...params }), 
@@ -146,7 +148,7 @@ export async function runFlannmatcher(jsonA: string, jsonB: string, params?: any
 }
 
 export async function runHomographyAlignment(match_json: string, params?: any, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/alignment/homography`, {
+  const resp = await apiFetch(`${API_BASE}/api/alignment/homography`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ match_json, ...params }),
@@ -156,7 +158,7 @@ export async function runHomographyAlignment(match_json: string, params?: any, s
 }
 
 export async function runAffineAlignment(match_json: string, params?: any, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/alignment/affine`, {
+  const resp = await apiFetch(`${API_BASE}/api/alignment/affine`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ match_json, ...params }),
@@ -167,7 +169,7 @@ export async function runAffineAlignment(match_json: string, params?: any, signa
 
 // ---------- 5. Quality Metrics ----------
 export async function runBrisque(image_path: string, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/quality/brisque`, {
+  const resp = await apiFetch(`${API_BASE}/api/quality/brisque`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image_path }),
@@ -177,7 +179,7 @@ export async function runBrisque(image_path: string, signal?: AbortSignal) {
 }
 
 export async function runPsnr(originalPath: string, processedPath: string, params?: any, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/quality/psnr`, {
+  const resp = await apiFetch(`${API_BASE}/api/quality/psnr`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ original_path: originalPath, processed_path: processedPath, params }),
@@ -187,7 +189,7 @@ export async function runPsnr(originalPath: string, processedPath: string, param
 }
 
 export async function runSsim(originalPath: string, processedPath: string, params?: any, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/quality/ssim`, {
+  const resp = await apiFetch(`${API_BASE}/api/quality/ssim`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ original_path: originalPath, processed_path: processedPath, params }),
@@ -198,7 +200,7 @@ export async function runSsim(originalPath: string, processedPath: string, param
 
 // ---------- 6.Classification ----------
 export async function runSnake(req: any, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/classify/snake`, {
+  const resp = await apiFetch(`${API_BASE}/api/classify/snake`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(req),
@@ -208,7 +210,7 @@ export async function runSnake(req: any, signal?: AbortSignal) {
 }
 
 export async function runOtsuClassification(image_path: string, params?: any, signal?: AbortSignal) {
-    const resp = await fetch(`${API_BASE}/api/classify/otsu`, {
+    const resp = await apiFetch(`${API_BASE}/api/classify/otsu`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image_path, ...params }),
@@ -220,7 +222,7 @@ export async function runOtsuClassification(image_path: string, params?: any, si
 // ---------- 7. Segmentation ----------
 
 export async function runDeepLab(image_path: string, params?: any, model_path?: string, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/segmentation/deeplab`, {
+  const resp = await apiFetch(`${API_BASE}/api/segmentation/deeplab`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image_path, params, model_path }), 
@@ -231,7 +233,7 @@ export async function runDeepLab(image_path: string, params?: any, model_path?: 
 
 
 export async function runUNET(image_path: string, params?: any, model_path?: string, signal?: AbortSignal) {
-    const resp = await fetch(`${API_BASE}/api/segmentation/unet`, {
+    const resp = await apiFetch(`${API_BASE}/api/segmentation/unet`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ image_path, params, model_path }), 
@@ -242,7 +244,7 @@ export async function runUNET(image_path: string, params?: any, model_path?: str
 
 
 export async function runMaskRCNN(image_path: string, params?: any, model_path?: string, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/segmentation/maskrcnn`, {
+  const resp = await apiFetch(`${API_BASE}/api/segmentation/maskrcnn`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image_path, params, model_path }),
@@ -253,7 +255,7 @@ export async function runMaskRCNN(image_path: string, params?: any, model_path?:
 
 // ---------- 8. Restoration ----------
 export async function runDncnn(image_path: string, params?: any, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/restoration/dncnn`, {
+  const resp = await apiFetch(`${API_BASE}/api/restoration/dncnn`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image_path, params }),
@@ -263,7 +265,7 @@ export async function runDncnn(image_path: string, params?: any, signal?: AbortS
 }
 
 export async function runSwinIR(image_path: string, params?: any, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/restoration/swinir`, {
+  const resp = await apiFetch(`${API_BASE}/api/restoration/swinir`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image_path, params }),
@@ -273,7 +275,7 @@ export async function runSwinIR(image_path: string, params?: any, signal?: Abort
 }
 
 export async function runRealESRGAN(image_path: string, params?: any, signal?: AbortSignal) {
-  const resp = await fetch(`${API_BASE}/api/restoration/realesrgan`, {
+  const resp = await apiFetch(`${API_BASE}/api/restoration/realesrgan`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ image_path, params }),

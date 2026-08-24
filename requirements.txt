@@ -4,6 +4,10 @@ uvicorn==0.40.0
 python-multipart==0.0.22
 python-dotenv==1.2.1
 PyYAML==6.0.3
+SQLAlchemy==2.0.51
+psycopg2-binary==2.9.12
+Authlib==1.7.2
+itsdangerous==2.2.0
 
 # Core Data & Image Processing (ส่วนงานคุณ)
 numpy==2.3.5
@@ -19,6 +23,7 @@ grad-cam>=1.5.5,<2
 
 # Testing
 pytest==9.0.2
+httpx==0.28.1
 
 # Utilities
 tqdm==4.67.2

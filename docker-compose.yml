@@ -4,13 +4,18 @@ services:
     container_name: viper_postgres
     restart: always
     environment:
-      POSTGRES_USER: viper_user
-      POSTGRES_PASSWORD: viper_password
-      POSTGRES_DB: viper_db
+      POSTGRES_USER: ${POSTGRES_USER:-viper_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-viper_password}
+      POSTGRES_DB: ${POSTGRES_DB:-viper_db}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-viper_user} -d ${POSTGRES_DB:-viper_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   adminer:
     image: adminer
@@ -19,7 +24,8 @@ services:
     ports:
       - "8080:8080" 
     depends_on:
-      - postgres_db
+      postgres_db:
+        condition: service_healthy
 
 volumes:
   postgres_data:
