@@ -4,7 +4,12 @@ import { useAuth } from '../auth/AuthContext';
 import AdminUserPanel from './AdminUserPanel';
 
 
-export default function UserMenu() {
+type Props = {
+  onOpenTemplates: () => void;
+};
+
+
+export default function UserMenu({ onOpenTemplates }: Props) {
   const { user, logout } = useAuth();
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
   if (!user) return null;
@@ -27,6 +32,13 @@ export default function UserMenu() {
         <div className="max-w-36 truncate text-xs font-semibold text-slate-200">{user.display_name}</div>
         <div className="text-[9px] font-bold uppercase tracking-wider text-teal-400">{user.role}</div>
       </div>
+      <button
+        type="button"
+        onClick={onOpenTemplates}
+        className="rounded-md border border-indigo-500/40 bg-indigo-500/10 px-2 py-1 text-[10px] font-bold text-indigo-300 hover:bg-indigo-500/20"
+      >
+        TEMPLATES
+      </button>
       {user.role === 'admin' && (
         <button
           type="button"

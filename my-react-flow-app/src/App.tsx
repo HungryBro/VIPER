@@ -8,8 +8,10 @@ import FlowCanvas, { type FlowCanvasHandle } from './FlowCanvas';
 import WorkflowControls from './components/WorkflowControls';
 import WorkflowTabs from './components/WorkflowTabs';
 import UserMenu from './components/UserMenu';
+import TemplatePlatformPanel from './components/TemplatePlatformPanel';
 
 import type { WorkflowTemplate } from './lib/workflowTemplates';
+import { sanitizeWorkflowDocument, type TemplateDetail } from './lib/templateApi';
 import type { WorkflowTab, NodeStatus } from './types'; 
 
 const STORAGE_KEY_APP_TABS = 'n2n_app_tabs';
@@ -17,6 +19,7 @@ const STORAGE_KEY_ACTIVE_TAB = 'n2n_active_tab_id';
 
 export default function App() {
   const [isRunning, setIsRunning] = useState(false);
+  const [templatePanelOpen, setTemplatePanelOpen] = useState(false);
   
   const isInitializing = useRef(true); 
 
@@ -238,12 +241,37 @@ export default function App() {
   const handleStop = useCallback(() => setIsRunning(false), []);
   const activeTabName = tabs.find(t => t.id === activeTabId)?.name || 'Untitled';
 
+  const getCurrentWorkflow = useCallback(() => {
+    const snapshot = canvasRef.current?.getSnapshot();
+    if (!snapshot) return null;
+    return {
+      name: activeTabName,
+      workflow: sanitizeWorkflowDocument(snapshot.nodes, snapshot.edges),
+    };
+  }, [activeTabName]);
+
+  const handleLoadPlatformTemplate = useCallback((template: TemplateDetail) => {
+    handleLoadTemplate({
+      name: template.name,
+      description: template.description,
+      color: 'teal',
+      nodes: template.workflow.nodes,
+      edges: template.workflow.edges,
+    });
+  }, [handleLoadTemplate]);
+
   return (
     <div className="w-screen h-[100dvh] flex flex-col bg-gray-900 text-white overflow-hidden">
       <div className="relative z-30 bg-gray-900 shadow-lg border-b-2 border-teal-500 flex items-center justify-center p-2">
         <h1 className="text-lg md:text-2xl font-extrabold text-teal-400 tracking-wide drop-shadow-md">Visual Image Processing & Evaluation Resource (VIPER)</h1>
-        <UserMenu />
+        <UserMenu onOpenTemplates={() => setTemplatePanelOpen(true)} />
       </div>
+      <TemplatePlatformPanel
+        open={templatePanelOpen}
+        onClose={() => setTemplatePanelOpen(false)}
+        getCurrentWorkflow={getCurrentWorkflow}
+        onLoad={handleLoadPlatformTemplate}
+      />
       <WorkflowControls isRunning={isRunning} onStart={handleStart} onStop={handleStop} />
       <WorkflowTabs tabs={tabs.map(t => ({ id: t.id, name: t.name }))} activeTabId={activeTabId} onSwitch={handleSwitchTab} onAdd={handleAddTab} onClose={handleCloseTab} onRename={handleRenameTab} />
       <div className="flex flex-grow overflow-hidden relative">

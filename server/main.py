@@ -13,7 +13,7 @@ from .auth import require_active_user
 from .config import settings
 from .utils_io import save_upload, static_url, ensure_dirs, OUT, UPLOAD_DIR
 from .routers import (
-    admin, auth,
+    admin, auth, templates,
     features, matching, alignment, quality, 
     classification, detection,
     # enhancement, restoration, segmentation
@@ -52,6 +52,7 @@ ensure_dirs(UPLOAD_DIR, OUT)
 app.mount("/static", StaticFiles(directory=OUT), name="static")
 app.include_router(auth.router)
 app.include_router(admin.router)
+app.include_router(templates.router)
 active_user_required = [Depends(require_active_user)]
 app.include_router(features.router,       prefix="/api/feature", dependencies=active_user_required)
 app.include_router(matching.router,       prefix="/api/match", dependencies=active_user_required)
