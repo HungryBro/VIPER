@@ -10,7 +10,7 @@ export default function UserMenu() {
   if (!user) return null;
 
   return (
-    <div className="absolute right-3 flex items-center gap-2">
+    <div className="flex shrink-0 items-center gap-2">
       {user.avatar_url ? (
         <img
           src={user.avatar_url}
@@ -23,7 +23,7 @@ export default function UserMenu() {
           {user.display_name.slice(0, 1).toUpperCase()}
         </div>
       )}
-      <div className="hidden text-right sm:block">
+      <div className="hidden text-right xl:block">
         <div className="max-w-36 truncate text-xs font-semibold text-slate-200">{user.display_name}</div>
         <div className="text-[9px] font-bold uppercase tracking-wider text-teal-400">{user.role}</div>
       </div>

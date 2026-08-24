@@ -260,8 +260,11 @@ export default function App() {
 
   return (
     <div className="w-screen h-[100dvh] flex flex-col bg-gray-900 text-white overflow-hidden">
-      <div className="relative z-30 bg-gray-900 shadow-lg border-b-2 border-teal-500 flex items-center justify-center p-2">
-        <h1 className="text-lg md:text-2xl font-extrabold text-teal-400 tracking-wide drop-shadow-md">Visual Image Processing & Evaluation Resource (VIPER)</h1>
+      <div className="relative z-30 flex min-h-14 items-center gap-3 border-b-2 border-teal-500 bg-gray-900 px-3 shadow-lg">
+        <h1 className="min-w-0 flex-1 truncate text-center text-lg font-extrabold tracking-wide text-teal-400 drop-shadow-md md:text-xl xl:text-2xl">
+          <span className="hidden lg:inline">Visual Image Processing &amp; Evaluation Resource (VIPER)</span>
+          <span className="lg:hidden">VIPER</span>
+        </h1>
         <UserMenu />
       </div>
       <WorkflowControls isRunning={isRunning} onStart={handleStart} onStop={handleStop} />
