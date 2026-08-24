@@ -340,6 +340,8 @@ export default function TemplatePlatformLibrary({
         templates.map((template) => {
           const busy = busyId === template.id;
           const isOwner = user?.id === template.owner_id;
+          const isAdmin = user?.role === 'admin';
+          const canManageSettings = isOwner || isAdmin;
           const commentsOpen = openCommentsId === template.id;
           const comments = commentsByTemplate[template.id];
           const commentsLoading = commentsLoadingId === template.id;
@@ -352,7 +354,7 @@ export default function TemplatePlatformLibrary({
                   <p className="mt-0.5 truncate text-[8px] text-gray-500">by {template.owner.display_name}</p>
                 </div>
                 <div className="relative flex shrink-0 items-center gap-1">
-                  {isOwner && (
+                  {canManageSettings && (
                     <button
                       type="button"
                       disabled={busy}
@@ -376,47 +378,54 @@ export default function TemplatePlatformLibrary({
                     {template.visibility}
                   </span>
 
-                  {isOwner && openSettingsId === template.id && (
+                  {canManageSettings && openSettingsId === template.id && (
                     <div className="absolute right-0 top-full z-20 mt-1 w-32 rounded-md border border-gray-700 bg-gray-900 p-1 shadow-xl">
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => {
-                          setOpenSettingsId(null);
-                          void changeVisibility(template.id, template.visibility === 'public' ? 'private' : 'public');
-                        }}
-                        className="w-full rounded px-2 py-1.5 text-left text-[8px] font-bold text-indigo-300 transition-colors hover:bg-indigo-500/10 disabled:opacity-50"
-                      >
-                        MAKE {template.visibility === 'public' ? 'PRIVATE' : 'PUBLIC'}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => {
-                          setOpenSettingsId(null);
-                          void updateFromCanvas(template.id);
-                        }}
-                        className="w-full rounded px-2 py-1.5 text-left text-[8px] font-bold text-gray-300 transition-colors hover:bg-gray-800 disabled:opacity-50"
-                      >
-                        UPDATE CANVAS
-                      </button>
+                      {isOwner && (
+                        <>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => {
+                              setOpenSettingsId(null);
+                              void changeVisibility(template.id, template.visibility === 'public' ? 'private' : 'public');
+                            }}
+                            className="w-full rounded px-2 py-1.5 text-left text-[8px] font-bold text-indigo-300 transition-colors hover:bg-indigo-500/10 disabled:opacity-50"
+                          >
+                            MAKE {template.visibility === 'public' ? 'PRIVATE' : 'PUBLIC'}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => {
+                              setOpenSettingsId(null);
+                              void updateFromCanvas(template.id);
+                            }}
+                            className="w-full rounded px-2 py-1.5 text-left text-[8px] font-bold text-gray-300 transition-colors hover:bg-gray-800 disabled:opacity-50"
+                          >
+                            UPDATE CANVAS
+                          </button>
+                        </>
+                      )}
+                      {isOwner && isAdmin && <div className="my-1 border-t border-gray-700" />}
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => {
+                            setOpenSettingsId(null);
+                            void changeCommentsEnabled(template.id, !template.comments_enabled);
+                          }}
+                          className={`w-full rounded px-2 py-1.5 text-left text-[8px] font-bold transition-colors disabled:opacity-50 ${template.comments_enabled ? 'text-red-300 hover:bg-red-500/10' : 'text-emerald-300 hover:bg-emerald-500/10'}`}
+                        >
+                          {template.comments_enabled ? 'CLOSE COMMENTS' : 'OPEN COMMENTS'}
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
               </div>
               <p className="mt-2 line-clamp-3 text-[9px] leading-relaxed text-gray-400">{template.description || 'No description provided.'}</p>
               <p className="mt-1.5 text-[8px] text-gray-600">Updated {formatDate(template.updated_at)}</p>
-
-              {user?.role === 'admin' && (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() => void changeCommentsEnabled(template.id, !template.comments_enabled)}
-                  className={`mt-1.5 w-full rounded border px-2 py-1.5 text-[8px] font-black disabled:opacity-50 ${template.comments_enabled ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'}`}
-                >
-                  {template.comments_enabled ? 'CLOSE COMMENTS' : 'OPEN COMMENTS'}
-                </button>
-              )}
 
               <div className="mt-2 grid grid-cols-2 gap-1.5">
                 <button
