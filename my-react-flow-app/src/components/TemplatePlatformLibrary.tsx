@@ -55,6 +55,7 @@ export default function TemplatePlatformLibrary({
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [openSettingsId, setOpenSettingsId] = useState<number | null>(null);
   const [openCommentsId, setOpenCommentsId] = useState<number | null>(null);
   const [commentsLoadingId, setCommentsLoadingId] = useState<number | null>(null);
   const [commentBusyId, setCommentBusyId] = useState<number | null>(null);
@@ -350,33 +351,61 @@ export default function TemplatePlatformLibrary({
                   <h3 className="truncate text-[10px] font-black uppercase text-teal-300">{template.name}</h3>
                   <p className="mt-0.5 truncate text-[8px] text-gray-500">by {template.owner.display_name}</p>
                 </div>
-                <span className={`shrink-0 rounded px-1.5 py-0.5 text-[7px] font-black uppercase ${template.visibility === 'public' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-indigo-500/15 text-indigo-300'}`}>
-                  {template.visibility}
-                </span>
+                <div className="relative flex shrink-0 items-center gap-1">
+                  {isOwner && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => setOpenSettingsId((current) => (current === template.id ? null : template.id))}
+                      title="Template settings"
+                      aria-label="Template settings"
+                      aria-expanded={openSettingsId === template.id}
+                      className="flex h-5 w-5 items-center justify-center rounded text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-500 disabled:opacity-50"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        className="h-3 w-3"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                      >
+                        <path d="M19.43 12.98c.04-.32.07-.65.07-.98s-.02-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.37-.31-.6-.22l-2.49 1a7.72 7.72 0 0 0-1.69-.98L14.5 2.42A.5.5 0 0 0 14 2h-4a.5.5 0 0 0-.5.42l-.38 2.65c-.61.25-1.18.59-1.69.98l-2.49-1c-.23-.08-.48 0-.6.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.08.65-.08.98s.03.66.08.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.37.31.6.22l2.49-1c.51.4 1.08.73 1.69.98l.38 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.38-2.65c.61-.25 1.17-.58 1.69-.98l2.49 1c.23.08.48 0 .6-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65ZM12 15.5A3.5 3.5 0 1 1 12 8a3.5 3.5 0 0 1 0 7.5Z" />
+                      </svg>
+                    </button>
+                  )}
+                  <span className={`rounded px-1.5 py-0.5 text-[7px] font-black uppercase ${template.visibility === 'public' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-indigo-500/15 text-indigo-300'}`}>
+                    {template.visibility}
+                  </span>
+
+                  {isOwner && openSettingsId === template.id && (
+                    <div className="absolute right-0 top-full z-20 mt-1 w-32 rounded-md border border-gray-700 bg-gray-900 p-1 shadow-xl">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => {
+                          setOpenSettingsId(null);
+                          void changeVisibility(template.id, template.visibility === 'public' ? 'private' : 'public');
+                        }}
+                        className="w-full rounded px-2 py-1.5 text-left text-[8px] font-bold text-indigo-300 transition-colors hover:bg-indigo-500/10 disabled:opacity-50"
+                      >
+                        MAKE {template.visibility === 'public' ? 'PRIVATE' : 'PUBLIC'}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => {
+                          setOpenSettingsId(null);
+                          void updateFromCanvas(template.id);
+                        }}
+                        className="w-full rounded px-2 py-1.5 text-left text-[8px] font-bold text-gray-300 transition-colors hover:bg-gray-800 disabled:opacity-50"
+                      >
+                        UPDATE CANVAS
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
               <p className="mt-2 line-clamp-3 text-[9px] leading-relaxed text-gray-400">{template.description || 'No description provided.'}</p>
               <p className="mt-1.5 text-[8px] text-gray-600">Updated {formatDate(template.updated_at)}</p>
-
-              {isOwner && (
-                <div className="mt-2 grid grid-cols-2 gap-1.5">
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void changeVisibility(template.id, template.visibility === 'public' ? 'private' : 'public')}
-                    className="rounded border border-indigo-500/30 bg-indigo-500/10 px-1.5 py-1.5 text-[8px] font-bold text-indigo-300 disabled:opacity-50"
-                  >
-                    MAKE {template.visibility === 'public' ? 'PRIVATE' : 'PUBLIC'}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void updateFromCanvas(template.id)}
-                    className="rounded border border-gray-700 bg-gray-800 px-1.5 py-1.5 text-[8px] font-bold text-gray-300 disabled:opacity-50"
-                  >
-                    UPDATE CANVAS
-                  </button>
-                </div>
-              )}
 
               {user?.role === 'admin' && (
                 <button
