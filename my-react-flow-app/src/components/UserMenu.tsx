@@ -31,9 +31,11 @@ export default function UserMenu() {
         <button
           type="button"
           onClick={() => setAdminPanelOpen(true)}
-          className="rounded-md border border-teal-500/40 bg-teal-500/10 px-2 py-1 text-[10px] font-bold text-teal-300 hover:bg-teal-500/20"
+          title="User Management"
+          aria-label="Open User Management Menu"
+          className="rounded-md border border-teal-500/40 bg-teal-500/10 px-2 py-1 text-base leading-none font-bold text-teal-300 hover:bg-teal-500/20"
         >
-          ADMIN
+          ☰
         </button>
       )}
       <button
