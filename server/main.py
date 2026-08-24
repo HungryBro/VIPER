@@ -9,7 +9,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
 
-from .auth import require_active_user
+from .audit import audit_processing_activity
 from .config import settings
 from .utils_io import save_upload, static_url, ensure_dirs, OUT, UPLOAD_DIR
 from .routers import (
@@ -53,19 +53,19 @@ app.mount("/static", StaticFiles(directory=OUT), name="static")
 app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(templates.router)
-active_user_required = [Depends(require_active_user)]
-app.include_router(features.router,       prefix="/api/feature", dependencies=active_user_required)
-app.include_router(matching.router,       prefix="/api/match", dependencies=active_user_required)
-app.include_router(alignment.router,      prefix="/api/alignment", dependencies=active_user_required)
-app.include_router(quality.router,        prefix="/api/quality", dependencies=active_user_required)
-app.include_router(classification.router, prefix="/api/classify", dependencies=active_user_required)
-app.include_router(detection.router,      prefix="/api/detection", dependencies=active_user_required)
+processing_audit_required = [Depends(audit_processing_activity)]
+app.include_router(features.router,       prefix="/api/feature", dependencies=processing_audit_required)
+app.include_router(matching.router,       prefix="/api/match", dependencies=processing_audit_required)
+app.include_router(alignment.router,      prefix="/api/alignment", dependencies=processing_audit_required)
+app.include_router(quality.router,        prefix="/api/quality", dependencies=processing_audit_required)
+app.include_router(classification.router, prefix="/api/classify", dependencies=processing_audit_required)
+app.include_router(detection.router,      prefix="/api/detection", dependencies=processing_audit_required)
 # app.include_router(enhancement.router,    prefix="/api/enhancement")
 # app.include_router(restoration.router,    prefix="/api/restoration")
 # app.include_router(segmentation.router,   prefix="/api/segmentation")
 
 
-@app.post("/api/upload", dependencies=active_user_required)
+@app.post("/api/upload", dependencies=processing_audit_required)
 async def api_upload(files: list[UploadFile] = File(...)):
     saved = []
     for f in files:

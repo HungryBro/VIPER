@@ -178,7 +178,7 @@ def test_admin_can_disable_writes_while_existing_comments_remain_readable():
         with Session(engine) as db:
             audits = db.scalars(
                 select(AuditLog).where(
-                    AuditLog.action == "admin.template_comments_updated"
+                    AuditLog.action == "permission.comments_update"
                 )
             ).all()
             assert len(audits) == 2

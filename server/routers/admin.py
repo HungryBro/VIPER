@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
@@ -9,6 +9,7 @@ from ..config import settings
 from ..database import get_db
 from ..models import AuditLog, Template, User
 from ..schemas import (
+    AdminAuditLogPublic,
     AdminTemplateCommentsUpdate,
     AdminUserPublic,
     AdminUserUpdate,
@@ -21,6 +22,43 @@ router = APIRouter(prefix="/api/admin", tags=["administration"])
 
 def _iso(value: datetime | None) -> str | None:
     return value.isoformat() if value is not None else None
+
+
+def _add_admin_audit(
+    db: Session,
+    *,
+    admin_id: int,
+    action: str,
+    target_type: str,
+    target_id: int,
+    details: dict,
+    request: Request,
+) -> None:
+    db.add(
+        AuditLog(
+            actor_id=admin_id,
+            action=action,
+            target_type=target_type,
+            target_id=str(target_id),
+            details=details,
+            request_path=str(request.url.path),
+            status_code=status.HTTP_200_OK,
+        )
+    )
+
+
+@router.get("/audit-logs", response_model=list[AdminAuditLogPublic])
+def list_audit_logs(
+    limit: int = Query(default=200, ge=1, le=500),
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    return db.scalars(
+        select(AuditLog)
+        .options(joinedload(AuditLog.actor))
+        .order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
+        .limit(limit)
+    ).all()
 
 
 @router.get("/users", response_model=list[AdminUserPublic])
@@ -71,11 +109,18 @@ def update_user_access(
             detail="Bootstrap or current administrator cannot be banned",
         )
 
-    changes: dict[str, dict[str, str | None]] = {}
-
     if payload.role is not None and payload.role != target.role:
-        changes["role"] = {"from": target.role, "to": payload.role}
+        previous_role = target.role
         target.role = payload.role
+        _add_admin_audit(
+            db,
+            admin_id=admin.id,
+            action="permission.role_update",
+            target_type="user",
+            target_id=target.id,
+            details={"role": {"from": previous_role, "to": payload.role}},
+            request=request,
+        )
 
     if payload.status == "banned":
         if payload.banned_until is None:
@@ -101,33 +146,39 @@ def update_user_access(
         target.status = "banned"
         target.banned_until = banned_until
         if previous_status != target.status or previous_until != banned_until:
-            changes["ban"] = {
-                "from": _iso(previous_until),
-                "to": _iso(banned_until),
-            }
+            _add_admin_audit(
+                db,
+                admin_id=admin.id,
+                action="ban.apply",
+                target_type="user",
+                target_id=target.id,
+                details={
+                    "status": {"from": previous_status, "to": "banned"},
+                    "banned_until": {
+                        "from": _iso(previous_until),
+                        "to": _iso(banned_until),
+                    },
+                },
+                request=request,
+            )
     elif payload.status == "active":
         previous_status = target.status
         previous_until = target.banned_until
         target.status = "active"
         target.banned_until = None
         if previous_status != "active" or previous_until is not None:
-            changes["ban"] = {
-                "from": _iso(previous_until),
-                "to": None,
-            }
-
-    if changes:
-        db.add(
-            AuditLog(
-                actor_id=admin.id,
-                action="admin.user_access_updated",
+            _add_admin_audit(
+                db,
+                admin_id=admin.id,
+                action="ban.remove",
                 target_type="user",
-                target_id=str(target.id),
-                details={"changes": changes},
-                request_path=str(request.url.path),
-                status_code=status.HTTP_200_OK,
+                target_id=target.id,
+                details={
+                    "status": {"from": previous_status, "to": "active"},
+                    "banned_until": {"from": _iso(previous_until), "to": None},
+                },
+                request=request,
             )
-        )
 
     db.commit()
     db.refresh(target)
@@ -159,21 +210,19 @@ def update_template_comments(
     previous = template.comments_enabled
     template.comments_enabled = payload.comments_enabled
     if previous != payload.comments_enabled:
-        db.add(
-            AuditLog(
-                actor_id=admin.id,
-                action="admin.template_comments_updated",
-                target_type="template",
-                target_id=str(template.id),
-                details={
-                    "comments_enabled": {
-                        "from": previous,
-                        "to": payload.comments_enabled,
-                    }
-                },
-                request_path=str(request.url.path),
-                status_code=status.HTTP_200_OK,
-            )
+        _add_admin_audit(
+            db,
+            admin_id=admin.id,
+            action="permission.comments_update",
+            target_type="template",
+            target_id=template.id,
+            details={
+                "comments_enabled": {
+                    "from": previous,
+                    "to": payload.comments_enabled,
+                }
+            },
+            request=request,
         )
 
     db.commit()

@@ -30,6 +30,29 @@ class AdminUserUpdate(BaseModel):
     banned_until: datetime | None = None
 
 
+class AdminAuditActorPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: str
+    display_name: str
+
+
+class AdminAuditLogPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    actor_id: int | None
+    actor: AdminAuditActorPublic | None
+    action: str
+    target_type: str | None
+    target_id: str | None
+    details: dict[str, Any]
+    request_path: str | None
+    status_code: int | None
+    created_at: datetime
+
+
 class WorkflowDocument(BaseModel):
     model_config = ConfigDict(extra="forbid")
 

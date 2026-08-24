@@ -126,7 +126,7 @@ def require_active_user(
         db.add(
             AuditLog(
                 actor_id=user.id,
-                action="account.ban_expired",
+                action="ban.expire",
                 target_type="user",
                 target_id=str(user.id),
                 details={},

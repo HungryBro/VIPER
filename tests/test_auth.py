@@ -138,6 +138,9 @@ def test_banned_user_is_blocked_and_expired_ban_is_cleared():
     assert restored.status_code == 200
     assert restored.json()["status"] == "active"
 
+    with Session(engine) as db:
+        assert db.scalar(select(AuditLog).where(AuditLog.action == "ban.expire"))
+
 
 def test_google_callback_upserts_user_and_sets_session(monkeypatch):
     engine = make_engine()

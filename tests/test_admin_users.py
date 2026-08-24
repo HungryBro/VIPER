@@ -64,7 +64,7 @@ def authenticate(client: TestClient, user_id: int) -> None:
     )
 
 
-def test_admin_can_list_users_and_change_role_with_audit_log():
+def test_admin_can_list_users_and_change_role_with_permission_log():
     engine = make_engine()
     Base.metadata.create_all(engine)
     admin = add_user(engine, "admin-subject", "owner@example.com", role="admin")
@@ -91,13 +91,13 @@ def test_admin_can_list_users_and_change_role_with_audit_log():
             saved = db.get(User, learner.id)
             audit = db.scalar(
                 select(AuditLog).where(
-                    AuditLog.action == "admin.user_access_updated",
+                    AuditLog.action == "permission.role_update",
                     AuditLog.target_id == str(learner.id),
                 )
             )
             assert saved.role == "admin"
             assert audit.actor_id == admin.id
-            assert audit.details["changes"]["role"] == {
+            assert audit.details["role"] == {
                 "from": "user",
                 "to": "admin",
             }
@@ -142,6 +142,15 @@ def test_admin_can_temporarily_ban_and_unban_user():
         assert restored.json()["status"] == "active"
         assert restored.json()["banned_until"] is None
         assert active.status_code == 200
+
+        with Session(engine) as db:
+            actions = db.scalars(
+                select(AuditLog.action)
+                .where(AuditLog.target_id == str(learner.id))
+                .order_by(AuditLog.id)
+            ).all()
+            assert "ban.apply" in actions
+            assert "ban.remove" in actions
     finally:
         app.dependency_overrides.clear()
 

@@ -273,6 +273,7 @@ def update_template(
         template.workflow = payload.workflow.model_dump(mode="json")
         changes["workflow"] = {"from": "previous", "to": "updated"}
 
+    visibility_change = changes.pop("visibility", None)
     if changes:
         _add_audit(
             db,
@@ -282,6 +283,18 @@ def update_template(
             request=request,
             details={"changes": changes},
         )
+
+    if visibility_change is not None:
+        _add_audit(
+            db,
+            actor_id=user.id,
+            action="permission.template_visibility_update",
+            template_id=template.id,
+            request=request,
+            details={"visibility": visibility_change},
+        )
+
+    if changes or visibility_change is not None:
         db.commit()
 
     return db.scalar(_template_query().where(Template.id == template.id))

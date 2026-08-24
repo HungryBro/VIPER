@@ -137,7 +137,12 @@ def test_private_template_is_owner_only_until_published():
             )
             assert saved.owner_id == owner.id
             assert saved.visibility == "public"
-            assert {"template.create", "template.update", "template.load"} <= actions
+            assert {
+                "template.create",
+                "template.update",
+                "template.load",
+                "permission.template_visibility_update",
+            } <= actions
     finally:
         app.dependency_overrides.clear()
 
