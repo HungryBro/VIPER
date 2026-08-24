@@ -18,6 +18,12 @@ export async function apiFetch(
   if (response.status === 401) {
     window.dispatchEvent(new CustomEvent('viper:unauthorized'));
   }
+  if (response.status === 403) {
+    const body = await response.clone().json().catch(() => ({}));
+    if (body.detail === 'Account is banned') {
+      window.dispatchEvent(new CustomEvent('viper:account-banned'));
+    }
+  }
 
   return response;
 }

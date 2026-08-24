@@ -1,8 +1,12 @@
+import { useState } from 'react';
+
 import { useAuth } from '../auth/AuthContext';
+import AdminUserPanel from './AdminUserPanel';
 
 
 export default function UserMenu() {
   const { user, logout } = useAuth();
+  const [adminPanelOpen, setAdminPanelOpen] = useState(false);
   if (!user) return null;
 
   return (
@@ -23,6 +27,15 @@ export default function UserMenu() {
         <div className="max-w-36 truncate text-xs font-semibold text-slate-200">{user.display_name}</div>
         <div className="text-[9px] font-bold uppercase tracking-wider text-teal-400">{user.role}</div>
       </div>
+      {user.role === 'admin' && (
+        <button
+          type="button"
+          onClick={() => setAdminPanelOpen(true)}
+          className="rounded-md border border-teal-500/40 bg-teal-500/10 px-2 py-1 text-[10px] font-bold text-teal-300 hover:bg-teal-500/20"
+        >
+          ADMIN
+        </button>
+      )}
       <button
         type="button"
         onClick={() => void logout()}
@@ -30,6 +43,13 @@ export default function UserMenu() {
       >
         LOG OUT
       </button>
+      {user.role === 'admin' && (
+        <AdminUserPanel
+          open={adminPanelOpen}
+          currentUserId={user.id}
+          onClose={() => setAdminPanelOpen(false)}
+        />
+      )}
     </div>
   );
 }

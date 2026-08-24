@@ -76,8 +76,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setError('Your session has expired. Please sign in again.');
     };
+    const handleBanned = () => {
+      setUser(null);
+      setError('Your VIPER account has been temporarily suspended.');
+    };
     window.addEventListener('viper:unauthorized', handleUnauthorized);
-    return () => window.removeEventListener('viper:unauthorized', handleUnauthorized);
+    window.addEventListener('viper:account-banned', handleBanned);
+    return () => {
+      window.removeEventListener('viper:unauthorized', handleUnauthorized);
+      window.removeEventListener('viper:account-banned', handleBanned);
+    };
   }, []);
 
   const login = useCallback(() => {
