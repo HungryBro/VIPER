@@ -23,6 +23,13 @@ function formatDate(value: string | null): string {
   }).format(new Date(value));
 }
 
+const banOptions = [
+  { label: 'BAN 1M', durationMs: 60 * 1000 },
+  { label: 'BAN 1H', durationMs: 60 * 60 * 1000 },
+  { label: 'BAN 24H', durationMs: 24 * 60 * 60 * 1000 },
+  { label: 'BAN 7D', durationMs: 7 * 24 * 60 * 60 * 1000 },
+] as const;
+
 
 export default function AdminUserPanel({
   open,
@@ -72,8 +79,8 @@ export default function AdminUserPanel({
     }
   };
 
-  const banForHours = (user: AdminUser, hours: number) => {
-    const bannedUntil = new Date(Date.now() + hours * 60 * 60 * 1000).toISOString();
+  const banForDuration = (user: AdminUser, durationMs: number) => {
+    const bannedUntil = new Date(Date.now() + durationMs).toISOString();
     void applyUpdate(user, { status: 'banned', banned_until: bannedUntil });
   };
 
@@ -154,15 +161,15 @@ export default function AdminUserPanel({
                             </button>
                           ) : (
                             <>
-                              {[1, 24, 168].map((hours) => (
+                              {banOptions.map((option) => (
                                 <button
-                                  key={hours}
+                                  key={option.label}
                                   type="button"
                                   disabled={isSelf || isUpdating}
-                                  onClick={() => banForHours(item, hours)}
+                                  onClick={() => banForDuration(item, option.durationMs)}
                                   className="rounded border border-red-500/30 px-2 py-1 text-[10px] font-bold text-red-300 hover:bg-red-500/10 disabled:opacity-40"
                                 >
-                                  BAN {hours === 168 ? '7D' : `${hours}H`}
+                                  {option.label}
                                 </button>
                               ))}
                             </>
