@@ -116,3 +116,34 @@ class TemplateSummary(BaseModel):
 
 class TemplateDetail(TemplateSummary):
     workflow: WorkflowDocument
+
+
+class CommentCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    body: str = Field(min_length=1, max_length=2000)
+
+    @field_validator("body")
+    @classmethod
+    def validate_body(cls, value: str) -> str:
+        cleaned = value.strip()
+        if not cleaned:
+            raise ValueError("Comment cannot be blank")
+        return cleaned
+
+
+class CommentPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    template_id: int
+    author_id: int
+    author: TemplateOwnerPublic
+    body: str
+    created_at: datetime
+
+
+class AdminTemplateCommentsUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    comments_enabled: bool

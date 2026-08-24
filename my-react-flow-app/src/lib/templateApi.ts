@@ -34,6 +34,15 @@ export type TemplateDetail = TemplateSummary & {
   workflow: WorkflowDocument;
 };
 
+export type TemplateComment = {
+  id: number;
+  template_id: number;
+  author_id: number;
+  author: TemplateOwner;
+  body: string;
+  created_at: string;
+};
+
 export type CurrentWorkflow = {
   name: string;
   workflow: WorkflowDocument;
@@ -89,6 +98,32 @@ export async function updatePlatformTemplate(
 export async function loadPlatformTemplate(templateId: number): Promise<TemplateDetail> {
   return readJson<TemplateDetail>(await apiFetch(`/api/templates/${templateId}/load`, {
     method: 'POST',
+  }));
+}
+
+export async function listTemplateComments(templateId: number): Promise<TemplateComment[]> {
+  return readJson<TemplateComment[]>(await apiFetch(`/api/templates/${templateId}/comments`));
+}
+
+export async function createTemplateComment(
+  templateId: number,
+  body: string,
+): Promise<TemplateComment> {
+  return readJson<TemplateComment>(await apiFetch(`/api/templates/${templateId}/comments`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body }),
+  }));
+}
+
+export async function updateTemplateCommentsSetting(
+  templateId: number,
+  commentsEnabled: boolean,
+): Promise<TemplateSummary> {
+  return readJson<TemplateSummary>(await apiFetch(`/api/admin/templates/${templateId}/comments`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ comments_enabled: commentsEnabled }),
   }));
 }
 

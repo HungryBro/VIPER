@@ -3,11 +3,15 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import {
   createPlatformTemplate,
+  createTemplateComment,
   listMyTemplates,
   listPublicTemplates,
+  listTemplateComments,
   loadPlatformTemplate,
+  updateTemplateCommentsSetting,
   updatePlatformTemplate,
   type CurrentWorkflow,
+  type TemplateComment,
   type TemplateDetail,
   type TemplateSummary,
   type TemplateVisibility,
@@ -33,6 +37,13 @@ function formatDate(value: string): string {
   return new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium' }).format(new Date(value));
 }
 
+function formatCommentDate(value: string): string {
+  return new Intl.DateTimeFormat('th-TH', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
+
 export default function TemplatePlatformLibrary({
   view,
   getCurrentWorkflow,
@@ -43,6 +54,11 @@ export default function TemplatePlatformLibrary({
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [openCommentsId, setOpenCommentsId] = useState<number | null>(null);
+  const [commentsLoadingId, setCommentsLoadingId] = useState<number | null>(null);
+  const [commentBusyId, setCommentBusyId] = useState<number | null>(null);
+  const [commentsByTemplate, setCommentsByTemplate] = useState<Record<number, TemplateComment[]>>({});
+  const [commentDrafts, setCommentDrafts] = useState<Record<number, string>>({});
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [saveOpen, setSaveOpen] = useState(false);
@@ -166,6 +182,73 @@ export default function TemplatePlatformLibrary({
     }
   };
 
+  const loadComments = async (templateId: number) => {
+    setCommentsLoadingId(templateId);
+    setError('');
+    try {
+      const comments = await listTemplateComments(templateId);
+      setCommentsByTemplate((current) => ({ ...current, [templateId]: comments }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load comments');
+    } finally {
+      setCommentsLoadingId(null);
+    }
+  };
+
+  const toggleCommentPanel = async (templateId: number) => {
+    if (openCommentsId === templateId) {
+      setOpenCommentsId(null);
+      return;
+    }
+    setOpenCommentsId(templateId);
+    if (commentsByTemplate[templateId] === undefined) {
+      await loadComments(templateId);
+    }
+  };
+
+  const submitComment = async (templateId: number) => {
+    const body = (commentDrafts[templateId] ?? '').trim();
+    if (!body) {
+      setError('Comment cannot be blank.');
+      return;
+    }
+
+    setCommentBusyId(templateId);
+    setError('');
+    setNotice('');
+    try {
+      const comment = await createTemplateComment(templateId, body);
+      setCommentsByTemplate((current) => ({
+        ...current,
+        [templateId]: [...(current[templateId] ?? []), comment],
+      }));
+      setCommentDrafts((current) => ({ ...current, [templateId]: '' }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to post comment');
+    } finally {
+      setCommentBusyId(null);
+    }
+  };
+
+  const changeCommentsEnabled = async (templateId: number, enabled: boolean) => {
+    setBusyId(templateId);
+    setError('');
+    setNotice('');
+    try {
+      const updated = await updateTemplateCommentsSetting(templateId, enabled);
+      setTemplates((current) => current.map((template) => (
+        template.id === updated.id ? updated : template
+      )));
+      setNotice(enabled
+        ? 'Comments are open for this template.'
+        : 'New comments are closed. Existing comments remain readable.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to update comment setting');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex gap-1.5">
@@ -234,6 +317,10 @@ export default function TemplatePlatformLibrary({
         templates.map((template) => {
           const busy = busyId === template.id;
           const isOwner = user?.id === template.owner_id;
+          const commentsOpen = openCommentsId === template.id;
+          const comments = commentsByTemplate[template.id];
+          const commentsLoading = commentsLoadingId === template.id;
+          const commentBusy = commentBusyId === template.id;
           return (
             <article key={template.id} className="rounded-lg border border-gray-800 bg-gray-800/40 p-2.5 transition-colors hover:border-teal-500/40">
               <div className="flex items-start justify-between gap-2">
@@ -269,14 +356,84 @@ export default function TemplatePlatformLibrary({
                 </div>
               )}
 
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void loadSelected(template.id)}
-                className="mt-2 w-full rounded-md bg-teal-600/20 px-2 py-1.5 text-[9px] font-black text-teal-300 hover:bg-teal-600/30 disabled:opacity-50"
-              >
-                {busy ? 'WORKING…' : 'LOAD AS NEW TAB'}
-              </button>
+              {user?.role === 'admin' && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void changeCommentsEnabled(template.id, !template.comments_enabled)}
+                  className={`mt-1.5 w-full rounded border px-2 py-1.5 text-[8px] font-black disabled:opacity-50 ${template.comments_enabled ? 'border-red-500/30 bg-red-500/10 text-red-300' : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'}`}
+                >
+                  {template.comments_enabled ? 'CLOSE COMMENTS' : 'OPEN COMMENTS'}
+                </button>
+              )}
+
+              <div className="mt-2 grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void loadSelected(template.id)}
+                  className="rounded-md bg-teal-600/20 px-2 py-1.5 text-[8px] font-black text-teal-300 hover:bg-teal-600/30 disabled:opacity-50"
+                >
+                  {busy ? 'WORKING…' : 'LOAD NEW TAB'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void toggleCommentPanel(template.id)}
+                  className={`rounded-md border px-2 py-1.5 text-[8px] font-black ${commentsOpen ? 'border-indigo-400/50 bg-indigo-500/20 text-indigo-200' : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-indigo-500/40'}`}
+                >
+                  COMMENTS{comments ? ` (${comments.length})` : ''}
+                </button>
+              </div>
+
+              {commentsOpen && (
+                <div className="mt-2 space-y-2 border-t border-gray-700/70 pt-2">
+                  {commentsLoading ? (
+                    <div className="py-3 text-center text-[9px] text-gray-500">Loading comments…</div>
+                  ) : comments && comments.length > 0 ? (
+                    <div className="max-h-44 space-y-1.5 overflow-y-auto pr-0.5 custom-scrollbar">
+                      {comments.map((comment) => (
+                        <div key={comment.id} className="rounded-md bg-gray-950/70 p-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate text-[8px] font-bold text-indigo-300">{comment.author.display_name}</span>
+                            <span className="shrink-0 text-[7px] text-gray-600">{formatCommentDate(comment.created_at)}</span>
+                          </div>
+                          <p className="mt-1 whitespace-pre-wrap break-words text-[9px] leading-relaxed text-gray-300">{comment.body}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-2 text-center text-[9px] text-gray-600">No comments yet.</div>
+                  )}
+
+                  {!template.comments_enabled ? (
+                    <div className="rounded-md border border-amber-500/25 bg-amber-500/10 px-2 py-1.5 text-[8px] leading-relaxed text-amber-300">
+                      Comments are closed. Existing comments remain readable.
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <textarea
+                        value={commentDrafts[template.id] ?? ''}
+                        maxLength={2000}
+                        rows={2}
+                        onChange={(event) => setCommentDrafts((current) => ({
+                          ...current,
+                          [template.id]: event.target.value,
+                        }))}
+                        placeholder="Write a comment…"
+                        className="w-full resize-none rounded-md border border-gray-700 bg-gray-950 px-2 py-1.5 text-[9px] text-white outline-none focus:border-indigo-500"
+                      />
+                      <button
+                        type="button"
+                        disabled={commentBusy}
+                        onClick={() => void submitComment(template.id)}
+                        className="w-full rounded-md bg-indigo-600/30 px-2 py-1.5 text-[8px] font-black text-indigo-200 hover:bg-indigo-600/40 disabled:opacity-50"
+                      >
+                        {commentBusy ? 'POSTING…' : 'POST COMMENT'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </article>
           );
         })

@@ -2,13 +2,18 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from ..auth import require_admin, utc_now
 from ..config import settings
 from ..database import get_db
-from ..models import AuditLog, User
-from ..schemas import AdminUserPublic, AdminUserUpdate
+from ..models import AuditLog, Template, User
+from ..schemas import (
+    AdminTemplateCommentsUpdate,
+    AdminUserPublic,
+    AdminUserUpdate,
+    TemplateSummary,
+)
 
 
 router = APIRouter(prefix="/api/admin", tags=["administration"])
@@ -127,3 +132,53 @@ def update_user_access(
     db.commit()
     db.refresh(target)
     return target
+
+
+@router.patch(
+    "/templates/{template_id}/comments",
+    response_model=TemplateSummary,
+)
+def update_template_comments(
+    template_id: int,
+    payload: AdminTemplateCommentsUpdate,
+    request: Request,
+    admin: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    template = db.scalar(
+        select(Template)
+        .options(joinedload(Template.owner))
+        .where(Template.id == template_id)
+    )
+    if template is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Template not found",
+        )
+
+    previous = template.comments_enabled
+    template.comments_enabled = payload.comments_enabled
+    if previous != payload.comments_enabled:
+        db.add(
+            AuditLog(
+                actor_id=admin.id,
+                action="admin.template_comments_updated",
+                target_type="template",
+                target_id=str(template.id),
+                details={
+                    "comments_enabled": {
+                        "from": previous,
+                        "to": payload.comments_enabled,
+                    }
+                },
+                request_path=str(request.url.path),
+                status_code=status.HTTP_200_OK,
+            )
+        )
+
+    db.commit()
+    return db.scalar(
+        select(Template)
+        .options(joinedload(Template.owner))
+        .where(Template.id == template.id)
+    )

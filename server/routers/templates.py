@@ -4,8 +4,15 @@ from sqlalchemy.orm import Session, joinedload
 
 from ..auth import require_active_user
 from ..database import get_db
-from ..models import AuditLog, Template, User
-from ..schemas import TemplateCreate, TemplateDetail, TemplateSummary, TemplateUpdate
+from ..models import AuditLog, Comment, Template, User
+from ..schemas import (
+    CommentCreate,
+    CommentPublic,
+    TemplateCreate,
+    TemplateDetail,
+    TemplateSummary,
+    TemplateUpdate,
+)
 
 
 router = APIRouter(prefix="/api/templates", tags=["templates"])
@@ -13,6 +20,10 @@ router = APIRouter(prefix="/api/templates", tags=["templates"])
 
 def _template_query():
     return select(Template).options(joinedload(Template.owner))
+
+
+def _comment_query():
+    return select(Comment).options(joinedload(Comment.author))
 
 
 def _get_visible_template(db: Session, template_id: int, user: User) -> Template:
@@ -134,6 +145,58 @@ def load_template(
     )
     db.commit()
     return template
+
+
+@router.get("/{template_id}/comments", response_model=list[CommentPublic])
+def list_template_comments(
+    template_id: int,
+    user: User = Depends(require_active_user),
+    db: Session = Depends(get_db),
+):
+    # Reading remains available even when new comments are disabled.
+    _get_visible_template(db, template_id, user)
+    return db.scalars(
+        _comment_query()
+        .where(Comment.template_id == template_id)
+        .order_by(Comment.created_at.asc(), Comment.id.asc())
+    ).all()
+
+
+@router.post(
+    "/{template_id}/comments",
+    response_model=CommentPublic,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_template_comment(
+    template_id: int,
+    payload: CommentCreate,
+    request: Request,
+    user: User = Depends(require_active_user),
+    db: Session = Depends(get_db),
+):
+    template = _get_visible_template(db, template_id, user)
+    if not template.comments_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Comments are disabled for this template",
+        )
+
+    comment = Comment(template_id=template.id, author_id=user.id, body=payload.body)
+    db.add(comment)
+    db.flush()
+    db.add(
+        AuditLog(
+            actor_id=user.id,
+            action="comment.create",
+            target_type="comment",
+            target_id=str(comment.id),
+            details={"template_id": template.id},
+            request_path=str(request.url.path),
+            status_code=status.HTTP_201_CREATED,
+        )
+    )
+    db.commit()
+    return db.scalar(_comment_query().where(Comment.id == comment.id))
 
 
 @router.patch("/{template_id}", response_model=TemplateDetail)
