@@ -8,7 +8,6 @@ import FlowCanvas, { type FlowCanvasHandle } from './FlowCanvas';
 import WorkflowControls from './components/WorkflowControls';
 import WorkflowTabs from './components/WorkflowTabs';
 import UserMenu from './components/UserMenu';
-import TemplatePlatformPanel from './components/TemplatePlatformPanel';
 
 import type { WorkflowTemplate } from './lib/workflowTemplates';
 import { sanitizeWorkflowDocument, type TemplateDetail } from './lib/templateApi';
@@ -19,7 +18,6 @@ const STORAGE_KEY_ACTIVE_TAB = 'n2n_active_tab_id';
 
 export default function App() {
   const [isRunning, setIsRunning] = useState(false);
-  const [templatePanelOpen, setTemplatePanelOpen] = useState(false);
   
   const isInitializing = useRef(true); 
 
@@ -264,19 +262,17 @@ export default function App() {
     <div className="w-screen h-[100dvh] flex flex-col bg-gray-900 text-white overflow-hidden">
       <div className="relative z-30 bg-gray-900 shadow-lg border-b-2 border-teal-500 flex items-center justify-center p-2">
         <h1 className="text-lg md:text-2xl font-extrabold text-teal-400 tracking-wide drop-shadow-md">Visual Image Processing & Evaluation Resource (VIPER)</h1>
-        <UserMenu onOpenTemplates={() => setTemplatePanelOpen(true)} />
+        <UserMenu />
       </div>
-      <TemplatePlatformPanel
-        open={templatePanelOpen}
-        onClose={() => setTemplatePanelOpen(false)}
-        getCurrentWorkflow={getCurrentWorkflow}
-        onLoad={handleLoadPlatformTemplate}
-      />
       <WorkflowControls isRunning={isRunning} onStart={handleStart} onStop={handleStop} />
       <WorkflowTabs tabs={tabs.map(t => ({ id: t.id, name: t.name }))} activeTabId={activeTabId} onSwitch={handleSwitchTab} onAdd={handleAddTab} onClose={handleCloseTab} onRename={handleRenameTab} />
       <div className="flex flex-grow overflow-hidden relative">
         <ReactFlowProvider>
-          <Sidebar onLoadTemplate={handleLoadTemplate} />
+          <Sidebar
+            onLoadTemplate={handleLoadTemplate}
+            getCurrentWorkflow={getCurrentWorkflow}
+            onLoadPlatformTemplate={handleLoadPlatformTemplate}
+          />
           <div className="flex-1 h-full relative">
             <FlowCanvas ref={canvasRef} isRunning={isRunning} onPipelineDone={handleStop} onFlowChange={handleFlowChange} currentTabName={activeTabName} />
           </div>

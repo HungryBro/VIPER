@@ -1,7 +1,9 @@
 // src/components/sidebar.tsx
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { TEMPLATES, type WorkflowTemplate } from '../lib/workflowTemplates';
+import type { CurrentWorkflow, TemplateDetail } from '../lib/templateApi';
 import AlgorithmInfoModal from './modals/AlgorithmInfoModal';
+import TemplatePlatformLibrary, { type PlatformTemplateView } from './TemplatePlatformLibrary';
 
 interface TemplateJobGroup {
   name: string;
@@ -12,6 +14,8 @@ interface TemplateJobGroup {
 
 interface SidebarProps {
   onLoadTemplate: ((template: WorkflowTemplate) => void) | null;
+  getCurrentWorkflow: () => CurrentWorkflow | null;
+  onLoadPlatformTemplate: (template: TemplateDetail) => void;
 }
 
 // --- Icons ---
@@ -34,9 +38,10 @@ const Icons: Record<string, React.FC<{ className?: string }>> = {
   )
 };
 
-const Sidebar = ({ onLoadTemplate }: SidebarProps) => {
+const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate }: SidebarProps) => {
 
   const [activeTab, setActiveTab] = useState<'nodes' | 'templates'>('nodes');
+  const [templateView, setTemplateView] = useState<'official' | PlatformTemplateView>('official');
   const [openNodeGroups, setOpenNodeGroups] = useState<Record<string, boolean>>({});
   const [openTemplateGroups, setOpenTemplateGroups] = useState<Record<string, boolean>>({});
   const [collapsed, setCollapsed] = useState(false);
@@ -274,10 +279,27 @@ const Sidebar = ({ onLoadTemplate }: SidebarProps) => {
 
         {!collapsed ? (
           <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
-            <div className="px-1 pb-2 flex gap-2 mb-1 mt-1">
-              <button onClick={expandAll} className="flex-1 text-[9px] font-bold px-2 py-1 rounded bg-gray-800 text-gray-500 hover:text-white hover:bg-gray-700 border border-gray-700 transition-colors">OPEN ALL</button>
-              <button onClick={collapseAll} className="flex-1 text-[9px] font-bold px-2 py-1 rounded bg-gray-800 text-gray-500 hover:text-white hover:bg-gray-700 border border-gray-700 transition-colors">CLOSE ALL</button>
-            </div>
+            {activeTab === 'templates' && (
+              <div className="mb-2 grid grid-cols-3 gap-1 rounded-lg border border-gray-800 bg-gray-950/60 p-1">
+                {(['official', 'public', 'private'] as const).map((view) => (
+                  <button
+                    key={view}
+                    type="button"
+                    onClick={() => setTemplateView(view)}
+                    className={`rounded-md px-1 py-1.5 text-[8px] font-black uppercase transition-colors ${templateView === view ? 'bg-teal-600/20 text-teal-300 ring-1 ring-teal-500/40' : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'}`}
+                  >
+                    {view}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {(activeTab === 'nodes' || templateView === 'official') && (
+              <div className="px-1 pb-2 flex gap-2 mb-1 mt-1">
+                <button onClick={expandAll} className="flex-1 text-[9px] font-bold px-2 py-1 rounded bg-gray-800 text-gray-500 hover:text-white hover:bg-gray-700 border border-gray-700 transition-colors">OPEN ALL</button>
+                <button onClick={collapseAll} className="flex-1 text-[9px] font-bold px-2 py-1 rounded bg-gray-800 text-gray-500 hover:text-white hover:bg-gray-700 border border-gray-700 transition-colors">CLOSE ALL</button>
+              </div>
+            )}
 
             {activeTab === 'nodes' && jobs.map(job => {
                 const isOpen = openNodeGroups[job.name];
@@ -305,7 +327,7 @@ const Sidebar = ({ onLoadTemplate }: SidebarProps) => {
                 );
               })}
 
-            {activeTab === 'templates' && templateJobs.map(job => {
+            {activeTab === 'templates' && templateView === 'official' && templateJobs.map(job => {
                   const isOpen = openTemplateGroups[job.name];
                   return (
                     <div key={job.name} className="rounded-lg overflow-hidden border border-gray-800/50 bg-gray-800/30 mb-2">
@@ -332,6 +354,15 @@ const Sidebar = ({ onLoadTemplate }: SidebarProps) => {
                     </div>
                   );
                 })}
+
+            {activeTab === 'templates' && templateView !== 'official' && (
+              <TemplatePlatformLibrary
+                view={templateView}
+                getCurrentWorkflow={getCurrentWorkflow}
+                onLoad={onLoadPlatformTemplate}
+                onViewChange={setTemplateView}
+              />
+            )}
           </div>
         ) : <div className="flex-1" />}
 
