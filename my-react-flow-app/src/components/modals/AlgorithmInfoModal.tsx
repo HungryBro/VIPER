@@ -9,9 +9,9 @@ interface Props {
 }
 
 export default function AlgorithmInfoModal({ template, onClose }: Props) {
-  if (!template) return null;
-
   const [lang, setLang] = useState<'en' | 'th'>('en');
+
+  if (!template) return null;
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[99999] flex items-center justify-center">

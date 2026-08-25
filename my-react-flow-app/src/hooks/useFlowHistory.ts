@@ -18,25 +18,26 @@ export type UseFlowHistoryArgs = {
   isDraggingRef: { current: boolean };
 };
 
-const getCleanData = (data: any) => {
-  const { 
-    status, 
-    onRunNode, 
-    payload,
-    json,
-    output,
-    json_data,
-    message,
-    error,
-    meta,
-    params_used,
-    result_text,
-    description, 
-    
-    ...rest 
-  } = data || {};
-  return rest;
-};
+const TRANSIENT_NODE_DATA_KEYS = new Set([
+  'status',
+  'onRunNode',
+  'payload',
+  'json',
+  'output',
+  'json_data',
+  'message',
+  'error',
+  'meta',
+  'params_used',
+  'result_text',
+  'description',
+]);
+
+const getCleanData = (data: unknown) => Object.fromEntries(
+  Object.entries((data || {}) as Record<string, unknown>).filter(
+    ([key]) => !TRANSIENT_NODE_DATA_KEYS.has(key),
+  ),
+);
 
 const hasMeaningfulChange = (prevNodes: RFNode[], currNodes: RFNode[]) => {
   if (prevNodes.length !== currNodes.length) return true;

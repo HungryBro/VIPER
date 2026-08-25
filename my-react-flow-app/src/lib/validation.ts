@@ -181,7 +181,7 @@ export function validateNodeInput(
       break;
 
     case 'bfmatcher':
-    case 'flannmatcher':
+    case 'flannmatcher': {
       if (inputCount < 2) {
         return { isValid: false, message: 'Requires 2 inputs (Feature A & Feature B).' };
       }
@@ -210,6 +210,7 @@ export function validateNodeInput(
           }
       }
       break;
+    }
 
     case 'psnr':
     case 'ssim':

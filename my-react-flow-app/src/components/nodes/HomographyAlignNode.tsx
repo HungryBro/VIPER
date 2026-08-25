@@ -120,7 +120,7 @@ const HomographyAlignNode = memo(({ id, data, selected }: NodeProps<CustomNodeDa
     const jsonData = data?.payload?.json_data || data?.payload?.output || data?.payload?.json;
     let shape = jsonData?.output?.aligned_shape;
     if (!shape) shape = jsonData?.output?.shape;
-    if (!shape) data?.payload?.aligned_shape;
+    if (!shape) shape = data?.payload?.aligned_shape;
 
     if (Array.isArray(shape) && shape.length >= 2) {
       return `${shape[1]}×${shape[0]}px`;

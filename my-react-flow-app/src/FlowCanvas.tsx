@@ -51,7 +51,9 @@ function cleanErrorMessage(rawMsg: string): string {
   try {
     const parsed = JSON.parse(rawMsg.substring(rawMsg.indexOf('{')));
     if (parsed.detail) return parsed.detail;
-  } catch (e) { }
+  } catch {
+    // Keep the original message when the response is not JSON.
+  }
   return rawMsg.replace(/^HTTP \d+ [a-zA-Z ]+ - /, '').replace(/^Error: /, '').trim();
 }
 
@@ -348,8 +350,8 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
 
               await new Promise(r => setTimeout(r, delayTime));
 
-            } catch (e) {
-              console.warn(`Node ${node.id} failed.`);
+            } catch (error) {
+              console.warn(`Node ${node.id} failed.`, error);
               isCanceledRef.current = true;
               break;
             }
@@ -366,7 +368,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       setTimeout(() => runAllNodes(), 0);
 
       return () => { isProcessingRef.current = false; };
-    }, [isRunning]);
+    }, [addLog, getNodes, isRunning, onPipelineDone, runNodeById, setNodes]);
 
     const onValidateConnection = useCallback((connection: Connection) => {
       return validateConnection(connection, nodes, edges);

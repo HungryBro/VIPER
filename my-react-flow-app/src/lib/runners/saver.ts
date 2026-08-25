@@ -135,7 +135,7 @@ export async function runSaveJson(
 
     let finalData = payload.json || payload; 
 
-    let targetUrl = 
+    const targetUrl =
         payload.json_url ||                 
         payload.output?.json_url ||         
         payload.json_path ||                

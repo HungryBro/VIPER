@@ -43,7 +43,11 @@ const ImageInputNode = memo(({ id, data, selected }: Props) => {
       const absUrl = (abs(f.url) || f.url) as string;
 
       let dims = { width: 0, height: 0 };
-      try { dims = await readImageSize(absUrl); } catch { }
+      try {
+        dims = await readImageSize(absUrl);
+      } catch {
+        // Image dimensions are optional; keep the zero-value fallback.
+      }
 
       setNodes(nds => nds.map(n => n.id === id ? {
         ...n,

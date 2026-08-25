@@ -19,9 +19,17 @@ const SettingsSlidersIcon = ({ className = 'h-4 w-4' }: { className?: string }) 
 const stopAll = (e: React.SyntheticEvent) => e.stopPropagation();
 const stopKeys: React.KeyboardEventHandler<HTMLInputElement | HTMLSelectElement> = (e) => {
   e.stopPropagation();
-  const k = e.key;
-  if (k === 'Backspace' || k === 'Delete' || k === 'Enter' || k === ' ') {}
 };
+
+const SNAKE_RESULT_PAYLOAD_KEYS = new Set([
+  'result_image_url',
+  'preview_url',
+  'overlay_url',
+  'mask_url',
+  'contour_points',
+  'iterations',
+  'json',
+]);
 
 type InitMode = 'circle' | 'point' | 'bbox';
 type Numish = number | string | null | undefined;
@@ -153,7 +161,11 @@ const SnakeNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
     if (isConnected && upstreamImage !== prevInputRef.current) {
       rf.setNodes((nds) => nds.map((n) => {
         if (n.id === id) {
-          const { result_image_url, preview_url, overlay_url, mask_url, contour_points, iterations, json, ...cleanPayload } = n.data.payload || {};
+          const cleanPayload = Object.fromEntries(
+            Object.entries(n.data.payload || {}).filter(
+              ([key]) => !SNAKE_RESULT_PAYLOAD_KEYS.has(key),
+            ),
+          );
           return {
             ...n,
             data: { ...n.data, status: 'idle', description: 'Input changed. Ready.', payload: cleanPayload }
@@ -172,9 +184,14 @@ const SnakeNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
   }, [data?.params, data?.payload?.params]);
 
   const [form, setForm] = useState<Params>(savedParams);
+  const formRef = useRef(form);
+
+  useEffect(() => {
+    formRef.current = form;
+  }, [form]);
   
   useEffect(() => {
-      if (JSON.stringify(savedParams) !== JSON.stringify(form)) {
+      if (JSON.stringify(savedParams) !== JSON.stringify(formRef.current)) {
           setForm(savedParams);
       }
   }, [savedParams]);
@@ -271,7 +288,7 @@ const SnakeNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
   if (selected) borderColor = 'border-pink-400 ring-2 ring-pink-500';
   else if (isRunning) borderColor = 'border-yellow-500 ring-2 ring-yellow-500/50';
 
-  const getImgCoords = (e: React.MouseEvent) => {
+  const getImgCoords = useCallback((e: React.MouseEvent) => {
     if (!imgRef.current) return null;
     const rect = imgRef.current.getBoundingClientRect();
     const scaleX = imgRef.current.naturalWidth / rect.width;
@@ -280,7 +297,7 @@ const SnakeNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
       x: Math.round((e.clientX - rect.left) * scaleX),
       y: Math.round((e.clientY - rect.top) * scaleY)
     };
-  };
+  }, []);
 
   const onImgLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const img = e.currentTarget;

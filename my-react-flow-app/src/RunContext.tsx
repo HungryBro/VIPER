@@ -1,15 +1,7 @@
 // File: my-react-flow-app/src/RunContext.tsx
-import React, { createContext, useContext } from 'react';
-
-type RunCtx = { runNode: (id: string) => void };
-const Ctx = createContext<RunCtx | null>(null);
+import React from 'react';
+import { RunContext } from './runContextState';
 
 export const RunProvider: React.FC<{ runNode: (id: string) => void; children: React.ReactNode }> = ({ runNode, children }) => {
-  return <Ctx.Provider value={{ runNode }}>{children}</Ctx.Provider>;
+  return <RunContext.Provider value={{ runNode }}>{children}</RunContext.Provider>;
 };
-
-export function useRunNode() {
-  const ctx = useContext(Ctx);
-  if (!ctx) throw new Error('useRunNode must be used inside <RunProvider>');
-  return ctx.runNode;
-}

@@ -54,12 +54,19 @@ export default function App() {
   });
 
   const canvasRef = useRef<FlowCanvasHandle>(null);
+  const tabsRef = useRef(tabs);
+  const activeTabIdRef = useRef(activeTabId);
+
+  useEffect(() => {
+    tabsRef.current = tabs;
+    activeTabIdRef.current = activeTabId;
+  }, [tabs, activeTabId]);
 
   useEffect(() => {
     isInitializing.current = true;
     const timer = setTimeout(() => {
         isInitializing.current = false;
-        localStorage.setItem(STORAGE_KEY_APP_TABS, JSON.stringify(tabs));
+        localStorage.setItem(STORAGE_KEY_APP_TABS, JSON.stringify(tabsRef.current));
     }, 500);
     return () => clearTimeout(timer);
   }, []);
@@ -131,7 +138,7 @@ export default function App() {
 
   useLayoutEffect(() => {
     const timer = setTimeout(() => {
-      const currentTab = tabs.find(t => t.id === activeTabId);
+      const currentTab = tabsRef.current.find(t => t.id === activeTabIdRef.current);
       if (currentTab && canvasRef.current) {
         const cleanNodes = currentTab.nodes.map(n => ({
             ...n,

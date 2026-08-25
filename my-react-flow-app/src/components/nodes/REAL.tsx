@@ -98,7 +98,10 @@ const RealESRGANNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) 
   }, [rf, id, form]);
 
   const visUrl = data?.payload?.vis_url || data?.payload?.output_image;
-  const sourceData = data?.payload?.json_data || data?.payload?.json || {};
+  const sourceData = useMemo(
+    () => data?.payload?.json_data || data?.payload?.json || {},
+    [data?.payload?.json_data, data?.payload?.json],
+  );
 
   const getSizeText = useMemo(() => {
     let w_in, h_in, w_out, h_out;
