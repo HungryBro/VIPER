@@ -2,7 +2,7 @@
 import os
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from ..utils_io import resolve_image_path, OUT, static_url
@@ -34,6 +34,8 @@ def clean_url_for_db(u: str) -> Optional[str]:
     return f"{BASE_URL}/{normalized}"
 
 class MatchReq(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
     json_a: str
     json_b: str
     norm_type: Optional[str] = None
@@ -48,9 +50,6 @@ class MatchReq(BaseModel):
     lsh_table_number: Optional[int] = 6
     lsh_key_size: Optional[int] = 12
     lsh_multi_probe_level: Optional[int] = 1
-    
-    class Config:
-        extra = "ignore"
 
 @router.post("/bf")
 def match_bf(req: MatchReq, db: Session = Depends(get_db)):
