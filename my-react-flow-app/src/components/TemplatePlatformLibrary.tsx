@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '../auth/AuthContext';
 import {
@@ -70,6 +70,24 @@ export default function TemplatePlatformLibrary({
     description: '',
     visibility: view,
   });
+  const openCommentsIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    openCommentsIdRef.current = openCommentsId;
+  }, [openCommentsId]);
+
+  const loadComments = useCallback(async (templateId: number) => {
+    setCommentsLoadingId(templateId);
+    setError('');
+    try {
+      const comments = await listTemplateComments(templateId);
+      setCommentsByTemplate((current) => ({ ...current, [templateId]: comments }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load comments');
+    } finally {
+      setCommentsLoadingId(null);
+    }
+  }, []);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -79,12 +97,16 @@ export default function TemplatePlatformLibrary({
         ? await listPublicTemplates()
         : (await listMyTemplates()).filter((template) => template.visibility === 'private');
       setTemplates(result);
+      const openTemplateId = openCommentsIdRef.current;
+      if (openTemplateId !== null && result.some((template) => template.id === openTemplateId)) {
+        await loadComments(openTemplateId);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to load templates');
     } finally {
       setLoading(false);
     }
-  }, [view]);
+  }, [loadComments, view]);
 
   useEffect(() => {
     void refresh();
@@ -182,19 +204,6 @@ export default function TemplatePlatformLibrary({
       setError(err instanceof Error ? err.message : 'Unable to update template');
     } finally {
       setBusyId(null);
-    }
-  };
-
-  const loadComments = async (templateId: number) => {
-    setCommentsLoadingId(templateId);
-    setError('');
-    try {
-      const comments = await listTemplateComments(templateId);
-      setCommentsByTemplate((current) => ({ ...current, [templateId]: comments }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load comments');
-    } finally {
-      setCommentsLoadingId(null);
     }
   };
 
