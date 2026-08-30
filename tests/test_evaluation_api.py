@@ -16,6 +16,7 @@ from server.config import settings
 from server.database import Base, get_db
 from server.main import app
 from server.models import AuditLog, User
+from server.routers import evaluation as evaluation_router
 
 
 def make_engine():
@@ -152,6 +153,73 @@ def test_evaluation_returns_validation_error_and_audits_failed_processing():
             )
             assert audit is not None
             assert audit.status_code == 422
+            assert audit.details["success"] is False
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_active_user_can_run_detection_evaluation_and_it_is_audited(monkeypatch, tmp_path):
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    learner = add_user(engine, "learner", "learner@example.com")
+    json_path = tmp_path / "detection-evaluation.json"
+    json_path.write_text("{}", encoding="utf-8")
+
+    def fake_evaluate(**kwargs):
+        assert kwargs["dataset_yaml"] == "/tmp/data.yaml"
+        assert kwargs["model_path"] == "/tmp/best.pt"
+        assert kwargs["confidence_threshold"] == 0.4
+        return {
+            "status": "success",
+            "tool": "DetectionEvaluation",
+            "metrics": {"detection_rate": 1.0},
+            "json_path": str(json_path),
+        }
+
+    monkeypatch.setattr(evaluation_router, "evaluate_yolo_dataset", fake_evaluate)
+    try:
+        with make_client(engine) as client:
+            authenticate(client, learner.id)
+            response = client.post(
+                "/api/evaluation/detection",
+                json={
+                    "dataset_yaml": "/tmp/data.yaml",
+                    "model_path": "/tmp/best.pt",
+                    "confidence_threshold": 0.4,
+                },
+            )
+
+        assert response.status_code == 200
+        assert response.json()["metrics"]["detection_rate"] == 1.0
+        with Session(engine) as db:
+            audit = db.scalar(select(AuditLog).where(AuditLog.target_id == "evaluation.detection"))
+            assert audit is not None
+            assert audit.status_code == 200
+            assert audit.details["success"] is True
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_detection_evaluation_returns_processing_error_and_audits_it(monkeypatch):
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    learner = add_user(engine, "learner", "learner@example.com")
+    monkeypatch.setattr(evaluation_router, "evaluate_yolo_dataset", lambda **_: (_ for _ in ()).throw(ValueError("Dataset is invalid")))
+
+    try:
+        with make_client(engine) as client:
+            authenticate(client, learner.id)
+            response = client.post(
+                "/api/evaluation/detection",
+                json={"dataset_yaml": "/tmp/data.yaml", "model_path": "/tmp/best.pt"},
+            )
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "Dataset is invalid"
+        with Session(engine) as db:
+            audit = db.scalar(select(AuditLog).where(AuditLog.target_id == "evaluation.detection"))
+            assert audit is not None
+            assert audit.status_code == 400
             assert audit.details["success"] is False
     finally:
         app.dependency_overrides.clear()

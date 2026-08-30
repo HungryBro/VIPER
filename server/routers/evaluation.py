@@ -8,6 +8,8 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
 from server.algos.evaluation import evaluate_classification
+from server.algos.evaluation.detection_evaluator import evaluate_yolo_dataset
+from server.utils_io import OUT, RESULT_DIR, static_url
 
 
 router = APIRouter()
@@ -20,6 +22,16 @@ class ClassificationEvaluationReq(BaseModel):
     y_pred: list[Any] = Field(min_length=1)
     y_scores: list[Any] | None = None
     class_names: list[str] | None = None
+
+
+class DetectionEvaluationReq(BaseModel):
+    dataset_yaml: str = Field(min_length=1)
+    model_path: str = Field(min_length=1)
+    confidence_threshold: float = Field(default=0.25, ge=0.0, le=1.0)
+    iou_threshold: float = Field(default=0.5, gt=0.0, le=1.0)
+    nms_iou_threshold: float = Field(default=0.7, gt=0.0, le=1.0)
+    image_size: int = Field(default=640, ge=32)
+    device: str | None = None
 
 
 @router.post("/classification")
@@ -44,3 +56,23 @@ def classification_evaluation(req: ClassificationEvaluationReq) -> dict[str, Any
         "tool": "ClassificationEvaluation",
         **result,
     }
+
+
+@router.post("/detection")
+def detection_evaluation(req: DetectionEvaluationReq) -> dict[str, Any]:
+    """Evaluate a trained YOLO model against a Dataset Builder validation split."""
+    try:
+        result = evaluate_yolo_dataset(
+            dataset_yaml=req.dataset_yaml,
+            model_path=req.model_path,
+            out_root=RESULT_DIR,
+            confidence_threshold=req.confidence_threshold,
+            iou_threshold=req.iou_threshold,
+            nms_iou_threshold=req.nms_iou_threshold,
+            image_size=req.image_size,
+            device=req.device,
+        )
+        result["json_url"] = static_url(result["json_path"], OUT)
+        return result
+    except (FileNotFoundError, ValueError, RuntimeError) as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
