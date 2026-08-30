@@ -15,7 +15,7 @@ from .utils_io import save_upload, static_url, ensure_dirs, OUT, UPLOAD_DIR
 from .routers import (
     admin, auth, templates,
     features, matching, alignment, quality, 
-    classification, detection,
+    classification, detection, evaluation,
     # enhancement, restoration, segmentation
 )
 
@@ -72,6 +72,7 @@ app.include_router(alignment.router,      prefix="/api/alignment", dependencies=
 app.include_router(quality.router,        prefix="/api/quality", dependencies=processing_audit_required)
 app.include_router(classification.router, prefix="/api/classify", dependencies=processing_audit_required)
 app.include_router(detection.router,      prefix="/api/detection", dependencies=processing_audit_required)
+app.include_router(evaluation.router,     prefix="/api/evaluation", dependencies=processing_audit_required)
 # app.include_router(enhancement.router,    prefix="/api/enhancement")
 # app.include_router(restoration.router,    prefix="/api/restoration")
 # app.include_router(segmentation.router,   prefix="/api/segmentation")
