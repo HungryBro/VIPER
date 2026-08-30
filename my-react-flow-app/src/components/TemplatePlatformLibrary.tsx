@@ -11,12 +11,14 @@ import {
   loadPlatformTemplate,
   updateTemplateCommentsSetting,
   updatePlatformTemplate,
+  uploadTemplateCover,
   type CurrentWorkflow,
   type TemplateComment,
   type TemplateDetail,
   type TemplateSummary,
   type TemplateVisibility,
 } from '../lib/templateApi';
+import { apiUrl } from '../lib/http';
 
 
 export type PlatformTemplateView = 'public' | 'private';
@@ -33,6 +35,15 @@ type SaveDraft = {
   description: string;
   visibility: TemplateVisibility;
 };
+
+type EditDraft = SaveDraft & {
+  templateId: number;
+  coverUrl: string | null;
+  coverFile: File | null;
+};
+
+const MAX_COVER_FILE_BYTES = 5 * 1024 * 1024;
+const ACCEPTED_COVER_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium' }).format(new Date(value));
@@ -65,6 +76,7 @@ export default function TemplatePlatformLibrary({
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [saveOpen, setSaveOpen] = useState(false);
+  const [editDraft, setEditDraft] = useState<EditDraft | null>(null);
   const [draft, setDraft] = useState<SaveDraft>({
     name: '',
     description: '',
@@ -207,6 +219,63 @@ export default function TemplatePlatformLibrary({
     }
   };
 
+  const beginEdit = (template: TemplateSummary) => {
+    setOpenSettingsId(null);
+    setError('');
+    setNotice('');
+    setEditDraft({
+      templateId: template.id,
+      name: template.name,
+      description: template.description,
+      visibility: template.visibility,
+      coverUrl: template.cover_url,
+      coverFile: null,
+    });
+  };
+
+  const selectCoverFile = (file: File | null) => {
+    if (!file) return;
+    if (!ACCEPTED_COVER_TYPES.has(file.type)) {
+      setError('Cover image must be a JPEG, PNG, or WebP file.');
+      return;
+    }
+    if (file.size > MAX_COVER_FILE_BYTES) {
+      setError('Cover image must be 5 MB or smaller.');
+      return;
+    }
+    setError('');
+    setEditDraft((current) => (current ? { ...current, coverFile: file } : current));
+  };
+
+  const saveTemplateEdits = async () => {
+    if (!editDraft) return;
+    if (!editDraft.name.trim()) {
+      setError('Template name is required.');
+      return;
+    }
+
+    setBusyId(editDraft.templateId);
+    setError('');
+    setNotice('');
+    try {
+      await updatePlatformTemplate(editDraft.templateId, {
+        name: editDraft.name.trim(),
+        description: editDraft.description.trim(),
+        visibility: editDraft.visibility,
+      });
+      if (editDraft.coverFile) {
+        await uploadTemplateCover(editDraft.templateId, editDraft.coverFile);
+      }
+      setEditDraft(null);
+      setNotice('Template details updated.');
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to update template details');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const toggleCommentPanel = async (templateId: number) => {
     if (openCommentsId === templateId) {
       setOpenCommentsId(null);
@@ -336,6 +405,56 @@ export default function TemplatePlatformLibrary({
         </div>
       )}
 
+      {editDraft && (
+        <div className="space-y-2 rounded-lg border border-indigo-500/30 bg-gray-800/60 p-2">
+          <div className="text-[9px] font-black uppercase tracking-wider text-indigo-300">Edit template</div>
+          <input
+            value={editDraft.name}
+            maxLength={160}
+            onChange={(event) => setEditDraft((current) => (current ? { ...current, name: event.target.value } : current))}
+            placeholder="Template name"
+            className="w-full rounded-md border border-gray-700 bg-gray-950 px-2 py-1.5 text-[10px] text-white outline-none focus:border-indigo-400"
+          />
+          <textarea
+            value={editDraft.description}
+            maxLength={2000}
+            rows={3}
+            onChange={(event) => setEditDraft((current) => (current ? { ...current, description: event.target.value } : current))}
+            placeholder="Short description"
+            className="w-full resize-none rounded-md border border-gray-700 bg-gray-950 px-2 py-1.5 text-[10px] text-white outline-none focus:border-indigo-400"
+          />
+          <select
+            value={editDraft.visibility}
+            onChange={(event) => setEditDraft((current) => (current ? { ...current, visibility: event.target.value as TemplateVisibility } : current))}
+            className="w-full rounded-md border border-gray-700 bg-gray-950 px-2 py-1.5 text-[10px] text-gray-200"
+          >
+            <option value="public">Public</option>
+            <option value="private">Private</option>
+          </select>
+          {editDraft.coverUrl && (
+            <img
+              src={apiUrl(editDraft.coverUrl)}
+              alt="Current template cover"
+              className="h-20 w-full rounded-md border border-gray-700 object-cover"
+            />
+          )}
+          <label className="block rounded-md border border-dashed border-gray-600 bg-gray-950 px-2 py-1.5 text-[8px] font-bold text-gray-400 hover:border-indigo-400 hover:text-gray-200">
+            <span>UPLOAD COVER · JPEG, PNG, WEBP · MAX 5 MB</span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) => selectCoverFile(event.target.files?.[0] ?? null)}
+              className="mt-1 block w-full text-[8px] text-gray-400 file:mr-2 file:rounded file:border-0 file:bg-indigo-500/20 file:px-2 file:py-1 file:text-[8px] file:font-bold file:text-indigo-200"
+            />
+          </label>
+          {editDraft.coverFile && <div className="truncate text-[8px] text-indigo-200">New cover: {editDraft.coverFile.name}</div>}
+          <div className="flex gap-1.5">
+            <button type="button" disabled={busyId === editDraft.templateId} onClick={() => void saveTemplateEdits()} className="flex-1 rounded-md bg-indigo-600 px-2 py-1.5 text-[9px] font-bold text-white disabled:opacity-50">SAVE CHANGES</button>
+            <button type="button" disabled={busyId === editDraft.templateId} onClick={() => setEditDraft(null)} className="flex-1 rounded-md border border-gray-700 px-2 py-1.5 text-[9px] font-bold text-gray-400 disabled:opacity-50">CANCEL</button>
+          </div>
+        </div>
+      )}
+
       {error && <div className="rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1.5 text-[9px] leading-relaxed text-red-300">{error}</div>}
       {notice && <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1.5 text-[9px] leading-relaxed text-emerald-300">{notice}</div>}
 
@@ -357,6 +476,13 @@ export default function TemplatePlatformLibrary({
           const commentBusy = commentBusyId === template.id;
           return (
             <article key={template.id} className="rounded-lg border border-gray-800 bg-gray-800/40 p-2.5 transition-colors hover:border-teal-500/40">
+              {template.cover_url && (
+                <img
+                  src={apiUrl(template.cover_url)}
+                  alt={`${template.name} cover`}
+                  className="mb-2 h-24 w-full rounded-md border border-gray-700 object-cover"
+                />
+              )}
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <h3 className="truncate text-[10px] font-black uppercase text-teal-300">{template.name}</h3>
@@ -391,6 +517,14 @@ export default function TemplatePlatformLibrary({
                     <div className="absolute right-0 top-full z-20 mt-1 w-32 rounded-md border border-gray-700 bg-gray-900 p-1 shadow-xl">
                       {isOwner && (
                         <>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => beginEdit(template)}
+                            className="w-full rounded px-2 py-1.5 text-left text-[8px] font-bold text-teal-300 transition-colors hover:bg-teal-500/10 disabled:opacity-50"
+                          >
+                            EDIT TEMPLATE
+                          </button>
                           <button
                             type="button"
                             disabled={busy}

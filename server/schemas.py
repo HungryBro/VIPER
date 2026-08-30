@@ -132,6 +132,7 @@ class TemplateSummary(BaseModel):
     name: str
     description: str
     visibility: Literal["private", "public"]
+    cover_url: str | None
     comments_enabled: bool
     created_at: datetime
     updated_at: datetime

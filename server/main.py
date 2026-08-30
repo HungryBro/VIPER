@@ -4,7 +4,7 @@ import os
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
@@ -23,10 +23,22 @@ from .database import engine, get_db
 from . import models
 
 
+def _ensure_template_cover_column() -> None:
+    """Add the cover column for installations created before Template covers."""
+    inspector = inspect(engine)
+    if "templates" not in inspector.get_table_names():
+        return
+    columns = {column["name"] for column in inspector.get_columns("templates")}
+    if "cover_url" not in columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE templates ADD COLUMN cover_url VARCHAR(500)"))
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     if settings.auto_create_tables:
         models.Base.metadata.create_all(bind=engine)
+        _ensure_template_cover_column()
     yield
 
 

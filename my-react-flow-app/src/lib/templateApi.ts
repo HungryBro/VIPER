@@ -25,6 +25,7 @@ export type TemplateSummary = {
   name: string;
   description: string;
   visibility: TemplateVisibility;
+  cover_url: string | null;
   comments_enabled: boolean;
   created_at: string;
   updated_at: string;
@@ -92,6 +93,18 @@ export async function updatePlatformTemplate(
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+  }));
+}
+
+export async function uploadTemplateCover(
+  templateId: number,
+  file: File,
+): Promise<TemplateDetail> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return readJson<TemplateDetail>(await apiFetch(`/api/templates/${templateId}/cover`, {
+    method: 'POST',
+    body: formData,
   }));
 }
 

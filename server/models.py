@@ -99,6 +99,7 @@ class Template(Base):
         server_default="private",
     )
     workflow = Column(JSON_DOCUMENT, nullable=False)
+    cover_url = Column(String(500), nullable=True)
     comments_enabled = Column(Boolean, nullable=False, default=True, server_default="true")
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(

@@ -13,7 +13,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-2xl font-black tracking-wide text-teal-300">VIPER</h1>
           <p className="mt-2 text-sm text-slate-400">
-            Visual Image Processing &amp; Evaluation Resource
+            Image Processing Learning Platform
           </p>
         </div>
 

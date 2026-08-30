@@ -1,4 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+import os
+
+from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload
 
@@ -13,9 +15,14 @@ from ..schemas import (
     TemplateSummary,
     TemplateUpdate,
 )
+from ..utils_io import OUT, ensure_dirs, save_upload, static_url
 
 
 router = APIRouter(prefix="/api/templates", tags=["templates"])
+
+TEMPLATE_COVERS_DIR = os.path.join(OUT, "template_covers")
+MAX_TEMPLATE_COVER_BYTES = 5 * 1024 * 1024
+ALLOWED_TEMPLATE_COVER_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
 def _template_query():
@@ -297,4 +304,54 @@ def update_template(
     if changes or visibility_change is not None:
         db.commit()
 
+    return db.scalar(_template_query().where(Template.id == template.id))
+
+
+@router.post("/{template_id}/cover", response_model=TemplateDetail)
+async def upload_template_cover(
+    template_id: int,
+    request: Request,
+    file: UploadFile = File(...),
+    user: User = Depends(require_active_user),
+    db: Session = Depends(get_db),
+):
+    template = db.scalar(_template_query().where(Template.id == template_id))
+    if template is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+    if template.owner_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the template owner can update it",
+        )
+    if file.content_type not in ALLOWED_TEMPLATE_COVER_TYPES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Cover image must be a JPEG, PNG, or WebP file",
+        )
+
+    contents = await file.read()
+    if not contents:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Cover image cannot be empty",
+        )
+    if len(contents) > MAX_TEMPLATE_COVER_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Cover image must be 5 MB or smaller",
+        )
+
+    await file.seek(0)
+    ensure_dirs(TEMPLATE_COVERS_DIR)
+    saved_path = await save_upload(file, TEMPLATE_COVERS_DIR)
+    template.cover_url = static_url(saved_path, OUT)
+    _add_audit(
+        db,
+        actor_id=user.id,
+        action="template.cover_update",
+        template_id=template.id,
+        request=request,
+        details={"content_type": file.content_type},
+    )
+    db.commit()
     return db.scalar(_template_query().where(Template.id == template.id))
