@@ -23,6 +23,7 @@ const actionLabels: Record<string, string> = {
   'auth.logout': 'Signed out',
   'template.create': 'Created template',
   'template.update': 'Updated template',
+  'template.cover_update': 'Updated template cover',
   'template.load': 'Loaded template',
   'comment.create': 'Created comment',
   'comment.delete': 'Deleted comment',

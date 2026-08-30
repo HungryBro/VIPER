@@ -221,6 +221,7 @@ def test_owner_can_edit_template_details_and_upload_cover():
     Base.metadata.create_all(engine)
     owner = add_user(engine, "owner", "owner@example.com")
     viewer = add_user(engine, "viewer", "viewer@example.com")
+    admin = add_user(engine, "admin", "admin@example.com", role="admin")
     cover_dir = os.path.join(OUT, "test-template-covers")
     original_cover_dir = templates_router.TEMPLATE_COVERS_DIR
     templates_router.TEMPLATE_COVERS_DIR = cover_dir
@@ -252,6 +253,8 @@ def test_owner_can_edit_template_details_and_upload_cover():
                 f"/api/templates/{template_id}/cover",
                 files={"file": ("cover.png", b"fake-png-content", "image/png")},
             )
+            authenticate(client, admin.id)
+            audit_logs = client.get("/api/admin/audit-logs")
 
         assert edited.status_code == 200
         assert edited.json()["name"] == "Edited workflow"
@@ -262,6 +265,8 @@ def test_owner_can_edit_template_details_and_upload_cover():
         assert served_cover.status_code == 200
         assert served_cover.content == b"fake-png-content"
         assert forbidden.status_code == 403
+        assert audit_logs.status_code == 200
+        assert any(log["action"] == "template.cover_update" for log in audit_logs.json())
 
         with Session(engine) as db:
             saved = db.get(Template, template_id)
