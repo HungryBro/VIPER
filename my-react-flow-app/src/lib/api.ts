@@ -219,6 +219,17 @@ export async function runOtsuClassification(image_path: string, params?: any, si
     return handleResponse(resp);
 }
 
+// ---------- 6. Evaluation ----------
+export async function runClassificationEvaluation(request: Record<string, any>, signal?: AbortSignal) {
+  const resp = await apiFetch(`${API_BASE}/api/evaluation/classification`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(request),
+    signal,
+  });
+  return handleResponse(resp);
+}
+
 // ---------- 7. Segmentation ----------
 
 export async function runDeepLab(image_path: string, params?: any, model_path?: string, signal?: AbortSignal) {

@@ -58,6 +58,9 @@ const NODE_RULES: Record<string, { inputs: string[]; output: string }> = {
   'yolo-detect': { inputs: ['image', 'model'], output: 'image' },
   'yolo-gradcam': { inputs: ['image', 'model'], output: 'image' },
 
+  // --- Evaluation ---
+  'classification-evaluation': { inputs: [], output: 'metric' },
+
   // --- Quality Metrics ---
   'brisque': { inputs: ['image'], output: 'metric' },
   'psnr': { inputs: ['image', 'image'], output: 'metric' },
@@ -165,6 +168,12 @@ export function validateNodeInput(
     case 'multi-image-input':
       if (!Array.isArray(node.data?.payload?.dataset_images) || node.data.payload.dataset_images.length < 2) {
         return { isValid: false, message: 'Upload at least 2 images for the YOLO dataset.' };
+      }
+      break;
+
+    case 'classification-evaluation':
+      if (!node.data?.payload?.evaluation_input) {
+        return { isValid: false, message: 'Choose a Classification Evaluation JSON file first.' };
       }
       break;
 

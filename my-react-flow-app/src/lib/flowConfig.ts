@@ -19,6 +19,7 @@ import SaveImageNode from '../components/nodes/SaveImageNode';
 import SaveJsonNode from '../components/nodes/SaveJsonNode';
 import { YoloTrainNode, YoloDetectNode, YoloGradCAMNode } from '../components/nodes/YoloNodes';
 import YoloDatasetNode from '../components/nodes/YoloDatasetNode';
+import ClassificationEvaluationNode from '../components/nodes/ClassificationEvaluationNode';
 
 // import CLAHENode from '../components/nodes/CLAHE';
 // import MSRCRNode from '../components/nodes/MSRCR';
@@ -51,6 +52,7 @@ export const nodeTypes: NodeTypes = {
   'yolo-train': YoloTrainNode,
   'yolo-detect': YoloDetectNode,
   'yolo-gradcam': YoloGradCAMNode,
+  'classification-evaluation': ClassificationEvaluationNode,
 
   // 'clahe': CLAHENode,
   

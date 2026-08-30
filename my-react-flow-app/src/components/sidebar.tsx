@@ -187,6 +187,13 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate, o
       ] 
     },
     {
+      name: 'Evaluation',
+      headerColor: 'text-amber-400',
+      algorithms: [
+        { type: 'classification-evaluation', label: 'Classification Evaluation', color: 'bg-amber-600' },
+      ],
+    },
+    {
       name: 'Object Detection & XAI',
       headerColor: 'text-cyan-400',
       algorithms: [
