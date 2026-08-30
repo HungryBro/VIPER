@@ -356,7 +356,7 @@ export default function TemplatePlatformLibrary({
         <button
           type="button"
           onClick={beginSave}
-          className="flex-1 rounded-md bg-teal-600 px-2 py-2 text-[9px] font-black text-white transition-colors hover:bg-teal-500"
+          className="min-h-10 flex-1 touch-manipulation rounded-md bg-teal-600 px-2 py-2 text-[10px] font-black text-white transition-colors hover:bg-teal-500 sm:text-[9px]"
         >
           ＋ SAVE CURRENT
         </button>
@@ -366,7 +366,7 @@ export default function TemplatePlatformLibrary({
           disabled={loading}
           title="Refresh templates"
           aria-label="Refresh templates"
-          className="rounded-md border border-gray-700 bg-gray-800 px-2.5 text-xs text-gray-400 hover:text-white disabled:opacity-50"
+          className="min-h-10 min-w-10 touch-manipulation rounded-md border border-gray-700 bg-gray-800 px-2.5 text-xs text-gray-400 hover:text-white disabled:opacity-50"
         >
           ↻
         </button>
@@ -497,11 +497,11 @@ export default function TemplatePlatformLibrary({
                       title="Template settings"
                       aria-label="Template settings"
                       aria-expanded={openSettingsId === template.id}
-                      className="flex h-5 w-5 items-center justify-center rounded text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-500 disabled:opacity-50"
+                      className="flex h-9 w-9 touch-manipulation items-center justify-center rounded text-gray-500 transition-colors hover:bg-gray-800 hover:text-gray-300 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-gray-500 disabled:opacity-50 sm:h-5 sm:w-5"
                     >
                       <svg
                         aria-hidden="true"
-                        className="h-3 w-3"
+                        className="h-4 w-4 sm:h-3 sm:w-3"
                         viewBox="0 0 24 24"
                         fill="currentColor"
                       >
@@ -570,19 +570,19 @@ export default function TemplatePlatformLibrary({
               <p className="mt-2 line-clamp-3 text-[9px] leading-relaxed text-gray-400">{template.description || 'No description provided.'}</p>
               <p className="mt-1.5 text-[8px] text-gray-600">Updated {formatDate(template.updated_at)}</p>
 
-              <div className="mt-2 grid grid-cols-2 gap-1.5">
+              <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                 <button
                   type="button"
                   disabled={busy}
                   onClick={() => void loadSelected(template.id)}
-                  className="rounded-md bg-teal-600/20 px-2 py-1.5 text-[8px] font-black text-teal-300 hover:bg-teal-600/30 disabled:opacity-50"
+                  className="min-h-10 touch-manipulation rounded-md bg-teal-600/20 px-2 py-1.5 text-[10px] font-black text-teal-300 hover:bg-teal-600/30 disabled:opacity-50 sm:min-h-0 sm:text-[8px]"
                 >
                   {busy ? 'WORKING…' : 'LOAD NEW TAB'}
                 </button>
                 <button
                   type="button"
                   onClick={() => void toggleCommentPanel(template.id)}
-                  className={`rounded-md border px-2 py-1.5 text-[8px] font-black ${commentsOpen ? 'border-indigo-400/50 bg-indigo-500/20 text-indigo-200' : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-indigo-500/40'}`}
+                  className={`min-h-10 touch-manipulation rounded-md border px-2 py-1.5 text-[10px] font-black sm:min-h-0 sm:text-[8px] ${commentsOpen ? 'border-indigo-400/50 bg-indigo-500/20 text-indigo-200' : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-indigo-500/40'}`}
                 >
                   COMMENTS{comments ? ` (${comments.length})` : ''}
                 </button>

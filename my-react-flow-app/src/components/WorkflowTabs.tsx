@@ -56,7 +56,7 @@ export default function WorkflowTabs({
   };
   
   return (
-    <div className="flex items-center bg-gray-900 border-b border-gray-700 w-full h-9 select-none">
+    <div className="viper-workflow-tabs flex h-10 w-full select-none items-center border-b border-gray-700 bg-gray-900 sm:h-9">
       
       <div className="flex-1 flex overflow-x-auto no-scrollbar h-full">
         {tabs.map((tab) => {
@@ -70,7 +70,7 @@ export default function WorkflowTabs({
               onContextMenu={(e) => startEditing(e, tab)}    
               onDoubleClick={(e) => startEditing(e, tab)}    
               className={`
-                group flex items-center min-w-[140px] max-w-[200px] px-3 border-r border-gray-700 cursor-pointer transition-all h-full
+                group flex h-full min-w-[116px] max-w-[200px] touch-manipulation items-center border-r border-gray-700 px-2.5 transition-all sm:min-w-[140px] sm:px-3
                 ${isActive 
                   ? 'bg-gray-800 text-teal-400 border-t-2 border-t-teal-500' 
                   : 'bg-gray-900 text-gray-400 hover:bg-gray-800 hover:text-gray-200 border-t-2 border-t-transparent'}
@@ -105,8 +105,8 @@ export default function WorkflowTabs({
                     onClose(tab.id);
                   }}
                   className={`
-                    ml-1 p-0.5 rounded-md hover:bg-gray-700 hover:text-red-400 transition-opacity
-                    ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}
+                    ml-1 rounded-md p-1.5 hover:bg-gray-700 hover:text-red-400 sm:p-0.5 sm:transition-opacity
+                    ${isActive ? 'opacity-100' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'}
                   `}
                   title="Close Tab"
                 >
@@ -132,5 +132,3 @@ export default function WorkflowTabs({
     </div>
   );
 }
-
-

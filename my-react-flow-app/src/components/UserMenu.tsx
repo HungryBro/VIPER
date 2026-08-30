@@ -10,7 +10,7 @@ export default function UserMenu() {
   if (!user) return null;
 
   return (
-    <div className="flex shrink-0 items-center gap-2">
+    <div className="viper-user-menu flex shrink-0 items-center gap-1.5 sm:gap-2">
       {user.avatar_url ? (
         <img
           src={user.avatar_url}
@@ -33,7 +33,7 @@ export default function UserMenu() {
           onClick={() => setAdminPanelOpen(true)}
           title="User Management"
           aria-label="Open User Management Menu"
-          className="rounded-md border border-teal-500/40 bg-teal-500/10 px-2 py-1 text-base leading-none font-bold text-teal-300 hover:bg-teal-500/20"
+          className="flex h-9 w-9 touch-manipulation items-center justify-center rounded-md border border-teal-500/40 bg-teal-500/10 text-base font-bold leading-none text-teal-300 hover:bg-teal-500/20"
         >
           ☰
         </button>
@@ -41,9 +41,11 @@ export default function UserMenu() {
       <button
         type="button"
         onClick={() => void logout()}
-        className="rounded-md border border-slate-700 bg-slate-800 px-2 py-1 text-[10px] font-bold text-slate-300 hover:border-red-500/50 hover:text-red-300"
+        aria-label="Log out"
+        className="flex h-9 touch-manipulation items-center justify-center rounded-md border border-slate-700 bg-slate-800 px-2 text-[10px] font-bold text-slate-300 hover:border-red-500/50 hover:text-red-300"
       >
-        LOG OUT
+        <span className="viper-user-logout-label hidden sm:inline">LOG OUT</span>
+        <svg aria-hidden="true" className="viper-user-logout-icon h-4 w-4 sm:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 17l5-5-5-5" /><path d="M15 12H3" /><path d="M21 19V5a2 2 0 0 0-2-2h-6" /></svg>
       </button>
       {user.role === 'admin' && (
         <AdminUserPanel

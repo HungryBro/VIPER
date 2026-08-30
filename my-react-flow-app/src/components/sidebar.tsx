@@ -16,7 +16,10 @@ interface SidebarProps {
   onLoadTemplate: ((template: WorkflowTemplate) => void) | null;
   getCurrentWorkflow: () => CurrentWorkflow | null;
   onLoadPlatformTemplate: (template: TemplateDetail) => void;
+  onAddNode: (nodeType: string) => void;
 }
+
+const COMPACT_MOBILE_QUERY = '(max-width: 767px), (max-height: 560px) and (pointer: coarse)';
 
 // --- Icons ---
 const Icons: Record<string, React.FC<{ className?: string }>> = {
@@ -38,13 +41,15 @@ const Icons: Record<string, React.FC<{ className?: string }>> = {
   )
 };
 
-const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate }: SidebarProps) => {
+const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate, onAddNode }: SidebarProps) => {
 
   const [activeTab, setActiveTab] = useState<'nodes' | 'templates'>('nodes');
   const [templateView, setTemplateView] = useState<'official' | PlatformTemplateView>('official');
   const [openNodeGroups, setOpenNodeGroups] = useState<Record<string, boolean>>({});
   const [openTemplateGroups, setOpenTemplateGroups] = useState<Record<string, boolean>>({});
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => (
+    typeof window !== 'undefined' && window.matchMedia(COMPACT_MOBILE_QUERY).matches
+  ));
 
   const [contextMenu, setContextMenu] = useState({
     visible: false,
@@ -63,6 +68,20 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate }:
     document.addEventListener("click", close);
     return () => document.removeEventListener("click", close);
   }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(COMPACT_MOBILE_QUERY);
+    const collapseForSmallScreens = () => {
+      if (mediaQuery.matches) setCollapsed(true);
+    };
+    mediaQuery.addEventListener('change', collapseForSmallScreens);
+    return () => mediaQuery.removeEventListener('change', collapseForSmallScreens);
+  }, []);
+
+  const addNodeFromLibrary = (nodeType: string) => {
+    onAddNode(nodeType);
+    if (window.matchMedia(COMPACT_MOBILE_QUERY).matches) setCollapsed(true);
+  };
 
   const openContextMenu = (event: React.MouseEvent, t: WorkflowTemplate) => {
     event.preventDefault();
@@ -257,28 +276,45 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate }:
 
   return (
     <>
-      <aside className={['border-r border-gray-800 bg-gray-900 h-full shadow-2xl flex flex-col transition-all duration-300 z-20', collapsed ? 'w-14' : 'w-72'].join(' ')}>
+      {!collapsed && (
+        <button
+          type="button"
+          aria-label="Close library"
+          onClick={() => setCollapsed(true)}
+          className="viper-sidebar-backdrop absolute inset-0 z-10 bg-black/60 backdrop-blur-[1px] md:hidden"
+        />
+      )}
+      <aside className={[
+        'viper-sidebar absolute inset-y-0 left-0 z-20 flex h-full flex-col border-r border-gray-800 bg-gray-900 shadow-2xl transition-[width] duration-300 md:relative',
+        collapsed ? 'w-14' : 'w-[min(19rem,calc(100vw-2rem))] sm:w-80 md:w-72',
+      ].join(' ')} data-collapsed={collapsed}>
         
-        <div className="flex items-center justify-between p-3 border-b border-gray-800">
-          {!collapsed && <div className="text-sm font-bold text-teal-400 uppercase tracking-widest">VIPER Library</div>}
-          <button onClick={() => setCollapsed(s => !s)} className="h-8 w-8 rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white flex items-center justify-center border border-gray-700">
+        <div className="flex min-h-14 items-center justify-between border-b border-gray-800 p-2.5 sm:p-3">
+          {!collapsed && <div className="text-sm font-bold uppercase tracking-widest text-teal-400">VIPER Library</div>}
+          <button
+            type="button"
+            aria-label={collapsed ? 'Open library' : 'Close library'}
+            aria-expanded={!collapsed}
+            onClick={() => setCollapsed(s => !s)}
+            className="flex h-10 w-10 touch-manipulation items-center justify-center rounded-lg border border-gray-700 bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white"
+          >
             <svg className={`w-4 h-4 transition-transform ${collapsed ? '' : 'rotate-180'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M13 17l5-5-5-5M6 17l5-5-5-5" /></svg>
           </button>
         </div>
 
         {!collapsed && (
-          <div className="flex p-2 gap-1 border-b border-gray-800">
-            <button onClick={() => setActiveTab('nodes')} className={`flex-1 py-1.5 text-xs font-bold rounded-md flex items-center justify-center gap-1 transition-all ${activeTab === 'nodes' ? 'bg-teal-600/20 text-teal-400 border border-teal-500/50' : 'text-gray-500 hover:bg-gray-800'}`}>
+          <div className="flex gap-1 border-b border-gray-800 p-2">
+            <button type="button" onClick={() => setActiveTab('nodes')} className={`flex min-h-10 flex-1 touch-manipulation items-center justify-center gap-1 rounded-md py-1.5 text-xs font-bold transition-all ${activeTab === 'nodes' ? 'border border-teal-500/50 bg-teal-600/20 text-teal-400' : 'text-gray-500 hover:bg-gray-800'}`}>
               <Icons.Input className="w-3 h-3" /> NODES
             </button>
-            <button onClick={() => setActiveTab('templates')} className={`flex-1 py-1.5 text-xs font-bold rounded-md flex items-center justify-center gap-1 transition-all ${activeTab === 'templates' ? 'bg-teal-600/20 text-teal-400 border border-teal-500/50' : 'text-gray-500 hover:bg-gray-800'}`}>
+            <button type="button" onClick={() => setActiveTab('templates')} className={`flex min-h-10 flex-1 touch-manipulation items-center justify-center gap-1 rounded-md py-1.5 text-xs font-bold transition-all ${activeTab === 'templates' ? 'border border-teal-500/50 bg-teal-600/20 text-teal-400' : 'text-gray-500 hover:bg-gray-800'}`}>
               <Icons.Template className="w-3 h-3" /> TEMPLATES
             </button>
           </div>
         )}
 
         {!collapsed ? (
-          <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+          <div className="custom-scrollbar flex-1 space-y-1 overflow-y-auto overscroll-contain p-2">
             {activeTab === 'templates' && (
               <div className="mb-2 grid grid-cols-3 gap-1 rounded-lg border border-gray-800 bg-gray-950/60 p-1">
                 {(['official', 'public', 'private'] as const).map((view) => (
@@ -286,7 +322,7 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate }:
                     key={view}
                     type="button"
                     onClick={() => setTemplateView(view)}
-                    className={`rounded-md px-1 py-1.5 text-[8px] font-black uppercase transition-colors ${templateView === view ? 'bg-teal-600/20 text-teal-300 ring-1 ring-teal-500/40' : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'}`}
+                    className={`min-h-9 touch-manipulation rounded-md px-1 py-1.5 text-[9px] font-black uppercase transition-colors ${templateView === view ? 'bg-teal-600/20 text-teal-300 ring-1 ring-teal-500/40' : 'text-gray-500 hover:bg-gray-800 hover:text-gray-300'}`}
                   >
                     {view}
                   </button>
@@ -296,8 +332,8 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate }:
 
             {(activeTab === 'nodes' || templateView === 'official') && (
               <div className="px-1 pb-2 flex gap-2 mb-1 mt-1">
-                <button onClick={expandAll} className="flex-1 text-[9px] font-bold px-2 py-1 rounded bg-gray-800 text-gray-500 hover:text-white hover:bg-gray-700 border border-gray-700 transition-colors">OPEN ALL</button>
-                <button onClick={collapseAll} className="flex-1 text-[9px] font-bold px-2 py-1 rounded bg-gray-800 text-gray-500 hover:text-white hover:bg-gray-700 border border-gray-700 transition-colors">CLOSE ALL</button>
+                <button type="button" onClick={expandAll} className="min-h-9 flex-1 touch-manipulation rounded border border-gray-700 bg-gray-800 px-2 py-1 text-[10px] font-bold text-gray-500 transition-colors hover:bg-gray-700 hover:text-white">OPEN ALL</button>
+                <button type="button" onClick={collapseAll} className="min-h-9 flex-1 touch-manipulation rounded border border-gray-700 bg-gray-800 px-2 py-1 text-[10px] font-bold text-gray-500 transition-colors hover:bg-gray-700 hover:text-white">CLOSE ALL</button>
               </div>
             )}
 
@@ -305,10 +341,10 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate }:
                 const isOpen = openNodeGroups[job.name];
                 return (
                   <div key={job.name} className="rounded-lg overflow-hidden border border-gray-800/50 bg-gray-800/30 mb-2">
-                    <div className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors ${isOpen ? 'bg-gray-800 text-gray-200' : 'hover:bg-gray-800 text-gray-400'}`} onClick={() => toggleNodeGroup(job.name)}>
+                    <button type="button" aria-expanded={Boolean(isOpen)} className={`flex min-h-11 w-full touch-manipulation items-center justify-between p-2.5 text-left transition-colors ${isOpen ? 'bg-gray-800 text-gray-200' : 'text-gray-400 hover:bg-gray-800'}`} onClick={() => toggleNodeGroup(job.name)}>
                       <span className={`text-[10px] font-bold uppercase tracking-tight ${isOpen ? job.headerColor : ''}`}>{job.name}</span>
                       <svg className={`w-3 h-3 text-gray-500 transform transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-                    </div>
+                    </button>
                     {isOpen && (
                       <div className="px-2 pb-2 pt-1 space-y-1.5 bg-gray-900/50 animate-in fade-in slide-in-from-top-1 duration-200">
                         {job.algorithms.map(alg => (
@@ -316,9 +352,16 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate }:
                             key={alg.type} 
                             draggable 
                             onDragStart={(e) => onDragStart(e, alg.type)} 
-                            className={`${alg.color} group p-2 rounded border border-white/5 cursor-grab active:cursor-grabbing hover:translate-x-1 transition-all shadow-sm`}
+                            className={`${alg.color} group rounded border border-white/5 p-2 shadow-sm transition-all hover:translate-x-1 md:cursor-grab md:active:cursor-grabbing`}
                           >
                             <span className="text-[10px] font-bold text-white w-full text-center block uppercase tracking-wider">{alg.label}</span>
+                            <button
+                              type="button"
+                              onClick={() => addNodeFromLibrary(alg.type)}
+                              className="mt-2 flex min-h-9 w-full touch-manipulation items-center justify-center rounded bg-black/15 px-2 text-[9px] font-black text-white active:bg-black/30 md:hidden"
+                            >
+                              + ADD TO CANVAS
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -331,22 +374,22 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate }:
                   const isOpen = openTemplateGroups[job.name];
                   return (
                     <div key={job.name} className="rounded-lg overflow-hidden border border-gray-800/50 bg-gray-800/30 mb-2">
-                      <div className={`flex items-center justify-between p-2.5 cursor-pointer transition-colors ${isOpen ? 'bg-gray-800 text-gray-200' : 'hover:bg-gray-800 text-gray-400'}`} onClick={() => toggleTemplateGroup(job.name)}>
+                      <button type="button" aria-expanded={Boolean(isOpen)} className={`flex min-h-11 w-full touch-manipulation items-center justify-between p-2.5 text-left transition-colors ${isOpen ? 'bg-gray-800 text-gray-200' : 'text-gray-400 hover:bg-gray-800'}`} onClick={() => toggleTemplateGroup(job.name)}>
                         <div className="flex items-center gap-2">
                             <span className={`text-[10px] font-bold uppercase tracking-tight ${isOpen ? job.headerColor : ''}`}>{job.name}</span>
                         </div>
                         <svg className={`w-3 h-3 text-gray-500 transform transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-                      </div>
+                      </button>
                       {isOpen && (
                         <div className="px-2 pb-2 pt-1 space-y-2 bg-gray-900/50 animate-in fade-in slide-in-from-top-1 duration-200">
                           {job.templates.map((t, idx) => {
                             const style = getTemplateStyles(t.color ?? 'teal');
                             return (
-                              <div key={idx} onClick={() => onLoadTemplate?.(t)} onContextMenu={(e) => openContextMenu(e, t)} className={`group p-2 rounded-lg border border-gray-700 bg-gray-800/50 hover:bg-gray-800 ${style.border} cursor-pointer transition relative overflow-hidden shadow-md`}>
+                              <button type="button" key={idx} onClick={() => onLoadTemplate?.(t)} onContextMenu={(e) => openContextMenu(e, t)} className={`group w-full touch-manipulation rounded-lg border border-gray-700 bg-gray-800/50 p-2 text-left hover:bg-gray-800 ${style.border} relative overflow-hidden shadow-md transition`}>
                                 <div className={`absolute left-0 top-0 bottom-0 w-1 ${style.stripe} opacity-0 group-hover:opacity-100 transition`} />
                                 <h3 className={`text-[10px] font-black uppercase ${style.text} ${style.hoverText} mb-0.5`}>{t.name}</h3>
                                 <p className="text-[9px] text-gray-500 leading-tight line-clamp-2">{t.description}</p>
-                              </div>
+                              </button>
                             );
                           })}
                         </div>

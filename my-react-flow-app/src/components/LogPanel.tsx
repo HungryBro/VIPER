@@ -32,8 +32,8 @@ export default function LogPanel({ logs, onClear }: LogPanelProps) {
 
   return (
     <div 
-      className={`absolute bottom-4 right-4 w-96 flex flex-col z-50 font-mono text-xs shadow-2xl rounded-xl overflow-hidden border border-gray-700 bg-gray-900/95 backdrop-blur-sm transition-all duration-300 ease-in-out
-        ${isMinimized ? 'h-9' : 'max-h-64 h-64'}
+      className={`viper-log-panel absolute bottom-2 left-2 right-2 z-50 flex w-auto flex-col overflow-hidden rounded-xl border border-gray-700 bg-gray-900/95 font-mono text-xs shadow-2xl backdrop-blur-sm transition-all duration-300 ease-in-out sm:bottom-4 sm:left-auto sm:right-4 sm:w-96
+        ${isMinimized ? 'h-10' : 'h-[min(16rem,48dvh)]'}
       `}
     >
       

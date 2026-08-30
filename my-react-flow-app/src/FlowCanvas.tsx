@@ -35,6 +35,7 @@ export interface FlowCanvasHandle {
   getSnapshot: () => { nodes: RFNode[]; edges: Edge[]; viewport: Viewport };
   restoreSnapshot: (nodes: RFNode[], edges: Edge[], viewport: Viewport) => void;
   fitView: () => void;
+  addNode: (nodeType: string) => void;
 }
 
 interface FlowCanvasProps {
@@ -104,23 +105,6 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       }, 1000);
       return () => clearTimeout(timer);
     }, [nodes, edges, onFlowChange, getViewport]);
-
-    useImperativeHandle(ref, () => ({
-      getSnapshot: () => ({ nodes, edges, viewport: getViewport() }),
-      restoreSnapshot: (newNodes, newEdges, newViewport) => {
-        if (isApplyingHistoryRef.current) (isApplyingHistoryRef.current as any) = true;
-        const nodesWithFunc = newNodes.map(n => ({
-          ...n, data: { ...n.data, onRunNode: (id: string) => runNodeById(id) }
-        }));
-        setNodes(nodesWithFunc);
-        setEdges(newEdges);
-        setTimeout(() => {
-          setViewport(newViewport);
-          if (isApplyingHistoryRef.current) (isApplyingHistoryRef.current as any) = false;
-        }, 50);
-      },
-      fitView: () => { window.requestAnimationFrame(() => fitView({ padding: 0.2, duration: 800 })); }
-    }));
 
     const addLog = useCallback((message: string, type: LogEntry['type'] = 'info', nodeId?: string) => {
       setLogs((prev) => [...prev, {
@@ -274,6 +258,43 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       }
     }, [setNodes, addLog, setIncomingEdgesStatus, getNodes, getEdges]);
 
+    const addNodeFromLibrary = useCallback((nodeType: string) => {
+      const id = getId();
+      const position = screenToFlowPosition({
+        x: window.innerWidth * 0.6,
+        y: window.innerHeight * 0.52,
+      });
+      setNodes((nds) => nds.concat({
+        id,
+        type: nodeType,
+        position,
+        data: { label: nodeType.toUpperCase(), status: 'idle', onRunNode: (nodeId: string) => runNodeById(nodeId) },
+      }));
+      addLog(`Added ${nodeType}`, 'info', id);
+    }, [addLog, runNodeById, screenToFlowPosition, setNodes]);
+
+    const fitWorkflowToCanvas = useCallback(() => {
+      window.requestAnimationFrame(() => fitView({ padding: 0.18, duration: 500 }));
+    }, [fitView]);
+
+    useImperativeHandle(ref, () => ({
+      getSnapshot: () => ({ nodes, edges, viewport: getViewport() }),
+      restoreSnapshot: (newNodes, newEdges, newViewport) => {
+        if (isApplyingHistoryRef.current) (isApplyingHistoryRef.current as any) = true;
+        const nodesWithFunc = newNodes.map(n => ({
+          ...n, data: { ...n.data, onRunNode: (id: string) => runNodeById(id) }
+        }));
+        setNodes(nodesWithFunc);
+        setEdges(newEdges);
+        setTimeout(() => {
+          setViewport(newViewport);
+          if (isApplyingHistoryRef.current) (isApplyingHistoryRef.current as any) = false;
+        }, 50);
+      },
+      fitView: fitWorkflowToCanvas,
+      addNode: addNodeFromLibrary,
+    }), [addNodeFromLibrary, edges, fitWorkflowToCanvas, getViewport, runNodeById, setEdges, setNodes, setViewport, nodes, isApplyingHistoryRef]);
+
     useFlowHotkeys({ getPastePosition: () => lastMousePosRef.current, runNodeById, undo, redo });
 
     useEffect(() => {
@@ -390,10 +411,16 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
 
     return (
       <div className="relative flex-1 h-full flex flex-col">
-        <div className="absolute z-10 top-2 right-2 flex gap-2">
-          <button onClick={saveWorkflow} className="px-3 py-1 rounded bg-slate-800/80 hover:bg-slate-700 text-xs border border-slate-600 shadow-sm text-white">💾 SAVE</button>
-          <button onClick={triggerLoadWorkflow} className="px-3 py-1 rounded bg-slate-800/80 hover:bg-slate-700 text-xs border border-slate-600 shadow-sm text-white">📂 LOAD</button>
-          <button onClick={handleClearWorkflow} className="px-3 py-1 rounded bg-red-900/80 hover:bg-red-700 text-xs border border-red-700 shadow-sm text-white">🗑️ CLEAR</button>
+        <div className="viper-canvas-actions absolute left-16 right-2 top-2 z-10 flex justify-end gap-1 sm:left-auto sm:gap-2">
+          <button type="button" onClick={fitWorkflowToCanvas} title="Fit workflow to canvas" aria-label="Fit workflow to canvas" className="viper-fit-canvas-button flex min-h-9 min-w-9 touch-manipulation items-center justify-center rounded border border-slate-600 bg-slate-800/80 px-2 text-white shadow-sm hover:bg-slate-700 sm:px-3">
+            <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M8 3H3v5M16 3h5v5M21 16v5h-5M3 16v5h5" />
+              <path d="m3 3 6 6M21 3l-6 6M3 21l6-6M21 21l-6-6" />
+            </svg>
+          </button>
+          <button type="button" onClick={saveWorkflow} className="flex min-h-9 min-w-9 touch-manipulation items-center justify-center rounded border border-slate-600 bg-slate-800/80 px-2 text-[10px] shadow-sm hover:bg-slate-700 sm:px-3 sm:text-xs">💾 <span className="ml-1 hidden sm:inline">SAVE</span></button>
+          <button type="button" onClick={triggerLoadWorkflow} className="flex min-h-9 min-w-9 touch-manipulation items-center justify-center rounded border border-slate-600 bg-slate-800/80 px-2 text-[10px] shadow-sm hover:bg-slate-700 sm:px-3 sm:text-xs">📂 <span className="ml-1 hidden sm:inline">LOAD</span></button>
+          <button type="button" onClick={handleClearWorkflow} className="flex min-h-9 min-w-9 touch-manipulation items-center justify-center rounded border border-red-700 bg-red-900/80 px-2 text-[10px] shadow-sm hover:bg-red-700 sm:px-3 sm:text-xs">🗑️ <span className="ml-1 hidden sm:inline">CLEAR</span></button>
           <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleFileChange} />
         </div>
 

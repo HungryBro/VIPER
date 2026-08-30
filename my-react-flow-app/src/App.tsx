@@ -15,9 +15,13 @@ import type { WorkflowTab, NodeStatus } from './types';
 
 const STORAGE_KEY_APP_TABS = 'n2n_app_tabs';
 const STORAGE_KEY_ACTIVE_TAB = 'n2n_active_tab_id';
+const COMPACT_MOBILE_QUERY = '(max-width: 767px), (max-height: 560px) and (pointer: coarse)';
 
 export default function App() {
   const [isRunning, setIsRunning] = useState(false);
+  const [isCompactMobile, setIsCompactMobile] = useState(() => (
+    typeof window !== 'undefined' && window.matchMedia(COMPACT_MOBILE_QUERY).matches
+  ));
   
   const isInitializing = useRef(true); 
 
@@ -69,6 +73,14 @@ export default function App() {
         localStorage.setItem(STORAGE_KEY_APP_TABS, JSON.stringify(tabsRef.current));
     }, 500);
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(COMPACT_MOBILE_QUERY);
+    const syncCompactMode = () => setIsCompactMobile(mediaQuery.matches);
+    syncCompactMode();
+    mediaQuery.addEventListener('change', syncCompactMode);
+    return () => mediaQuery.removeEventListener('change', syncCompactMode);
   }, []);
 
   useEffect(() => {
@@ -265,10 +277,14 @@ export default function App() {
     });
   }, [handleLoadTemplate]);
 
+  const handleAddNodeFromLibrary = useCallback((nodeType: string) => {
+    canvasRef.current?.addNode(nodeType);
+  }, []);
+
   return (
-    <div className="w-screen h-[100dvh] flex flex-col bg-gray-900 text-white overflow-hidden">
-      <div className="relative z-30 flex min-h-14 items-center gap-3 border-b-2 border-teal-500 bg-gray-900 px-3 shadow-lg">
-        <h1 className="min-w-0 flex-1 truncate text-center text-lg font-extrabold tracking-wide text-teal-400 drop-shadow-md md:text-xl xl:text-2xl">
+    <div className={`viper-app w-screen h-[100dvh] flex flex-col overflow-hidden bg-gray-900 text-white ${isCompactMobile ? 'compact-mobile' : ''}`}>
+      <div className="viper-header relative z-30 flex min-h-16 items-center gap-2 border-b-2 border-teal-500 bg-gray-900 px-3 shadow-lg sm:gap-3">
+        <h1 className="min-w-0 flex-1 truncate text-center text-base font-extrabold tracking-wide text-teal-400 drop-shadow-md sm:text-lg md:text-xl xl:text-2xl">
           <span className="hidden lg:inline">VIPER - Image Processing Learning Platform</span>
           <span className="lg:hidden">VIPER</span>
         </h1>
@@ -282,6 +298,7 @@ export default function App() {
             onLoadTemplate={handleLoadTemplate}
             getCurrentWorkflow={getCurrentWorkflow}
             onLoadPlatformTemplate={handleLoadPlatformTemplate}
+            onAddNode={handleAddNodeFromLibrary}
           />
           <div className="flex-1 h-full relative">
             <FlowCanvas ref={canvasRef} isRunning={isRunning} onPipelineDone={handleStop} onFlowChange={handleFlowChange} currentTabName={activeTabName} />

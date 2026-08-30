@@ -12,6 +12,118 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+button,
+input,
+select,
+textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 639px) {
+  .react-flow__minimap {
+    display: none;
+  }
+}
+
+/* Phones in landscape are wide enough for Tailwind's tablet breakpoint but
+   still have too little height for the desktop workspace chrome. */
+.compact-mobile .viper-header {
+  min-height: 2.75rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.compact-mobile .viper-header h1 {
+  font-size: 1rem;
+}
+
+.compact-mobile .viper-user-menu img,
+.compact-mobile .viper-user-menu > div {
+  width: 2rem;
+  height: 2rem;
+}
+
+.compact-mobile .viper-user-logout-label,
+.compact-mobile .workflow-status-prefix,
+.compact-mobile .workflow-control-label,
+.compact-mobile .viper-canvas-actions span {
+  display: none !important;
+}
+
+.compact-mobile .viper-user-logout-icon {
+  display: block !important;
+}
+
+.compact-mobile .viper-workflow-controls {
+  min-height: 2.75rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.compact-mobile .viper-workflow-controls button {
+  min-height: 2.25rem;
+  min-width: 2.25rem;
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
+}
+
+.compact-mobile .viper-workflow-tabs {
+  height: 2.25rem;
+}
+
+.compact-mobile .viper-workflow-tabs .group {
+  min-width: 6.5rem;
+}
+
+.compact-mobile .viper-sidebar-backdrop {
+  display: block !important;
+}
+
+.compact-mobile .viper-sidebar {
+  position: absolute;
+}
+
+.compact-mobile .viper-sidebar[data-collapsed='false'] {
+  width: min(19rem, calc(100vw - 2rem));
+}
+
+.compact-mobile .viper-sidebar[data-collapsed='true'] {
+  width: 3.5rem;
+}
+
+.compact-mobile .viper-sidebar > :first-child {
+  min-height: 2.75rem;
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.compact-mobile .viper-canvas-actions {
+  left: 4rem;
+  right: 0.5rem;
+  top: 0.5rem;
+}
+
+.compact-mobile .viper-canvas-actions button {
+  width: 2.25rem;
+  min-height: 2.25rem;
+  min-width: 2.25rem;
+  padding: 0;
+}
+
+.compact-mobile .react-flow__minimap {
+  display: none;
+}
+
+.compact-mobile .react-flow__controls {
+  transform: scale(0.82);
+  transform-origin: bottom left;
+}
+
+.compact-mobile .viper-log-panel {
+  bottom: 0.5rem;
+  max-height: 44dvh;
+}
+
 
 
 input[type="number"]::-webkit-inner-spin-button,
