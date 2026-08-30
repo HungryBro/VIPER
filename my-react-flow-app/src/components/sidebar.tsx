@@ -191,6 +191,7 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate, o
       headerColor: 'text-amber-400',
       algorithms: [
         { type: 'classification-evaluation', label: 'Classification Evaluation', color: 'bg-amber-600' },
+        { type: 'detection-evaluation', label: 'Detection Evaluation', color: 'bg-amber-600' },
       ],
     },
     {

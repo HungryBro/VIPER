@@ -23,7 +23,7 @@ import { runRestoration } from './lib/runners/restoration';
 import { runSegmentation } from './lib/runners/segmentation';
 import { runDetectionNode } from './lib/runners/detection';
 import { runYOLODatasetNode } from './lib/runners/yoloDataset';
-import { runClassificationEvaluationNode } from './lib/runners/evaluation';
+import { runClassificationEvaluationNode, runDetectionEvaluationNode } from './lib/runners/evaluation';
 
 // ---------- Hooks / Utils ----------
 import { useFlowHotkeys } from './hooks/useFlowHotkeys';
@@ -210,6 +210,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           case 'otsu': await runOtsu(node as any, setNodes as any, freshNodes, freshEdges); break;
           case 'snake': await runSnakeRunner(node as any, setNodes as any, freshNodes, freshEdges); break;
           case 'classification-evaluation': await runClassificationEvaluationNode(node as any, setNodes as any, freshNodes as any, freshEdges, undefined); break;
+          case 'detection-evaluation': await runDetectionEvaluationNode(node as any, setNodes as any, freshNodes as any, freshEdges, undefined); break;
           case 'yolo-train': case 'yolo-detect': case 'yolo-gradcam': await runDetectionNode(node, setNodes, freshNodes, freshEdges); break;
           case 'clahe': case 'msrcr': case 'zero': case 'zerodce': case 'zero-dce': case 'zero_dce': await runEnhancement(node as any, setNodes as any, freshNodes, freshEdges); break;
           case 'dcnn': case 'dncnn': case 'swinir': case 'real': case 'realesrgan': await runRestoration(node as any, setNodes as any, freshNodes, freshEdges); break;
@@ -347,6 +348,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
             'homography-align': 60, 'affine-align': 60, 
             'brisque': 90, 'psnr': 90, 'ssim': 90,
             'classification-evaluation': 90,
+            'detection-evaluation': 90,
             'save-image': 99,
             'save-json': 99
           };

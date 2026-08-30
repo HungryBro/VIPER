@@ -60,6 +60,7 @@ const NODE_RULES: Record<string, { inputs: string[]; output: string }> = {
 
   // --- Evaluation ---
   'classification-evaluation': { inputs: [], output: 'metric' },
+  'detection-evaluation': { inputs: ['dataset', 'model'], output: 'metric' },
 
   // --- Quality Metrics ---
   'brisque': { inputs: ['image'], output: 'metric' },
@@ -176,6 +177,20 @@ export function validateNodeInput(
         return { isValid: false, message: 'Choose a Classification Evaluation JSON file first.' };
       }
       break;
+
+    case 'detection-evaluation': {
+      const sourceNodes = incomingEdges
+        .map((edge) => nodes.find((candidate) => candidate.id === edge.source));
+      const datasetNode = sourceNodes.find((candidate) => candidate?.type === 'yolo-dataset');
+      const trainNode = sourceNodes.find((candidate) => candidate?.type === 'yolo-train');
+      if (!datasetNode?.data?.payload?.dataset_yaml) {
+        return { isValid: false, message: 'Connect a completed YOLO Dataset Builder node.' };
+      }
+      if (!trainNode?.data?.payload?.best_model_path) {
+        return { isValid: false, message: 'Connect a completed YOLO Train node.' };
+      }
+      break;
+    }
 
     case 'yolo-dataset':
       if (inputCount < 1) {
