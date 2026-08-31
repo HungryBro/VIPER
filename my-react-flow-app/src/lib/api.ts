@@ -230,6 +230,13 @@ export async function runClassificationEvaluation(request: Record<string, any>, 
   return handleResponse(resp);
 }
 
+export async function runYOLOClassificationEvaluation(request: Record<string, any>, signal?: AbortSignal) {
+  const resp = await apiFetch(`${API_BASE}/api/evaluation/classification/yolo`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request), signal,
+  });
+  return handleResponse(resp);
+}
+
 export async function runDetectionEvaluation(request: Record<string, any>, signal?: AbortSignal) {
   const resp = await apiFetch(`${API_BASE}/api/evaluation/detection`, {
     method: 'POST',

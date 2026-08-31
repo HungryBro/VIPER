@@ -59,7 +59,7 @@ const NODE_RULES: Record<string, { inputs: string[]; output: string }> = {
   'yolo-gradcam': { inputs: ['image', 'model'], output: 'image' },
 
   // --- Evaluation ---
-  'classification-evaluation': { inputs: ['any'], output: 'metric' },
+  'classification-evaluation': { inputs: ['dataset', 'model', 'image'], output: 'metric' },
   'detection-evaluation': { inputs: ['dataset', 'model'], output: 'metric' },
 
   // --- Quality Metrics ---
@@ -172,28 +172,25 @@ export function validateNodeInput(
       }
       break;
 
-    case 'classification-evaluation':
-      {
-        const inputMode = node.data?.payload?.evaluation_input_mode === 'node' ? 'node' : 'file';
-        const upstreamInput = incomingEdges
-          .map((edge) => nodes.find((candidate) => candidate.id === edge.source)?.data?.payload)
-          .some((payload) => {
-            const candidates = [payload?.classification_input, payload?.evaluation_input, payload?.json, payload?.output, payload];
-            return candidates.some((candidate) => candidate && typeof candidate === 'object' && !Array.isArray(candidate)
-              && Array.isArray((candidate as Record<string, unknown>).y_true)
-              && Array.isArray((candidate as Record<string, unknown>).y_pred));
-          });
-        const localInput = node.data?.payload?.evaluation_input;
-        const hasLocalInput = localInput && typeof localInput === 'object' && !Array.isArray(localInput)
-          && Array.isArray(localInput.y_true) && Array.isArray(localInput.y_pred);
-        if (inputMode === 'node' && !upstreamInput) {
-          return { isValid: false, message: 'Connect a JSON result containing y_true and y_pred.' };
-        }
-        if (inputMode === 'file' && !hasLocalInput) {
-          return { isValid: false, message: 'Choose a Classification Evaluation JSON file containing y_true and y_pred.' };
-        }
+    case 'classification-evaluation': {
+      const inputMode = node.data?.payload?.evaluation_input_mode === 'file' ? 'file' : 'yolo';
+      const localInput = node.data?.payload?.evaluation_input;
+      const hasLocalInput = localInput && typeof localInput === 'object' && !Array.isArray(localInput)
+        && Array.isArray(localInput.y_true) && Array.isArray(localInput.y_pred);
+      if (inputMode === 'file' && !hasLocalInput) {
+        return { isValid: false, message: 'Choose a Classification Evaluation JSON file containing y_true and y_pred.' };
+      }
+      if (inputMode === 'yolo') {
+        const sourceNodes = incomingEdges.map((edge) => nodes.find((candidate) => candidate.id === edge.source));
+        const datasetNode = sourceNodes.find((candidate) => candidate?.type === 'yolo-dataset');
+        const trainNode = sourceNodes.find((candidate) => candidate?.type === 'yolo-train');
+        const imageNode = sourceNodes.find((candidate) => candidate?.type === 'image-input');
+        if (!datasetNode || datasetNode.data?.status !== 'success') return { isValid: false, message: 'Connect a completed YOLO Dataset Builder node.' };
+        if (!trainNode?.data?.payload?.best_model_path) return { isValid: false, message: 'Connect a completed YOLO Train node.' };
+        if (!imageNode?.data?.payload?.path && !imageNode?.data?.payload?.url) return { isValid: false, message: 'Connect a Test Image node.' };
       }
       break;
+    }
 
     case 'detection-evaluation': {
       const sourceNodes = incomingEdges

@@ -104,6 +104,7 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate, o
       indigo: { border: 'hover:border-indigo-500/50', stripe: 'bg-indigo-500', text: 'text-indigo-400', hoverText: 'group-hover:text-indigo-300' },
       red: { border: 'hover:border-red-500/50', stripe: 'bg-red-500', text: 'text-red-400', hoverText: 'group-hover:text-red-300' },
       yellow: { border: 'hover:border-yellow-500/50', stripe: 'bg-yellow-500', text: 'text-yellow-400', hoverText: 'group-hover:text-yellow-300' },
+      amber: { border: 'hover:border-amber-500/50', stripe: 'bg-amber-500', text: 'text-amber-400', hoverText: 'group-hover:text-amber-300' },
       
       teal: { border: 'hover:border-teal-500/50', stripe: 'bg-teal-500', text: 'text-teal-400', hoverText: 'group-hover:text-teal-300' },
       cyan: { border: 'hover:border-cyan-500/50', stripe: 'bg-cyan-500', text: 'text-cyan-400', hoverText: 'group-hover:text-cyan-300' },
@@ -250,6 +251,7 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate, o
       else if (t.color === 'orange') { key = 'Matching'; headerColor = 'text-orange-400'; sortOrder = 5; }
       else if (t.color === 'purple') { key = 'Object Alignment'; headerColor = 'text-purple-400'; sortOrder = 6; }
       else if (t.color === 'pink') { key = 'Classification'; headerColor = 'text-pink-400'; sortOrder = 7; }
+      else if (t.color === 'amber') { key = 'Evaluation'; headerColor = 'text-amber-400'; sortOrder = 8; }
       else if (t.color === 'blue') { key = 'Quality Assessment'; headerColor = 'text-blue-400'; sortOrder = 8; }
       else if (t.color === 'cyan') { key = 'Object Detection & XAI'; headerColor = 'text-cyan-400'; sortOrder = 9; }
 

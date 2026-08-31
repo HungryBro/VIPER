@@ -186,7 +186,11 @@ class YOLOTarget(torch.nn.Module):
                 selected.extend(boxes[selected_index, coordinate] for coordinate in range(4))
 
         if not selected:
-            return torch.tensor(0.0, device=class_scores.device, requires_grad=True)
+            # A short training run can legitimately produce no detection above
+            # the requested confidence.  Returning a detached zero means CAM
+            # receives no gradients and crashes; use the strongest raw class
+            # response instead so the user still gets a useful diagnostic map.
+            return class_scores.max() if class_scores.numel() else class_scores.sum()
         return sum(selected)
 
 

@@ -76,15 +76,15 @@ export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
   },
   description: 'ANNOTATE + BUILD + TRAIN + EVALUATE + DETECT + GRAD-CAM',
   longDescription: {
-    en: 'A self-contained demonstration of the full YOLO workflow. It includes nine annotated circle, triangle, and square images, plus a test image. After training, Detection Evaluation measures the validation split with Detection Rate, False Detection Rate, Precision, and TP/FP/FN counts. The short training configuration is intended for learning the workflow rather than model accuracy.',
-    th: 'ตัวอย่าง workflow YOLO แบบครบเส้นทาง ใช้ภาพวงกลม สามเหลี่ยม และสี่เหลี่ยมที่มีกรอบกำกับไว้ 9 ภาพ พร้อมภาพทดสอบ หลังเทรนจะวัดผล Validation split ด้วย Detection Rate, False Detection Rate, Precision และจำนวน TP/FP/FN โดยตั้งค่าเทรนระยะสั้นเพื่อสาธิตลำดับงาน ไม่ได้มุ่งผลความแม่นยำสูงสุด',
+    en: 'A self-contained demonstration of the full YOLO workflow. It includes nine annotated circle, triangle, and square images, plus a test image. After training, Detection Evaluation measures the validation split, while Classification Evaluation compares the predicted and labelled classes on the connected test image. The short training configuration is intended for learning the workflow rather than model accuracy.',
+    th: 'ตัวอย่าง workflow YOLO แบบครบเส้นทาง ใช้ภาพวงกลม สามเหลี่ยม และสี่เหลี่ยมที่มีกรอบกำกับไว้ 9 ภาพ พร้อมภาพทดสอบ หลังเทรนจะมีทั้ง Detection Evaluation สำหรับ Validation split และ Classification Evaluation ที่เปรียบเทียบคลาสของภาพทดสอบที่เชื่อมอยู่ โดยตั้งค่าเทรนระยะสั้นเพื่อสาธิตลำดับงาน ไม่ได้มุ่งผลความแม่นยำสูงสุด',
   },
   color: 'cyan',
   nodes: [
     {
       id: 'shapes-e2e-images',
       type: 'multi-image-input',
-      position: { x: 0, y: 0 },
+      position: { x: -28.65850339859901, y: 647.035313276307 },
       data: {
         label: 'Shapes Dataset Images',
         status: 'idle',
@@ -95,7 +95,7 @@ export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
     {
       id: 'shapes-e2e-dataset',
       type: 'yolo-dataset',
-      position: { x: 340, y: 0 },
+      position: { x: 330, y: 190 },
       data: {
         label: 'Build Shapes Dataset',
         status: 'idle',
@@ -109,7 +109,7 @@ export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
     {
       id: 'shapes-e2e-train',
       type: 'yolo-train',
-      position: { x: 810, y: 0 },
+      position: { x: 860, y: 70 },
       data: {
         label: 'Train Shapes YOLO',
         status: 'idle',
@@ -120,9 +120,9 @@ export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
     {
       id: 'shapes-e2e-test-image',
       type: 'image-input',
-      position: { x: 808.414, y: 277.737 },
+      position: { x: 858.3700451187246, y: 363.8779010387507 },
       data: {
-        label: 'Shapes Test Image',
+        label: 'Image Input',
         status: 'idle',
         description: 'Preloaded shapes image for inference and XAI.',
         payload: testImagePayload,
@@ -131,7 +131,7 @@ export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
     {
       id: 'shapes-e2e-detect',
       type: 'yolo-detect',
-      position: { x: 1191.72, y: 1.68032 },
+      position: { x: 1280.743091193914, y: 68.12138907804595 },
       data: {
         label: 'Detect Shapes',
         status: 'idle',
@@ -142,7 +142,7 @@ export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
     {
       id: 'shapes-e2e-gradcam',
       type: 'yolo-gradcam',
-      position: { x: 1190, y: 425.641 },
+      position: { x: 1281.8648620746717, y: 504.9114710869171 },
       data: {
         label: 'Explain Shapes Detection',
         status: 'idle',
@@ -153,12 +153,31 @@ export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
     {
       id: 'shapes-e2e-evaluation',
       type: 'detection-evaluation',
-      position: { x: 1190, y: 850 },
+      position: { x: 853.6627411167512, y: 972.0942131979696 },
       data: {
         label: 'Evaluate Shapes Model',
         status: 'idle',
         description: 'Runs the trained model against the dataset validation split.',
         payload: {
+          params: {
+            confidence_threshold: 0.25,
+            iou_threshold: 0.5,
+            nms_iou_threshold: 0.7,
+            image_size: 640,
+          },
+        },
+      },
+    } as Node,
+    {
+      id: 'shapes-e2e-classification-evaluation',
+      type: 'classification-evaluation',
+      position: { x: 342.1877689016443, y: 973.780169750989 },
+      data: {
+        label: 'Classify Shapes Test Result',
+        status: 'idle',
+        description: 'Compares the trained YOLO prediction with the Test Image labels.',
+        payload: {
+          evaluation_input_mode: 'yolo',
           params: {
             confidence_threshold: 0.25,
             iou_threshold: 0.5,
@@ -178,6 +197,9 @@ export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
     { id: 'shapes-e2e-image-gradcam', source: 'shapes-e2e-test-image', sourceHandle: 'img', target: 'shapes-e2e-gradcam', type: 'smoothstep', style: edgeStyle },
     { id: 'shapes-e2e-dataset-evaluation', source: 'shapes-e2e-dataset', sourceHandle: 'dataset', target: 'shapes-e2e-evaluation', targetHandle: 'dataset', type: 'smoothstep', style: edgeStyle },
     { id: 'shapes-e2e-train-evaluation', source: 'shapes-e2e-train', target: 'shapes-e2e-evaluation', targetHandle: 'model', type: 'smoothstep', style: edgeStyle },
+    { id: 'shapes-e2e-dataset-classification-evaluation', source: 'shapes-e2e-dataset', sourceHandle: 'dataset', target: 'shapes-e2e-classification-evaluation', targetHandle: 'dataset', type: 'smoothstep', style: edgeStyle },
+    { id: 'shapes-e2e-train-classification-evaluation', source: 'shapes-e2e-train', target: 'shapes-e2e-classification-evaluation', targetHandle: 'model', type: 'smoothstep', style: edgeStyle },
+    { id: 'shapes-e2e-image-classification-evaluation', source: 'shapes-e2e-test-image', sourceHandle: 'img', target: 'shapes-e2e-classification-evaluation', targetHandle: 'image', type: 'smoothstep', style: edgeStyle },
   ],
 };
 
@@ -199,7 +221,7 @@ export const SHAPES_INFERENCE_XAI_TEMPLATE: WorkflowTemplate = {
       type: 'image-input',
       position: { x: 0, y: 180 },
       data: {
-        label: 'Shapes Test Image',
+        label: 'Image Input',
         status: 'idle',
         description: 'Preloaded shapes image.',
         payload: testImagePayload,
