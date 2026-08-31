@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo, useState, type ChangeEvent } from 'react';
-import { Handle, Position, type NodeProps, useReactFlow } from 'reactflow';
+import { Handle, Position, type NodeProps, useEdges, useNodes, useReactFlow } from 'reactflow';
 
 import type { CustomNodeData } from '../../types';
 
@@ -28,6 +28,8 @@ function rocPoints(points: any[]): string {
 
 const ClassificationEvaluationNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
   const { setNodes } = useReactFlow();
+  const nodes = useNodes<CustomNodeData>();
+  const edges = useEdges();
   const [uploadError, setUploadError] = useState('');
   const [showNormalized, setShowNormalized] = useState(false);
   const isRunning = data.status === 'start' || data.status === 'running';
@@ -39,6 +41,16 @@ const ClassificationEvaluationNode = memo(({ id, data, selected }: NodeProps<Cus
     : result?.confusion_matrix;
   const curves = Array.isArray(result?.roc_curves) ? result.roc_curves : [];
   const inputName = data.payload?.evaluation_input_name as string | undefined;
+  const upstreamNode = edges
+    .filter((edge) => edge.target === id)
+    .map((edge) => nodes.find((node) => node.id === edge.source))
+    .find((node) => {
+      const payload = node?.data?.payload || {};
+      return [payload.classification_input, payload.evaluation_input, payload.json, payload.output, payload]
+        .some((candidate) => candidate && typeof candidate === 'object' && !Array.isArray(candidate)
+          && Array.isArray(candidate.y_true) && Array.isArray(candidate.y_pred));
+    });
+  const upstreamName = upstreamNode?.data?.label || upstreamNode?.type;
   const borderClass = selected
     ? 'border-amber-300 ring-2 ring-amber-400/30'
     : data.status === 'fault'
@@ -56,6 +68,7 @@ const ClassificationEvaluationNode = memo(({ id, data, selected }: NodeProps<Cus
           ...(node.data?.payload || {}),
           evaluation_input: input,
           evaluation_input_name: name,
+          evaluation_input_source: undefined,
           evaluation_result: undefined,
           json: undefined,
           output: undefined,
@@ -94,6 +107,7 @@ const ClassificationEvaluationNode = memo(({ id, data, selected }: NodeProps<Cus
 
   return (
     <div className={`w-[26rem] max-w-[calc(100vw-3rem)] overflow-visible rounded-xl border-2 bg-gray-800 text-gray-200 shadow-2xl ${borderClass}`}>
+      <Handle type="target" position={Position.Left} id="classification-input" style={{ top: '36%' }} className="h-3 w-3 border-2 border-gray-400 bg-white" />
       <Handle type="source" position={Position.Right} id="metric" className="h-3 w-3 border-2 border-gray-400 bg-white" />
 
       <div className="flex items-center justify-between rounded-t-lg bg-gray-700 px-3 py-2">
@@ -123,11 +137,13 @@ const ClassificationEvaluationNode = memo(({ id, data, selected }: NodeProps<Cus
               Load example
             </button>
             <span className="min-w-0 flex-1 truncate text-[10px] text-gray-400">
-              {inputName || 'Upload y_true, y_pred, y_scores'}
+              {upstreamName ? `Connected: ${upstreamName}` : inputName || 'Upload y_true, y_pred, y_scores'}
             </span>
           </div>
           <p className="mt-2 text-[10px] leading-4 text-gray-400">
-            ROC needs <code>y_scores</code>; binary scores are for class ID 1, while multiclass scores need one value per class.
+            {upstreamName
+              ? 'Connected JSON will be used first when running. It must contain y_true and y_pred.'
+              : <>ROC needs <code>y_scores</code>; binary scores are for class ID 1, while multiclass scores need one value per class.</>}
           </p>
           {uploadError && <p className="mt-1 text-[10px] text-red-400">{uploadError}</p>}
         </div>
@@ -193,7 +209,7 @@ const ClassificationEvaluationNode = memo(({ id, data, selected }: NodeProps<Cus
           </section>
         </>}
 
-        {!isSuccess && <p className={`text-xs ${data.status === 'fault' ? 'text-red-400' : 'text-gray-400'}`}>{data.description || 'Choose a JSON file, then run evaluation.'}</p>}
+        {!isSuccess && <p className={`text-xs ${data.status === 'fault' ? 'text-red-400' : 'text-gray-400'}`}>{data.description || 'Connect Classification JSON, or choose a JSON file, then run evaluation.'}</p>}
       </div>
 
       <div className="border-t border-gray-700 px-3 py-2 text-[10px] text-gray-500">

@@ -59,7 +59,7 @@ const NODE_RULES: Record<string, { inputs: string[]; output: string }> = {
   'yolo-gradcam': { inputs: ['image', 'model'], output: 'image' },
 
   // --- Evaluation ---
-  'classification-evaluation': { inputs: [], output: 'metric' },
+  'classification-evaluation': { inputs: ['any'], output: 'metric' },
   'detection-evaluation': { inputs: ['dataset', 'model'], output: 'metric' },
 
   // --- Quality Metrics ---
@@ -173,8 +173,21 @@ export function validateNodeInput(
       break;
 
     case 'classification-evaluation':
-      if (!node.data?.payload?.evaluation_input) {
-        return { isValid: false, message: 'Choose a Classification Evaluation JSON file first.' };
+      {
+        const upstreamInput = incomingEdges
+          .map((edge) => nodes.find((candidate) => candidate.id === edge.source)?.data?.payload)
+          .some((payload) => {
+            const candidates = [payload?.classification_input, payload?.evaluation_input, payload?.json, payload?.output, payload];
+            return candidates.some((candidate) => candidate && typeof candidate === 'object' && !Array.isArray(candidate)
+              && Array.isArray((candidate as Record<string, unknown>).y_true)
+              && Array.isArray((candidate as Record<string, unknown>).y_pred));
+          });
+        const localInput = node.data?.payload?.evaluation_input;
+        const hasLocalInput = localInput && typeof localInput === 'object' && !Array.isArray(localInput)
+          && Array.isArray(localInput.y_true) && Array.isArray(localInput.y_pred);
+        if (!upstreamInput && !hasLocalInput) {
+          return { isValid: false, message: 'Connect a JSON result containing y_true and y_pred, or choose a Classification Evaluation JSON file.' };
+        }
       }
       break;
 

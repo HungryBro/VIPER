@@ -4,15 +4,34 @@ import type { CustomNodeData } from '../../types';
 import { runClassificationEvaluation, runDetectionEvaluation } from '../api';
 import { markStartThenRunning, type RFNode, type SetNodes } from './utils';
 
+function isClassificationInput(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const input = value as Record<string, unknown>;
+  return Array.isArray(input.y_true) && Array.isArray(input.y_pred);
+}
+
+function connectedClassificationInput(node: RFNode, nodes: RFNode[], edges: Edge[]) {
+  for (const edge of edges.filter((candidate) => candidate.target === node.id)) {
+    const parent = nodes.find((candidate) => candidate.id === edge.source);
+    const payload = parent?.data?.payload || {};
+    for (const candidate of [payload.classification_input, payload.evaluation_input, payload.json, payload.output, payload]) {
+      if (isClassificationInput(candidate)) {
+        return { input: candidate, sourceName: parent?.data?.label || parent?.type || 'connected node' };
+      }
+    }
+  }
+  return undefined;
+}
 
 export async function runClassificationEvaluationNode(
   node: RFNode,
   setNodes: SetNodes,
-  _nodes: RFNode[],
-  _edges: Edge[],
+  nodes: RFNode[],
+  edges: Edge[],
   signal?: AbortSignal,
 ) {
-  const input = node.data?.payload?.evaluation_input;
+  const upstream = connectedClassificationInput(node, nodes, edges);
+  const input = upstream?.input || node.data?.payload?.evaluation_input;
   const fail = (message: string) => {
     setNodes((current) => current.map((item) => item.id === node.id ? {
       ...item,
@@ -21,8 +40,8 @@ export async function runClassificationEvaluationNode(
     throw new Error(message);
   };
 
-  if (!input || typeof input !== 'object' || Array.isArray(input)) {
-    return fail('Choose a Classification Evaluation JSON file first.');
+  if (!isClassificationInput(input)) {
+    return fail('Connect a JSON result containing y_true and y_pred, or choose a Classification Evaluation JSON file.');
   }
 
   await markStartThenRunning(node.id, 'Classification Evaluation', setNodes);
@@ -41,6 +60,7 @@ export async function runClassificationEvaluationNode(
         description,
         payload: {
           ...(item.data?.payload || {}),
+          evaluation_input_source: upstream?.sourceName,
           json: response,
           evaluation_result: response,
           output: response,
