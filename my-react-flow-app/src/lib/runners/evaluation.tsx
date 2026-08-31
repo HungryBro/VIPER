@@ -31,7 +31,8 @@ export async function runClassificationEvaluationNode(
   signal?: AbortSignal,
 ) {
   const upstream = connectedClassificationInput(node, nodes, edges);
-  const input = upstream?.input || node.data?.payload?.evaluation_input;
+  const inputMode = node.data?.payload?.evaluation_input_mode === 'node' ? 'node' : 'file';
+  const input = inputMode === 'node' ? upstream?.input : node.data?.payload?.evaluation_input;
   const fail = (message: string) => {
     setNodes((current) => current.map((item) => item.id === node.id ? {
       ...item,
@@ -41,7 +42,9 @@ export async function runClassificationEvaluationNode(
   };
 
   if (!isClassificationInput(input)) {
-    return fail('Connect a JSON result containing y_true and y_pred, or choose a Classification Evaluation JSON file.');
+    return fail(inputMode === 'node'
+      ? 'Connect a JSON result containing y_true and y_pred.'
+      : 'Choose a Classification Evaluation JSON file containing y_true and y_pred.');
   }
 
   await markStartThenRunning(node.id, 'Classification Evaluation', setNodes);
@@ -60,7 +63,7 @@ export async function runClassificationEvaluationNode(
         description,
         payload: {
           ...(item.data?.payload || {}),
-          evaluation_input_source: upstream?.sourceName,
+          evaluation_input_source: inputMode === 'node' ? upstream?.sourceName : undefined,
           json: response,
           evaluation_result: response,
           output: response,

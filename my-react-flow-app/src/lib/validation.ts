@@ -174,6 +174,7 @@ export function validateNodeInput(
 
     case 'classification-evaluation':
       {
+        const inputMode = node.data?.payload?.evaluation_input_mode === 'node' ? 'node' : 'file';
         const upstreamInput = incomingEdges
           .map((edge) => nodes.find((candidate) => candidate.id === edge.source)?.data?.payload)
           .some((payload) => {
@@ -185,8 +186,11 @@ export function validateNodeInput(
         const localInput = node.data?.payload?.evaluation_input;
         const hasLocalInput = localInput && typeof localInput === 'object' && !Array.isArray(localInput)
           && Array.isArray(localInput.y_true) && Array.isArray(localInput.y_pred);
-        if (!upstreamInput && !hasLocalInput) {
-          return { isValid: false, message: 'Connect a JSON result containing y_true and y_pred, or choose a Classification Evaluation JSON file.' };
+        if (inputMode === 'node' && !upstreamInput) {
+          return { isValid: false, message: 'Connect a JSON result containing y_true and y_pred.' };
+        }
+        if (inputMode === 'file' && !hasLocalInput) {
+          return { isValid: false, message: 'Choose a Classification Evaluation JSON file containing y_true and y_pred.' };
         }
       }
       break;

@@ -40,7 +40,11 @@ const ClassificationEvaluationNode = memo(({ id, data, selected }: NodeProps<Cus
     ? result?.normalized_confusion_matrix
     : result?.confusion_matrix;
   const curves = Array.isArray(result?.roc_curves) ? result.roc_curves : [];
+  const inputMode = data.payload?.evaluation_input_mode === 'node' ? 'node' : 'file';
   const inputName = data.payload?.evaluation_input_name as string | undefined;
+  const connectedNode = edges
+    .filter((edge) => edge.target === id)
+    .map((edge) => nodes.find((node) => node.id === edge.source))[0];
   const upstreamNode = edges
     .filter((edge) => edge.target === id)
     .map((edge) => nodes.find((node) => node.id === edge.source))
@@ -51,6 +55,7 @@ const ClassificationEvaluationNode = memo(({ id, data, selected }: NodeProps<Cus
           && Array.isArray(candidate.y_true) && Array.isArray(candidate.y_pred));
     });
   const upstreamName = upstreamNode?.data?.label || upstreamNode?.type;
+  const connectedNodeName = connectedNode?.data?.label || connectedNode?.type;
   const borderClass = selected
     ? 'border-amber-300 ring-2 ring-amber-400/30'
     : data.status === 'fault'
@@ -68,7 +73,26 @@ const ClassificationEvaluationNode = memo(({ id, data, selected }: NodeProps<Cus
           ...(node.data?.payload || {}),
           evaluation_input: input,
           evaluation_input_name: name,
+          evaluation_input_mode: 'file',
           evaluation_input_source: undefined,
+          evaluation_result: undefined,
+          json: undefined,
+          output: undefined,
+        },
+      },
+    } : node));
+  }, [id, setNodes]);
+
+  const setInputMode = useCallback((mode: 'node' | 'file') => {
+    setNodes((current) => current.map((node) => node.id === id ? {
+      ...node,
+      data: {
+        ...node.data,
+        status: 'idle',
+        description: mode === 'node' ? 'Waiting for connected Classification JSON' : 'Choose a Classification JSON file',
+        payload: {
+          ...(node.data?.payload || {}),
+          evaluation_input_mode: mode,
           evaluation_result: undefined,
           json: undefined,
           output: undefined,
@@ -124,27 +148,33 @@ const ClassificationEvaluationNode = memo(({ id, data, selected }: NodeProps<Cus
 
       <div className="space-y-3 p-3">
         <div className="rounded border border-dashed border-amber-700 bg-gray-900/70 p-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="nodrag cursor-pointer rounded bg-slate-700 px-2 py-1 text-xs font-semibold text-slate-100 hover:bg-slate-600">
-              Choose JSON
-              <input className="hidden" type="file" accept="application/json,.json" onChange={onChooseFile} />
-            </label>
-            <button
-              type="button"
-              className="nodrag rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-700"
-              onClick={() => { updateInput(EXAMPLE_INPUT, 'Example classification data'); setUploadError(''); }}
-            >
-              Load example
-            </button>
-            <span className="min-w-0 flex-1 truncate text-[10px] text-gray-400">
-              {upstreamName ? `Connected: ${upstreamName}` : inputName || 'Upload y_true, y_pred, y_scores'}
-            </span>
+          <div className="nodrag mb-2 grid grid-cols-2 rounded border border-gray-700 bg-gray-950 p-1 text-[10px] font-semibold">
+            <button type="button" className={`rounded px-2 py-1.5 ${inputMode === 'node' ? 'bg-amber-600 text-white' : 'text-gray-400 hover:bg-gray-800'}`} onClick={() => setInputMode('node')}>Use connected JSON</button>
+            <button type="button" className={`rounded px-2 py-1.5 ${inputMode === 'file' ? 'bg-amber-600 text-white' : 'text-gray-400 hover:bg-gray-800'}`} onClick={() => setInputMode('file')}>Import JSON file</button>
           </div>
-          <p className="mt-2 text-[10px] leading-4 text-gray-400">
+          {inputMode === 'node' ? <p className={`text-[10px] leading-4 ${upstreamName ? 'text-emerald-300' : 'text-gray-400'}`}>
             {upstreamName
-              ? 'Connected JSON will be used first when running. It must contain y_true and y_pred.'
-              : <>ROC needs <code>y_scores</code>; binary scores are for class ID 1, while multiclass scores need one value per class.</>}
-          </p>
+              ? `Connected: ${upstreamName}. Its JSON will be used when running.`
+              : connectedNodeName
+                ? `Connected: ${connectedNodeName}. Its JSON needs y_true and y_pred.`
+                : 'Connect a Node JSON output to the left input.'}
+          </p> : <>
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="nodrag cursor-pointer rounded bg-slate-700 px-2 py-1 text-xs font-semibold text-slate-100 hover:bg-slate-600">
+                Choose JSON
+                <input className="hidden" type="file" accept="application/json,.json" onChange={onChooseFile} />
+              </label>
+              <button
+                type="button"
+                className="nodrag rounded border border-slate-600 px-2 py-1 text-xs text-slate-200 hover:bg-slate-700"
+                onClick={() => { updateInput(EXAMPLE_INPUT, 'Example classification data'); setUploadError(''); }}
+              >
+                Load example
+              </button>
+              <span className="min-w-0 flex-1 truncate text-[10px] text-gray-400">{inputName || 'Upload y_true, y_pred, y_scores'}</span>
+            </div>
+            <p className="mt-2 text-[10px] leading-4 text-gray-400">ROC needs <code>y_scores</code>; binary scores are for class ID 1, while multiclass scores need one value per class.</p>
+          </>}
           {uploadError && <p className="mt-1 text-[10px] text-red-400">{uploadError}</p>}
         </div>
 
@@ -209,7 +239,7 @@ const ClassificationEvaluationNode = memo(({ id, data, selected }: NodeProps<Cus
           </section>
         </>}
 
-        {!isSuccess && <p className={`text-xs ${data.status === 'fault' ? 'text-red-400' : 'text-gray-400'}`}>{data.description || 'Connect Classification JSON, or choose a JSON file, then run evaluation.'}</p>}
+        {!isSuccess && <p className={`text-xs ${data.status === 'fault' ? 'text-red-400' : 'text-gray-400'}`}>{data.description || (inputMode === 'node' ? 'Connect Classification JSON, then run evaluation.' : 'Choose a JSON file, then run evaluation.')}</p>}
       </div>
 
       <div className="border-t border-gray-700 px-3 py-2 text-[10px] text-gray-500">
