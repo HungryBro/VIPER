@@ -56,6 +56,25 @@ The `Object Detection & XAI` library group contains four nodes:
 4. **YOLO Detect / Test** — connect an Image Input and optionally connect YOLO Train. Without a training connection it uses fixed `models/yolo11n.pt`.
 5. **YOLO Grad-CAM** — connect an image and optionally a trained model. It produces an overlay, a raw heatmap image, and compactness metrics.
 
+## Detection Evaluation workflow
+
+The `Evaluation` library group includes **Detection Evaluation**. Connect its
+two inputs to a completed **YOLO Dataset Builder** and a completed **YOLO
+Train** node, then run it to evaluate the trained model on the dataset's
+validation split. It displays the overall and per-class values below:
+
+- **Detection Rate** = `TP / (TP + FN)`
+- **False Detection Rate** = `FP / (TP + FP)`
+- **Precision**, false positives per image, and TP / FP / FN counts
+
+The node supports confidence threshold, matching IoU threshold, NMS IoU, and
+image-size settings. Its full JSON result is saved under
+`outputs/evaluation/detection/` and is recorded in the Admin Activity Log.
+
+For a ready-made example, load the official **Shapes — End-to-End Training &
+Evaluation** template. It builds the included annotated Shapes data, trains a
+short YOLO run, and connects the result to Detection Evaluation automatically.
+
 The implementation is fully contained in `server/algos/detection/` and does
 not import code, models, datasets, or paths from an external experiment.
 The current UI fixes the bundled base model at `models/yolo11n.pt`. After training, Detect and Grad-CAM
@@ -75,8 +94,10 @@ pip install -r requirements.txt
 ```
 
 The backend endpoints are `POST /api/detection/train`,
-`POST /api/detection/detect`, and `POST /api/detection/gradcam`. Generated files
-are written under `outputs/detection/` and served through `/static`.
+`POST /api/detection/detect`, `POST /api/detection/gradcam`, and
+`POST /api/evaluation/detection`. Generated detection files are written under
+`outputs/detection/`; evaluation JSON files are written under
+`outputs/evaluation/detection/`; both are served through `/static`.
 
 ---
 

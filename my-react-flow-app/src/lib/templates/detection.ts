@@ -69,15 +69,15 @@ const testImagePayload = {
 };
 
 export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
-  name: 'Shapes — End-to-End Training',
+  name: 'Shapes — End-to-End Training & Evaluation',
   descriptor: {
-    en: 'Build a small annotated shapes dataset, train YOLO, then run detection and Grad-CAM.',
-    th: 'สร้างชุดข้อมูลรูปทรงจากภาพที่ติดป้ายกำกับไว้ เทรน YOLO แล้วตรวจจับและอธิบายผลด้วย Grad-CAM',
+    en: 'Build a small annotated shapes dataset, train YOLO, then evaluate, detect, and explain its results.',
+    th: 'สร้างชุดข้อมูลรูปทรงจากภาพที่ติดป้ายกำกับไว้ เทรน YOLO วัดผล แล้วตรวจจับและอธิบายผลด้วย Grad-CAM',
   },
-  description: 'ANNOTATE + BUILD + TRAIN + DETECT + GRAD-CAM',
+  description: 'ANNOTATE + BUILD + TRAIN + EVALUATE + DETECT + GRAD-CAM',
   longDescription: {
-    en: 'A self-contained demonstration of the full YOLO workflow. It includes nine annotated circle, triangle, and square images, plus a test image. The short training configuration is intended for learning the workflow rather than model accuracy.',
-    th: 'ตัวอย่าง workflow YOLO แบบครบเส้นทาง ใช้ภาพวงกลม สามเหลี่ยม และสี่เหลี่ยมที่มีกรอบกำกับไว้ 9 ภาพ พร้อมภาพทดสอบ โดยตั้งค่าเทรนระยะสั้นเพื่อสาธิตลำดับงาน ไม่ได้มุ่งผลความแม่นยำสูงสุด',
+    en: 'A self-contained demonstration of the full YOLO workflow. It includes nine annotated circle, triangle, and square images, plus a test image. After training, Detection Evaluation measures the validation split with Detection Rate, False Detection Rate, Precision, and TP/FP/FN counts. The short training configuration is intended for learning the workflow rather than model accuracy.',
+    th: 'ตัวอย่าง workflow YOLO แบบครบเส้นทาง ใช้ภาพวงกลม สามเหลี่ยม และสี่เหลี่ยมที่มีกรอบกำกับไว้ 9 ภาพ พร้อมภาพทดสอบ หลังเทรนจะวัดผล Validation split ด้วย Detection Rate, False Detection Rate, Precision และจำนวน TP/FP/FN โดยตั้งค่าเทรนระยะสั้นเพื่อสาธิตลำดับงาน ไม่ได้มุ่งผลความแม่นยำสูงสุด',
   },
   color: 'cyan',
   nodes: [
@@ -150,6 +150,24 @@ export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
         payload: { params: { model_path: 'models/yolo11n.pt', method: 'GradCAM', confidence: 0.2, target_layers: '', target_class_ids: '' } },
       },
     } as Node,
+    {
+      id: 'shapes-e2e-evaluation',
+      type: 'detection-evaluation',
+      position: { x: 1190, y: 850 },
+      data: {
+        label: 'Evaluate Shapes Model',
+        status: 'idle',
+        description: 'Runs the trained model against the dataset validation split.',
+        payload: {
+          params: {
+            confidence_threshold: 0.25,
+            iou_threshold: 0.5,
+            nms_iou_threshold: 0.7,
+            image_size: 640,
+          },
+        },
+      },
+    } as Node,
   ],
   edges: [
     { id: 'shapes-e2e-images-dataset', source: 'shapes-e2e-images', sourceHandle: 'images', target: 'shapes-e2e-dataset', targetHandle: 'images', type: 'smoothstep', style: edgeStyle },
@@ -158,6 +176,8 @@ export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
     { id: 'shapes-e2e-image-detect', source: 'shapes-e2e-test-image', sourceHandle: 'img', target: 'shapes-e2e-detect', type: 'smoothstep', style: edgeStyle },
     { id: 'shapes-e2e-train-gradcam', source: 'shapes-e2e-train', target: 'shapes-e2e-gradcam', type: 'smoothstep', style: edgeStyle },
     { id: 'shapes-e2e-image-gradcam', source: 'shapes-e2e-test-image', sourceHandle: 'img', target: 'shapes-e2e-gradcam', type: 'smoothstep', style: edgeStyle },
+    { id: 'shapes-e2e-dataset-evaluation', source: 'shapes-e2e-dataset', sourceHandle: 'dataset', target: 'shapes-e2e-evaluation', targetHandle: 'dataset', type: 'smoothstep', style: edgeStyle },
+    { id: 'shapes-e2e-train-evaluation', source: 'shapes-e2e-train', target: 'shapes-e2e-evaluation', targetHandle: 'model', type: 'smoothstep', style: edgeStyle },
   ],
 };
 
