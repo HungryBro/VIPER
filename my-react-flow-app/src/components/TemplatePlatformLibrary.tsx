@@ -6,6 +6,7 @@ import {
   createTemplateComment,
   deleteTemplateComment,
   listMyTemplates,
+  listOfficialTemplates,
   listPublicTemplates,
   listTemplateComments,
   loadPlatformTemplate,
@@ -21,12 +22,13 @@ import {
 import { apiUrl } from '../lib/http';
 
 
-export type PlatformTemplateView = 'public' | 'private';
+export type PlatformTemplateView = 'official' | 'public' | 'private';
 
 type Props = {
   view: PlatformTemplateView;
   getCurrentWorkflow: () => CurrentWorkflow | null;
   onLoad: (template: TemplateDetail) => void;
+  onLoadOfficial: (officialKey: string) => void;
   onViewChange: (view: PlatformTemplateView) => void;
 };
 
@@ -38,12 +40,38 @@ type SaveDraft = {
 
 type EditDraft = SaveDraft & {
   templateId: number;
+  isOfficial: boolean;
   coverUrl: string | null;
   coverFile: File | null;
 };
 
 const MAX_COVER_FILE_BYTES = 5 * 1024 * 1024;
 const ACCEPTED_COVER_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const OFFICIAL_CATEGORY_ORDER = [
+  'Feature Extraction',
+  'Matching',
+  'Object Alignment',
+  'Classification',
+  'Evaluation',
+  'Quality Assessment',
+  'Object Detection & XAI',
+  'Other',
+];
+
+function officialTemplateCategory(template: TemplateSummary): string {
+  switch (template.official_key ?? template.name) {
+    case 'SIFT (Scale-Invariant Feature Transform)': return 'Feature Extraction';
+    case 'FLANN (Fast Library for Approximate Nearest Neighbors)': return 'Matching';
+    case 'Homography Estimation': return 'Object Alignment';
+    case 'Otsu Thresholding':
+    case 'Active Contour (Snake)': return 'Classification';
+    case 'Shapes — End-to-End Training & Evaluation': return 'Evaluation';
+    case 'PSNR (Peak Signal-to-Noise Ratio)':
+    case 'BRISQUE (Blind/Referenceless Image Spatial Quality Evaluator)': return 'Quality Assessment';
+    case 'Shapes — Detection & XAI': return 'Object Detection & XAI';
+    default: return 'Other';
+  }
+}
 
 function formatDate(value: string): string {
   return new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium' }).format(new Date(value));
@@ -60,6 +88,7 @@ export default function TemplatePlatformLibrary({
   view,
   getCurrentWorkflow,
   onLoad,
+  onLoadOfficial,
   onViewChange,
 }: Props) {
   const { user } = useAuth();
@@ -80,7 +109,7 @@ export default function TemplatePlatformLibrary({
   const [draft, setDraft] = useState<SaveDraft>({
     name: '',
     description: '',
-    visibility: view,
+    visibility: view === 'private' ? 'private' : 'public',
   });
   const openCommentsIdRef = useRef<number | null>(null);
 
@@ -105,9 +134,11 @@ export default function TemplatePlatformLibrary({
     setLoading(true);
     setError('');
     try {
-      const result = view === 'public'
-        ? await listPublicTemplates()
-        : (await listMyTemplates()).filter((template) => template.visibility === 'private');
+      const result = view === 'official'
+        ? await listOfficialTemplates()
+        : view === 'public'
+          ? await listPublicTemplates()
+          : (await listMyTemplates()).filter((template) => template.visibility === 'private');
       setTemplates(result);
       const openTemplateId = openCommentsIdRef.current;
       if (openTemplateId !== null && result.some((template) => template.id === openTemplateId)) {
@@ -132,7 +163,7 @@ export default function TemplatePlatformLibrary({
     }
     setError('');
     setNotice('');
-    setDraft({ name: current.name, description: '', visibility: view });
+    setDraft({ name: current.name, description: '', visibility: view === 'private' ? 'private' : 'public' });
     setSaveOpen(true);
   };
 
@@ -171,12 +202,18 @@ export default function TemplatePlatformLibrary({
     }
   };
 
-  const loadSelected = async (templateId: number) => {
-    setBusyId(templateId);
+  const loadSelected = async (template: TemplateSummary) => {
+    setBusyId(template.id);
     setError('');
     setNotice('');
     try {
-      onLoad(await loadPlatformTemplate(templateId));
+      const loaded = await loadPlatformTemplate(template.id);
+      if (template.is_official) {
+        if (!template.official_key) throw new Error('Official template is missing its workflow key.');
+        onLoadOfficial(template.official_key);
+      } else {
+        onLoad(loaded);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to load template');
     } finally {
@@ -225,6 +262,7 @@ export default function TemplatePlatformLibrary({
     setNotice('');
     setEditDraft({
       templateId: template.id,
+      isOfficial: template.is_official,
       name: template.name,
       description: template.description,
       visibility: template.visibility,
@@ -249,8 +287,12 @@ export default function TemplatePlatformLibrary({
 
   const saveTemplateEdits = async () => {
     if (!editDraft) return;
-    if (!editDraft.name.trim()) {
+    if (!editDraft.isOfficial && !editDraft.name.trim()) {
       setError('Template name is required.');
+      return;
+    }
+    if (editDraft.isOfficial && !editDraft.coverFile) {
+      setError('Choose a cover image to update this Official template.');
       return;
     }
 
@@ -258,16 +300,18 @@ export default function TemplatePlatformLibrary({
     setError('');
     setNotice('');
     try {
-      await updatePlatformTemplate(editDraft.templateId, {
-        name: editDraft.name.trim(),
-        description: editDraft.description.trim(),
-        visibility: editDraft.visibility,
-      });
+      if (!editDraft.isOfficial) {
+        await updatePlatformTemplate(editDraft.templateId, {
+          name: editDraft.name.trim(),
+          description: editDraft.description.trim(),
+          visibility: editDraft.visibility,
+        });
+      }
       if (editDraft.coverFile) {
         await uploadTemplateCover(editDraft.templateId, editDraft.coverFile);
       }
       setEditDraft(null);
-      setNotice('Template details updated.');
+      setNotice(editDraft.isOfficial ? 'Official template cover updated.' : 'Template details updated.');
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to update template details');
@@ -350,26 +394,38 @@ export default function TemplatePlatformLibrary({
     }
   };
 
+  const displayTemplates = view === 'official'
+    ? [...templates].sort((first, second) => {
+      const categoryDifference = OFFICIAL_CATEGORY_ORDER.indexOf(officialTemplateCategory(first))
+        - OFFICIAL_CATEGORY_ORDER.indexOf(officialTemplateCategory(second));
+      return categoryDifference || first.name.localeCompare(second.name);
+    })
+    : templates;
+
   return (
     <div className="space-y-2">
       <div className="flex gap-1.5">
-        <button
-          type="button"
-          onClick={beginSave}
-          className="min-h-10 flex-1 touch-manipulation rounded-md bg-teal-600 px-2 py-2 text-[10px] font-black text-white transition-colors hover:bg-teal-500 sm:text-[9px]"
-        >
-          ＋ SAVE CURRENT
-        </button>
-        <button
-          type="button"
-          onClick={() => void refresh()}
-          disabled={loading}
-          title="Refresh templates"
-          aria-label="Refresh templates"
-          className="min-h-10 min-w-10 touch-manipulation rounded-md border border-gray-700 bg-gray-800 px-2.5 text-xs text-gray-400 hover:text-white disabled:opacity-50"
-        >
-          ↻
-        </button>
+        {view !== 'official' && (
+          <button
+            type="button"
+            onClick={beginSave}
+            className="min-h-10 flex-1 touch-manipulation rounded-md bg-teal-600 px-2 py-2 text-[10px] font-black text-white transition-colors hover:bg-teal-500 sm:text-[9px]"
+          >
+            ＋ SAVE CURRENT
+          </button>
+        )}
+        {view !== 'official' && (
+          <button
+            type="button"
+            onClick={() => void refresh()}
+            disabled={loading}
+            title="Refresh templates"
+            aria-label="Refresh templates"
+            className="min-h-10 min-w-10 touch-manipulation rounded-md border border-gray-700 bg-gray-800 px-2.5 text-xs text-gray-400 hover:text-white disabled:opacity-50"
+          >
+            ↻
+          </button>
+        )}
       </div>
 
       {saveOpen && (
@@ -406,31 +462,54 @@ export default function TemplatePlatformLibrary({
       )}
 
       {editDraft && (
-        <div className="space-y-2 rounded-lg border border-indigo-500/30 bg-gray-800/60 p-2">
-          <div className="text-[9px] font-black uppercase tracking-wider text-indigo-300">Edit template</div>
-          <input
-            value={editDraft.name}
-            maxLength={160}
-            onChange={(event) => setEditDraft((current) => (current ? { ...current, name: event.target.value } : current))}
-            placeholder="Template name"
-            className="w-full rounded-md border border-gray-700 bg-gray-950 px-2 py-1.5 text-[10px] text-white outline-none focus:border-indigo-400"
-          />
-          <textarea
-            value={editDraft.description}
-            maxLength={2000}
-            rows={3}
-            onChange={(event) => setEditDraft((current) => (current ? { ...current, description: event.target.value } : current))}
-            placeholder="Short description"
-            className="w-full resize-none rounded-md border border-gray-700 bg-gray-950 px-2 py-1.5 text-[10px] text-white outline-none focus:border-indigo-400"
-          />
-          <select
-            value={editDraft.visibility}
-            onChange={(event) => setEditDraft((current) => (current ? { ...current, visibility: event.target.value as TemplateVisibility } : current))}
-            className="w-full rounded-md border border-gray-700 bg-gray-950 px-2 py-1.5 text-[10px] text-gray-200"
-          >
-            <option value="public">Public</option>
-            <option value="private">Private</option>
-          </select>
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true" aria-labelledby="template-edit-title">
+          <div className="w-full max-w-xl overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
+              <div>
+                <h2 id="template-edit-title" className="text-lg font-black text-teal-300">{editDraft.isOfficial ? 'Official Template Cover' : 'Edit Template'}</h2>
+                <p className="mt-0.5 text-xs text-slate-400">
+                  {editDraft.isOfficial
+                    ? 'Upload or replace the cover image for this Official template.'
+                    : 'Update the details and cover image for this template.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditDraft(null)}
+                className="rounded-md px-3 py-1 text-slate-400 hover:bg-slate-800 hover:text-white"
+                aria-label="Close template editor"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-3 p-4 sm:p-5">
+          {!editDraft.isOfficial && (
+            <>
+              <input
+                value={editDraft.name}
+                maxLength={160}
+                onChange={(event) => setEditDraft((current) => (current ? { ...current, name: event.target.value } : current))}
+                placeholder="Template name"
+                className="w-full rounded-md border border-gray-700 bg-gray-950 px-2 py-1.5 text-[10px] text-white outline-none focus:border-indigo-400"
+              />
+              <textarea
+                value={editDraft.description}
+                maxLength={2000}
+                rows={3}
+                onChange={(event) => setEditDraft((current) => (current ? { ...current, description: event.target.value } : current))}
+                placeholder="Short description"
+                className="w-full resize-none rounded-md border border-gray-700 bg-gray-950 px-2 py-1.5 text-[10px] text-white outline-none focus:border-indigo-400"
+              />
+              <select
+                value={editDraft.visibility}
+                onChange={(event) => setEditDraft((current) => (current ? { ...current, visibility: event.target.value as TemplateVisibility } : current))}
+                className="w-full rounded-md border border-gray-700 bg-gray-950 px-2 py-1.5 text-[10px] text-gray-200"
+              >
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+              </select>
+            </>
+          )}
           {editDraft.coverUrl && (
             <img
               src={apiUrl(editDraft.coverUrl)}
@@ -452,6 +531,8 @@ export default function TemplatePlatformLibrary({
             <button type="button" disabled={busyId === editDraft.templateId} onClick={() => void saveTemplateEdits()} className="flex-1 rounded-md bg-indigo-600 px-2 py-1.5 text-[9px] font-bold text-white disabled:opacity-50">SAVE CHANGES</button>
             <button type="button" disabled={busyId === editDraft.templateId} onClick={() => setEditDraft(null)} className="flex-1 rounded-md border border-gray-700 px-2 py-1.5 text-[9px] font-bold text-gray-400 disabled:opacity-50">CANCEL</button>
           </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -462,20 +543,30 @@ export default function TemplatePlatformLibrary({
         <div className="py-10 text-center text-[10px] text-gray-500">Loading templates…</div>
       ) : templates.length === 0 ? (
         <div className="rounded-lg border border-dashed border-gray-700 px-3 py-10 text-center text-[10px] leading-relaxed text-gray-500">
-          {view === 'public' ? 'No public templates yet.' : 'You have no private templates yet.'}
+          {view === 'official' ? 'No Official templates are available.' : view === 'public' ? 'No public templates yet.' : 'You have no private templates yet.'}
         </div>
       ) : (
-        templates.map((template) => {
+        displayTemplates.map((template, index) => {
           const busy = busyId === template.id;
           const isOwner = user?.id === template.owner_id;
           const isAdmin = user?.role === 'admin';
-          const canManageSettings = isOwner || isAdmin;
+          const canManageSettings = template.is_official ? isAdmin : isOwner || isAdmin;
           const commentsOpen = openCommentsId === template.id;
           const comments = commentsByTemplate[template.id];
           const commentsLoading = commentsLoadingId === template.id;
           const commentBusy = commentBusyId === template.id;
+          const category = template.is_official ? officialTemplateCategory(template) : null;
+          const previousCategory = index > 0 && displayTemplates[index - 1].is_official
+            ? officialTemplateCategory(displayTemplates[index - 1])
+            : null;
           return (
-            <article key={template.id} className="rounded-lg border border-gray-800 bg-gray-800/40 p-2.5 transition-colors hover:border-teal-500/40">
+            <div key={template.id} className="space-y-1.5">
+              {category !== null && category !== previousCategory && (
+                <div className="px-1 pt-2 text-[9px] font-black uppercase tracking-wider text-teal-300">
+                  {category}
+                </div>
+              )}
+              <article className="rounded-lg border border-gray-800 bg-gray-800/40 p-2.5 transition-colors hover:border-teal-500/40">
               {template.cover_url && (
                 <img
                   src={apiUrl(template.cover_url)}
@@ -509,13 +600,23 @@ export default function TemplatePlatformLibrary({
                       </svg>
                     </button>
                   )}
-                  <span className={`rounded px-1.5 py-0.5 text-[7px] font-black uppercase ${template.visibility === 'public' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-indigo-500/15 text-indigo-300'}`}>
-                    {template.visibility}
+                  <span className={`rounded px-1.5 py-0.5 text-[7px] font-black uppercase ${template.is_official ? 'bg-amber-500/15 text-amber-300' : template.visibility === 'public' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-indigo-500/15 text-indigo-300'}`}>
+                    {template.is_official ? 'official' : template.visibility}
                   </span>
 
                   {canManageSettings && openSettingsId === template.id && (
                     <div className="absolute right-0 top-full z-20 mt-1 w-32 rounded-md border border-gray-700 bg-gray-900 p-1 shadow-xl">
-                      {isOwner && (
+                      {template.is_official && isAdmin && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => beginEdit(template)}
+                          className="w-full rounded px-2 py-1.5 text-left text-[8px] font-bold text-teal-300 transition-colors hover:bg-teal-500/10 disabled:opacity-50"
+                        >
+                          EDIT COVER
+                        </button>
+                      )}
+                      {isOwner && !template.is_official && (
                         <>
                           <button
                             type="button"
@@ -549,7 +650,7 @@ export default function TemplatePlatformLibrary({
                           </button>
                         </>
                       )}
-                      {isOwner && isAdmin && <div className="my-1 border-t border-gray-700" />}
+                      {(template.is_official || isOwner) && isAdmin && <div className="my-1 border-t border-gray-700" />}
                       {isAdmin && (
                         <button
                           type="button"
@@ -574,7 +675,7 @@ export default function TemplatePlatformLibrary({
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() => void loadSelected(template.id)}
+                  onClick={() => void loadSelected(template)}
                   className="min-h-10 touch-manipulation rounded-md bg-teal-600/20 px-2 py-1.5 text-[10px] font-black text-teal-300 hover:bg-teal-600/30 disabled:opacity-50 sm:min-h-0 sm:text-[8px]"
                 >
                   {busy ? 'WORKING…' : 'LOAD NEW TAB'}
@@ -669,7 +770,8 @@ export default function TemplatePlatformLibrary({
                   )}
                 </div>
               )}
-            </article>
+              </article>
+            </div>
           );
         })
       )}

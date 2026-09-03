@@ -19,26 +19,37 @@ from .routers import (
     # enhancement, restoration, segmentation
 )
 
-from .database import engine, get_db
+from .database import SessionLocal, engine, get_db
 from . import models
+from .official_templates import ensure_official_template_records
 
 
-def _ensure_template_cover_column() -> None:
-    """Add the cover column for installations created before Template covers."""
+def _ensure_template_columns() -> None:
+    """Add Template fields introduced after the first database installation."""
     inspector = inspect(engine)
     if "templates" not in inspector.get_table_names():
         return
     columns = {column["name"] for column in inspector.get_columns("templates")}
-    if "cover_url" not in columns:
-        with engine.begin() as connection:
+    with engine.begin() as connection:
+        if "cover_url" not in columns:
             connection.execute(text("ALTER TABLE templates ADD COLUMN cover_url VARCHAR(500)"))
+        if "is_official" not in columns:
+            connection.execute(text("ALTER TABLE templates ADD COLUMN is_official BOOLEAN NOT NULL DEFAULT FALSE"))
+        if "official_key" not in columns:
+            connection.execute(text("ALTER TABLE templates ADD COLUMN official_key VARCHAR(160)"))
+        connection.execute(text(
+            "CREATE UNIQUE INDEX IF NOT EXISTS ix_templates_official_key "
+            "ON templates (official_key)"
+        ))
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     if settings.auto_create_tables:
         models.Base.metadata.create_all(bind=engine)
-        _ensure_template_cover_column()
+        _ensure_template_columns()
+        with SessionLocal() as db:
+            ensure_official_template_records(db)
     yield
 
 

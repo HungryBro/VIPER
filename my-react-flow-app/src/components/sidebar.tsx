@@ -44,7 +44,7 @@ const Icons: Record<string, React.FC<{ className?: string }>> = {
 const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate, onAddNode }: SidebarProps) => {
 
   const [activeTab, setActiveTab] = useState<'nodes' | 'templates'>('nodes');
-  const [templateView, setTemplateView] = useState<'official' | PlatformTemplateView>('official');
+  const [templateView, setTemplateView] = useState<PlatformTemplateView>('official');
   const [openNodeGroups, setOpenNodeGroups] = useState<Record<string, boolean>>({});
   const [openTemplateGroups, setOpenTemplateGroups] = useState<Record<string, boolean>>({});
   const [collapsed, setCollapsed] = useState(() => (
@@ -82,6 +82,11 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate, o
     onAddNode(nodeType);
     if (window.matchMedia(COMPACT_MOBILE_QUERY).matches) setCollapsed(true);
   };
+
+  const loadOfficialTemplate = useCallback((officialKey: string) => {
+    const template = TEMPLATES.find((item) => item.name === officialKey);
+    if (template) onLoadTemplate?.(template);
+  }, [onLoadTemplate]);
 
   const openContextMenu = (event: React.MouseEvent, t: WorkflowTemplate) => {
     event.preventDefault();
@@ -340,7 +345,7 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate, o
               </div>
             )}
 
-            {(activeTab === 'nodes' || templateView === 'official') && (
+            {activeTab === 'nodes' && (
               <div className="px-1 pb-2 flex gap-2 mb-1 mt-1">
                 <button type="button" onClick={expandAll} className="min-h-9 flex-1 touch-manipulation rounded border border-gray-700 bg-gray-800 px-2 py-1 text-[10px] font-bold text-gray-500 transition-colors hover:bg-gray-700 hover:text-white">OPEN ALL</button>
                 <button type="button" onClick={collapseAll} className="min-h-9 flex-1 touch-manipulation rounded border border-gray-700 bg-gray-800 px-2 py-1 text-[10px] font-bold text-gray-500 transition-colors hover:bg-gray-700 hover:text-white">CLOSE ALL</button>
@@ -380,7 +385,7 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate, o
                 );
               })}
 
-            {activeTab === 'templates' && templateView === 'official' && templateJobs.map(job => {
+            {false && activeTab === 'templates' && templateView === 'official' && templateJobs.map(job => {
                   const isOpen = openTemplateGroups[job.name];
                   return (
                     <div key={job.name} className="rounded-lg overflow-hidden border border-gray-800/50 bg-gray-800/30 mb-2">
@@ -408,11 +413,12 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate, o
                   );
                 })}
 
-            {activeTab === 'templates' && templateView !== 'official' && (
+            {activeTab === 'templates' && (
               <TemplatePlatformLibrary
                 view={templateView}
                 getCurrentWorkflow={getCurrentWorkflow}
                 onLoad={onLoadPlatformTemplate}
+                onLoadOfficial={loadOfficialTemplate}
                 onViewChange={setTemplateView}
               />
             )}

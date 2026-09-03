@@ -101,6 +101,10 @@ class Template(Base):
     workflow = Column(JSON_DOCUMENT, nullable=False)
     cover_url = Column(String(500), nullable=True)
     comments_enabled = Column(Boolean, nullable=False, default=True, server_default="true")
+    # Built-in VIPER workflows are public resources but not owned by a learner.
+    # These fields give them a stable database record for covers and comments.
+    is_official = Column(Boolean, nullable=False, default=False, server_default="false", index=True)
+    official_key = Column(String(160), nullable=True, unique=True, index=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(
         DateTime(timezone=True),

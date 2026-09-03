@@ -27,6 +27,8 @@ export type TemplateSummary = {
   visibility: TemplateVisibility;
   cover_url: string | null;
   comments_enabled: boolean;
+  is_official: boolean;
+  official_key: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -69,6 +71,10 @@ async function readJson<T>(response: Response): Promise<T> {
 
 export async function listPublicTemplates(): Promise<TemplateSummary[]> {
   return readJson<TemplateSummary[]>(await apiFetch('/api/templates'));
+}
+
+export async function listOfficialTemplates(): Promise<TemplateSummary[]> {
+  return readJson<TemplateSummary[]>(await apiFetch('/api/templates/official'));
 }
 
 export async function listMyTemplates(): Promise<TemplateSummary[]> {

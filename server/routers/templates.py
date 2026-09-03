@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, joinedload
 from ..auth import require_active_user
 from ..database import get_db
 from ..models import AuditLog, Comment, Template, User
+from ..official_templates import ensure_official_template_records
 from ..schemas import (
     CommentCreate,
     CommentPublic,
@@ -79,8 +80,21 @@ def list_public_templates(
 ):
     return db.scalars(
         _template_query()
-        .where(Template.visibility == "public")
+        .where(Template.visibility == "public", Template.is_official.is_(False))
         .order_by(Template.updated_at.desc(), Template.id.desc())
+    ).all()
+
+
+@router.get("/official", response_model=list[TemplateSummary])
+def list_official_templates(
+    _: User = Depends(require_active_user),
+    db: Session = Depends(get_db),
+):
+    ensure_official_template_records(db)
+    return db.scalars(
+        _template_query()
+        .where(Template.is_official.is_(True))
+        .order_by(Template.name.asc())
     ).all()
 
 
@@ -263,6 +277,11 @@ def update_template(
     template = db.scalar(_template_query().where(Template.id == template_id))
     if template is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+    if template.is_official:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Official template workflow and details cannot be changed",
+        )
     if template.owner_id != user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -318,7 +337,12 @@ async def upload_template_cover(
     template = db.scalar(_template_query().where(Template.id == template_id))
     if template is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
-    if template.owner_id != user.id:
+    if template.is_official and user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only an admin can update an Official template cover",
+        )
+    if not template.is_official and template.owner_id != user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the template owner can update it",

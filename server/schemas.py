@@ -134,6 +134,8 @@ class TemplateSummary(BaseModel):
     visibility: Literal["private", "public"]
     cover_url: str | None
     comments_enabled: bool
+    is_official: bool = False
+    official_key: str | None = None
     created_at: datetime
     updated_at: datetime
 

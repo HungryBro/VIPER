@@ -15,6 +15,7 @@ from server.config import settings
 from server.database import Base, get_db
 from server.main import app
 from server.models import AuditLog, Template, User
+from server.official_templates import OFFICIAL_TEMPLATE_CATALOG
 from server.routers import templates as templates_router
 from server.utils_io import OUT
 
@@ -273,6 +274,71 @@ def test_owner_can_edit_template_details_and_upload_cover():
             actions = set(db.scalars(select(AuditLog.action)).all())
             assert saved.cover_url == uploaded.json()["cover_url"]
             assert {"template.update", "permission.template_visibility_update", "template.cover_update"} <= actions
+    finally:
+        templates_router.TEMPLATE_COVERS_DIR = original_cover_dir
+        shutil.rmtree(cover_dir, ignore_errors=True)
+        app.dependency_overrides.clear()
+
+
+def test_official_templates_support_comments_and_admin_managed_cover():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    learner = add_user(engine, "learner", "learner@example.com")
+    admin = add_user(engine, "admin", "admin@example.com", role="admin")
+    cover_dir = os.path.join(OUT, "test-official-template-covers")
+    original_cover_dir = templates_router.TEMPLATE_COVERS_DIR
+    templates_router.TEMPLATE_COVERS_DIR = cover_dir
+
+    try:
+        with make_client(engine) as client:
+            authenticate(client, learner.id)
+            official = client.get("/api/templates/official")
+            official_id = official.json()[0]["id"]
+            public = client.get("/api/templates")
+            posted_comment = client.post(
+                f"/api/templates/{official_id}/comments",
+                json={"body": "Helpful official workflow"},
+            )
+            learner_cover = client.post(
+                f"/api/templates/{official_id}/cover",
+                files={"file": ("cover.png", b"learner-cover", "image/png")},
+            )
+
+            authenticate(client, admin.id)
+            admin_cover = client.post(
+                f"/api/templates/{official_id}/cover",
+                files={"file": ("cover.png", b"admin-cover", "image/png")},
+            )
+            closed = client.patch(
+                f"/api/admin/templates/{official_id}/comments",
+                json={"comments_enabled": False},
+            )
+
+            authenticate(client, learner.id)
+            comments = client.get(f"/api/templates/{official_id}/comments")
+            blocked_comment = client.post(
+                f"/api/templates/{official_id}/comments",
+                json={"body": "A new comment"},
+            )
+
+        assert official.status_code == 200
+        assert len(official.json()) == len(OFFICIAL_TEMPLATE_CATALOG)
+        assert official.json()[0]["is_official"] is True
+        assert official.json()[0]["official_key"]
+        assert official_id not in [item["id"] for item in public.json()]
+        assert posted_comment.status_code == 201
+        assert learner_cover.status_code == 403
+        assert admin_cover.status_code == 200
+        assert admin_cover.json()["cover_url"].startswith("/static/test-official-template-covers/")
+        assert closed.status_code == 200
+        assert closed.json()["comments_enabled"] is False
+        assert comments.status_code == 200
+        assert comments.json()[0]["body"] == "Helpful official workflow"
+        assert blocked_comment.status_code == 403
+
+        with Session(engine) as db:
+            actions = set(db.scalars(select(AuditLog.action)).all())
+            assert {"comment.create", "template.cover_update", "permission.comments_update"} <= actions
     finally:
         templates_router.TEMPLATE_COVERS_DIR = original_cover_dir
         shutil.rmtree(cover_dir, ignore_errors=True)
