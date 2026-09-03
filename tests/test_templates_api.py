@@ -305,6 +305,10 @@ def test_official_templates_support_comments_and_admin_managed_cover():
             )
 
             authenticate(client, admin.id)
+            edited = client.patch(
+                f"/api/templates/{official_id}",
+                json={"name": "Renamed Official", "description": "Admin-maintained description"},
+            )
             admin_cover = client.post(
                 f"/api/templates/{official_id}/cover",
                 files={"file": ("cover.png", b"admin-cover", "image/png")},
@@ -328,6 +332,10 @@ def test_official_templates_support_comments_and_admin_managed_cover():
         assert official_id not in [item["id"] for item in public.json()]
         assert posted_comment.status_code == 201
         assert learner_cover.status_code == 403
+        assert edited.status_code == 200
+        assert edited.json()["name"] == "Renamed Official"
+        assert edited.json()["description"] == "Admin-maintained description"
+        assert edited.json()["visibility"] == "public"
         assert admin_cover.status_code == 200
         assert admin_cover.json()["cover_url"].startswith("/static/test-official-template-covers/")
         assert closed.status_code == 200

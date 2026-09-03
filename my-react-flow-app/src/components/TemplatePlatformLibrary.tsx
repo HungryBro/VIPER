@@ -287,12 +287,8 @@ export default function TemplatePlatformLibrary({
 
   const saveTemplateEdits = async () => {
     if (!editDraft) return;
-    if (!editDraft.isOfficial && !editDraft.name.trim()) {
+    if (!editDraft.name.trim()) {
       setError('Template name is required.');
-      return;
-    }
-    if (editDraft.isOfficial && !editDraft.coverFile) {
-      setError('Choose a cover image to update this Official template.');
       return;
     }
 
@@ -300,18 +296,20 @@ export default function TemplatePlatformLibrary({
     setError('');
     setNotice('');
     try {
-      if (!editDraft.isOfficial) {
-        await updatePlatformTemplate(editDraft.templateId, {
+      await updatePlatformTemplate(editDraft.templateId,
+        editDraft.isOfficial ? {
+          name: editDraft.name.trim(),
+          description: editDraft.description.trim(),
+        } : {
           name: editDraft.name.trim(),
           description: editDraft.description.trim(),
           visibility: editDraft.visibility,
         });
-      }
       if (editDraft.coverFile) {
         await uploadTemplateCover(editDraft.templateId, editDraft.coverFile);
       }
       setEditDraft(null);
-      setNotice(editDraft.isOfficial ? 'Official template cover updated.' : 'Template details updated.');
+      setNotice(editDraft.isOfficial ? 'Official template updated.' : 'Template details updated.');
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to update template details');
@@ -466,10 +464,10 @@ export default function TemplatePlatformLibrary({
           <div className="w-full max-w-xl overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-2xl">
             <div className="flex items-center justify-between border-b border-slate-700 px-5 py-4">
               <div>
-                <h2 id="template-edit-title" className="text-lg font-black text-teal-300">{editDraft.isOfficial ? 'Official Template Cover' : 'Edit Template'}</h2>
+                <h2 id="template-edit-title" className="text-lg font-black text-teal-300">{editDraft.isOfficial ? 'Edit Official Template' : 'Edit Template'}</h2>
                 <p className="mt-0.5 text-xs text-slate-400">
                   {editDraft.isOfficial
-                    ? 'Upload or replace the cover image for this Official template.'
+                    ? 'Update the name, description, and cover image. Official visibility is fixed.'
                     : 'Update the details and cover image for this template.'}
                 </p>
               </div>
@@ -483,23 +481,23 @@ export default function TemplatePlatformLibrary({
               </button>
             </div>
             <div className="space-y-3 p-4 sm:p-5">
+          <input
+            value={editDraft.name}
+            maxLength={160}
+            onChange={(event) => setEditDraft((current) => (current ? { ...current, name: event.target.value } : current))}
+            placeholder="Template name"
+            className="w-full rounded-md border border-gray-700 bg-gray-950 px-2 py-1.5 text-[10px] text-white outline-none focus:border-indigo-400"
+          />
+          <textarea
+            value={editDraft.description}
+            maxLength={2000}
+            rows={3}
+            onChange={(event) => setEditDraft((current) => (current ? { ...current, description: event.target.value } : current))}
+            placeholder="Short description"
+            className="w-full resize-none rounded-md border border-gray-700 bg-gray-950 px-2 py-1.5 text-[10px] text-white outline-none focus:border-indigo-400"
+          />
           {!editDraft.isOfficial && (
             <>
-              <input
-                value={editDraft.name}
-                maxLength={160}
-                onChange={(event) => setEditDraft((current) => (current ? { ...current, name: event.target.value } : current))}
-                placeholder="Template name"
-                className="w-full rounded-md border border-gray-700 bg-gray-950 px-2 py-1.5 text-[10px] text-white outline-none focus:border-indigo-400"
-              />
-              <textarea
-                value={editDraft.description}
-                maxLength={2000}
-                rows={3}
-                onChange={(event) => setEditDraft((current) => (current ? { ...current, description: event.target.value } : current))}
-                placeholder="Short description"
-                className="w-full resize-none rounded-md border border-gray-700 bg-gray-950 px-2 py-1.5 text-[10px] text-white outline-none focus:border-indigo-400"
-              />
               <select
                 value={editDraft.visibility}
                 onChange={(event) => setEditDraft((current) => (current ? { ...current, visibility: event.target.value as TemplateVisibility } : current))}

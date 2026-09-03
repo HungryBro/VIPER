@@ -277,25 +277,31 @@ def update_template(
     template = db.scalar(_template_query().where(Template.id == template_id))
     if template is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
-    if template.is_official:
+    values = payload.model_dump(exclude_unset=True)
+    if template.is_official and user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Official template workflow and details cannot be changed",
+            detail="Only an admin can update an Official template",
         )
-    if template.owner_id != user.id:
+    if template.is_official and ("visibility" in values or payload.workflow is not None):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Official template visibility and workflow cannot be changed",
+        )
+    if not template.is_official and template.owner_id != user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only the template owner can update it",
         )
 
     changes: dict[str, dict[str, object]] = {}
-    values = payload.model_dump(exclude_unset=True)
-    for field in ("name", "description", "visibility"):
+    editable_fields = ("name", "description") if template.is_official else ("name", "description", "visibility")
+    for field in editable_fields:
         if field in values and values[field] != getattr(template, field):
             changes[field] = {"from": getattr(template, field), "to": values[field]}
             setattr(template, field, values[field])
 
-    if payload.workflow is not None:
+    if not template.is_official and payload.workflow is not None:
         template.workflow = payload.workflow.model_dump(mode="json")
         changes["workflow"] = {"from": "previous", "to": "updated"}
 
