@@ -277,7 +277,9 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
     }, [addLog, runNodeById, screenToFlowPosition, setNodes]);
 
     const fitWorkflowToCanvas = useCallback(() => {
-      window.requestAnimationFrame(() => fitView({ padding: 0.18, duration: 500 }));
+      const isCompactMobile = document.querySelector('.viper-app')?.classList.contains('compact-mobile');
+      // Leave one small extra margin on phones so the complete workflow is visible.
+      fitView(isCompactMobile ? { padding: 0.2 } : undefined);
     }, [fitView]);
 
     useImperativeHandle(ref, () => ({
