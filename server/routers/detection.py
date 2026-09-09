@@ -14,6 +14,7 @@ router = APIRouter()
 
 class YOLOTrainReq(BaseModel):
     dataset_yaml: str
+    model_path: str = yolo_adapter.DEFAULT_MODEL
     epochs: int = Field(default=50, ge=1)
     image_size: int = Field(default=640, ge=32)
     batch: int = Field(default=16, ge=1)
@@ -102,6 +103,7 @@ def train_yolo(req: YOLOTrainReq):
             yolo_adapter.train(
                 dataset_yaml=req.dataset_yaml,
                 out_root=RESULT_DIR,
+                model_path=req.model_path,
                 epochs=req.epochs,
                 image_size=req.image_size,
                 batch=req.batch,

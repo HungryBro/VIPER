@@ -137,7 +137,8 @@ def test_viper_runtime_has_no_sida_dependency():
     assert offenders == []
 
 
-def test_train_returns_best_model_for_downstream_nodes(tmp_path: Path, monkeypatch):
+@pytest.mark.parametrize('base_model', [yolo_adapter.DEFAULT_MODEL, 'models/shapes-best.pt'])
+def test_train_returns_best_model_for_downstream_nodes(tmp_path: Path, monkeypatch, base_model):
     dataset = tmp_path / "data.yaml"
     dataset.write_text("path: .\ntrain: images\nval: images\nnames: [shape]\n")
     save_dir = tmp_path / "runs" / "unit"
@@ -146,7 +147,7 @@ def test_train_returns_best_model_for_downstream_nodes(tmp_path: Path, monkeypat
     monkeypatch.setattr(yolo_adapter, "_load_yolo", lambda model: loaded_models.append(model) or fake_model)
 
     result = yolo_adapter.train(
-        str(dataset), str(tmp_path / "outputs"), epochs=2, batch=1
+        str(dataset), str(tmp_path / "outputs"), model_path=base_model, epochs=2, batch=1
     )
 
     assert result["best_model_path"] == str(save_dir / "weights" / "best.pt")
@@ -154,5 +155,19 @@ def test_train_returns_best_model_for_downstream_nodes(tmp_path: Path, monkeypat
     assert fake_model.train_kwargs["epochs"] == 2
     assert fake_model.train_kwargs["batch"] == 1
     assert loaded_models == [
-        str((Path(__file__).resolve().parents[1] / yolo_adapter.DEFAULT_MODEL).resolve())
+        str((Path(__file__).resolve().parents[1] / base_model).resolve())
     ]
+    assert result['base_model'] == loaded_models[0]
+
+
+def test_train_api_forwards_selected_base_model(monkeypatch):
+    from server.routers.detection import YOLOTrainReq, train_yolo
+    received = {}
+
+    def fake_train(**kwargs):
+        received.update(kwargs)
+        return {'status': 'success'}
+
+    monkeypatch.setattr(yolo_adapter, 'train', fake_train)
+    train_yolo(YOLOTrainReq(dataset_yaml='data.yaml', model_path='models/shapes-best.pt'))
+    assert received['model_path'] == 'models/shapes-best.pt'

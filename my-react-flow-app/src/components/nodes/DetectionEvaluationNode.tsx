@@ -2,6 +2,7 @@ import { memo, useCallback, useMemo } from 'react';
 import { Handle, Position, type NodeProps, useEdges, useNodes, useReactFlow } from 'reactflow';
 
 import type { CustomNodeData } from '../../types';
+import { compactPath } from '../../lib/compactPath';
 
 
 const DEFAULTS = {
@@ -92,6 +93,8 @@ const DetectionEvaluationNode = memo(({ id, data, selected }: NodeProps<CustomNo
         <div className="space-y-1 rounded border border-dashed border-amber-700 bg-gray-900/70 p-2 text-[10px]">
           <p className={datasetReady ? 'text-emerald-300' : 'text-gray-400'}>Dataset: {datasetReady ? 'ready' : 'connect a built YOLO Dataset Builder'}</p>
           <p className={modelReady ? 'text-emerald-300' : 'text-gray-400'}>Model: {modelReady ? 'ready' : 'connect a completed YOLO Train'}</p>
+          {modelReady && <p className="break-all text-emerald-300" title={train?.data.payload?.best_model_path}>From YOLO Train: {compactPath(train?.data.payload?.best_model_path)}</p>}
+          {result?.model_path && <p className="break-all text-gray-400" title={result.model_path}>Last run model: {compactPath(result.model_path)}</p>}
         </div>
 
         <div className="grid grid-cols-2 gap-2">

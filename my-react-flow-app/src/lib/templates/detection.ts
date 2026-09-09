@@ -76,8 +76,8 @@ export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
   },
   description: 'ANNOTATE + BUILD + TRAIN + EVALUATE + DETECT + GRAD-CAM',
   longDescription: {
-    en: 'A self-contained demonstration of the full YOLO workflow. It includes nine annotated circle, triangle, and square images, plus a test image. After training, Detection Evaluation measures the validation split, while Classification Evaluation compares the predicted and labelled classes on the connected test image. The short training configuration is intended for learning the workflow rather than model accuracy.',
-    th: 'ตัวอย่าง workflow YOLO แบบครบเส้นทาง ใช้ภาพวงกลม สามเหลี่ยม และสี่เหลี่ยมที่มีกรอบกำกับไว้ 9 ภาพ พร้อมภาพทดสอบ หลังเทรนจะมีทั้ง Detection Evaluation สำหรับ Validation split และ Classification Evaluation ที่เปรียบเทียบคลาสของภาพทดสอบที่เชื่อมอยู่ โดยตั้งค่าเทรนระยะสั้นเพื่อสาธิตลำดับงาน ไม่ได้มุ่งผลความแม่นยำสูงสุด',
+    en: 'Fine-tunes the bundled Shapes model for five epochs using nine annotated images. Detect, Grad-CAM and both evaluations use the newly trained weights. These sample images may overlap the pretrained model training data, so the scores demonstrate the workflow, not generalisation to unseen images. Select models/yolo11n.pt as the Base model and use a larger dataset and more epochs to train a new Shapes detector.',
+    th: 'Fine-tune โมเดล Shapes ที่เตรียมไว้ 5 รอบด้วยภาพที่มีป้ายกำกับ 9 ภาพ แล้วส่งโมเดลที่เทรนใหม่ไป Detect, Grad-CAM และ Evaluation ทั้งสองแบบ ภาพตัวอย่างอาจซ้ำกับข้อมูลที่ใช้เทรนโมเดลตั้งต้น คะแนนจึงใช้สาธิต workflow ไม่ใช่วัดความสามารถกับภาพใหม่ หากต้องการฝึกตัวตรวจจับใหม่ ให้เลือก Base model เป็น models/yolo11n.pt พร้อมเพิ่มชุดข้อมูลและจำนวนรอบ',
   },
   color: 'cyan',
   nodes: [
@@ -113,8 +113,8 @@ export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
       data: {
         label: 'Train Shapes YOLO',
         status: 'idle',
-        description: 'Short demo training run.',
-        payload: { params: { model_path: 'models/yolo11n.pt', epochs: 5, image_size: 640, batch: 4 } },
+        description: 'Fine-tunes the bundled Shapes model on the annotated sample images.',
+        payload: { params: { model_path: MODEL_PATH, epochs: 5, image_size: 640, batch: 4 } },
       },
     } as Node,
     {

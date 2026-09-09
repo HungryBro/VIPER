@@ -1,7 +1,9 @@
-import { memo, useCallback, useMemo } from 'react';
-import { Handle, Position, type NodeProps, useEdges, useReactFlow } from 'reactflow';
+import { memo, useCallback, useMemo, useState } from 'react';
+import { Handle, Position, type NodeProps, useEdges, useNodes, useReactFlow } from 'reactflow';
 import type { CustomNodeData } from '../../types';
 import { abs } from '../../lib/api';
+import { resolveYoloModel } from '../../lib/yoloModel';
+import { compactPath } from '../../lib/compactPath';
 
 
 type Mode = 'train' | 'detect' | 'gradcam';
@@ -44,20 +46,25 @@ const DEFAULTS: Record<Mode, Record<string, any>> = {
   },
 };
 
-function Field({ label, value, type = 'text', onChange, readOnly = false }: {
+function Field({ label, value, type = 'text', onChange, readOnly = false, path = false }: {
   label: string;
   value: string | number;
   type?: string;
   onChange: (value: string | number) => void;
   readOnly?: boolean;
+  path?: boolean;
 }) {
+  const [focused, setFocused] = useState(false);
   return (
     <label className="block text-[10px] text-gray-400">
       <span className="mb-1 block">{label}</span>
       <input
         className={`nodrag nowheel w-full rounded border border-gray-600 bg-gray-900 px-2 py-1 text-xs text-gray-100 outline-none ${readOnly ? 'cursor-not-allowed opacity-75' : 'focus:border-cyan-400'}`}
         type={type}
-        value={value}
+        value={path && !focused && typeof value === 'string' ? compactPath(value) : value}
+        title={path ? String(value) : undefined}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         readOnly={readOnly}
         aria-readonly={readOnly}
         onKeyDown={(event) => event.stopPropagation()}
@@ -70,6 +77,7 @@ function Field({ label, value, type = 'text', onChange, readOnly = false }: {
 function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mode: Mode }) {
   const rf = useReactFlow();
   const edges = useEdges();
+  const nodes = useNodes<CustomNodeData>();
   const config = CONFIG[mode];
   const params = useMemo(
     () => ({ ...DEFAULTS[mode], ...(data?.payload?.params || data?.params || {}) }),
@@ -79,6 +87,7 @@ function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mo
   const isSuccess = data.status === 'success';
   const isFault = data.status === 'fault';
   const isConnected = edges.some((edge) => edge.target === id);
+  const model = resolveYoloModel(id, nodes, edges, params.model_path);
 
   const setParam = useCallback((key: string, value: string | number) => {
     rf.setNodes((nodes) => nodes.map((node) => {
@@ -121,13 +130,25 @@ function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mo
       </div>
 
       <div className="space-y-2 p-3">
-        {mode === 'train' && <Field label="Dataset YAML" value={params.dataset_yaml} onChange={(v) => setParam('dataset_yaml', v)} />}
+        {mode === 'train' && <Field path label="Dataset YAML" value={params.dataset_yaml} onChange={(v) => setParam('dataset_yaml', v)} />}
         <Field
+          path
           label={mode === 'train' ? 'Base model' : 'Model weights'}
-          value={params.model_path}
-          onChange={() => undefined}
-          readOnly
+          value={mode === 'train' ? params.model_path : model.path || 'Waiting for YOLO Train…'}
+          readOnly={mode !== 'train' && !!model.source}
+          onChange={(v) => setParam('model_path', v)}
         />
+        {mode !== 'train' && model.source && (
+          <p className="break-all text-[10px] text-cyan-300">
+            From: {model.source.data.label || model.source.type} · {model.path ? 'connected output (read-only)' : 'run YOLO Train first'}
+          </p>
+        )}
+        {mode !== 'train' && result.model_path && (
+          <div className="break-all text-xs text-gray-400" title={result.model_path}>Last run model: {compactPath(result.model_path)}</div>
+        )}
+        {mode === 'train' && data.payload?.best_model_path && (
+          <div className="break-all text-xs text-violet-300" title={data.payload.best_model_path}>Output model: {compactPath(data.payload.best_model_path)}</div>
+        )}
 
         {mode === 'train' && (
           <div className="grid grid-cols-3 gap-2">

@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo, useState, type ChangeEvent } from 'react';
 import { Handle, Position, type NodeProps, useEdges, useNodes, useReactFlow } from 'reactflow';
 import type { CustomNodeData } from '../../types';
+import { compactPath } from '../../lib/compactPath';
 
 const EXAMPLE_INPUT = { class_names: ['negative', 'positive'], y_true: [0, 1, 1, 0], y_pred: [0, 1, 0, 0], y_scores: [0.05, 0.95, 0.4, 0.2] };
 const CURVE_COLOURS = ['#fbbf24', '#38bdf8', '#c084fc', '#4ade80', '#fb7185'];
@@ -24,6 +25,7 @@ const ClassificationEvaluationNode = memo(({ id, data, selected }: NodeProps<Cus
   const upstream = edges.filter((edge) => edge.target === id).map((edge) => nodes.find((node) => node.id === edge.source));
   const hasDataset = upstream.some((node) => node?.type === 'yolo-dataset');
   const hasModel = upstream.some((node) => node?.type === 'yolo-train');
+  const connectedModel = upstream.find((node) => node?.type === 'yolo-train')?.data.payload?.best_model_path;
   const hasImage = upstream.some((node) => node?.type === 'image-input');
   const borderClass = selected ? 'border-amber-300 ring-2 ring-amber-400/30' : data.status === 'fault' ? 'border-red-500' : 'border-amber-500';
 
@@ -59,6 +61,10 @@ const ClassificationEvaluationNode = memo(({ id, data, selected }: NodeProps<Cus
         {uploadError && <p className="mt-1 text-[10px] text-red-400">{uploadError}</p>}
       </div>
       {isSuccess && result && <><div className="grid grid-cols-3 gap-2">{summary.map(([label, value]) => <div key={label} className="rounded bg-gray-900 p-2 text-center"><p className="text-[9px] uppercase tracking-wide text-gray-500">{label}</p><p className="mt-1 text-sm font-semibold text-amber-200">{value}</p></div>)}</div><section><div className="mb-1 flex items-center justify-between"><p className="text-xs font-semibold text-amber-200">Confusion Matrix</p><label className="nodrag flex cursor-pointer items-center gap-1 text-[10px] text-gray-400"><input type="checkbox" checked={showNormalized} onChange={(event) => setShowNormalized(event.target.checked)} />Normalize</label></div><div className="overflow-x-auto rounded border border-gray-700"><table className="w-full min-w-[19rem] text-center text-[10px]"><thead className="bg-gray-900 text-gray-400"><tr><th className="px-2 py-1 text-left">Actual / Pred.</th>{classNames.map((name: string, index: number) => <th key={`${name}-${index}`} className="max-w-20 truncate px-2 py-1" title={name}>{name}</th>)}</tr></thead><tbody>{Array.isArray(matrix) && matrix.map((row: any[], rowIndex: number) => <tr key={rowIndex} className="border-t border-gray-700"><th className="max-w-24 truncate bg-gray-900/50 px-2 py-1 text-left font-medium text-gray-300" title={classNames[rowIndex]}>{classNames[rowIndex] || rowIndex}</th>{Array.isArray(row) && row.map((value, columnIndex) => <td key={columnIndex} className={`px-2 py-1 ${rowIndex === columnIndex ? 'bg-emerald-500/15 text-emerald-300' : 'text-gray-300'}`}>{showNormalized ? Number(value).toFixed(2) : value}</td>)}</tr>)}</tbody></table></div></section><section><p className="mb-1 text-xs font-semibold text-amber-200">ROC Curve</p>{curves.length > 0 ? <div className="rounded border border-gray-700 bg-gray-900 p-2"><svg className="h-32 w-full" viewBox="0 0 100 100" role="img" aria-label="ROC curve chart"><path d="M10 10V90H90" fill="none" stroke="#64748b" strokeWidth="1" /><path d="M10 90L90 10" fill="none" stroke="#64748b" strokeWidth="0.8" strokeDasharray="3 3" />{curves.map((curve: any, index: number) => <polyline key={curve.class_id ?? index} points={rocPoints(Array.isArray(curve.points) ? curve.points : [])} fill="none" stroke={CURVE_COLOURS[index % CURVE_COLOURS.length]} strokeWidth="2" />)}</svg><div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px]">{curves.map((curve: any, index: number) => <span key={curve.class_id ?? index} style={{ color: CURVE_COLOURS[index % CURVE_COLOURS.length] }}>{curve.class_name}: AUC {Number(curve.auc).toFixed(3)}</span>)}</div></div> : <p className="rounded border border-dashed border-gray-700 p-2 text-[10px] text-gray-500">ROC is unavailable because this YOLO detection result has no per-class probability scores.</p>}</section></>}
+      {inputMode === 'yolo' && <div className="space-y-1 break-all text-[10px]">
+        <p className="text-emerald-300" title={connectedModel}>From YOLO Train: {connectedModel ? compactPath(connectedModel) : 'waiting for a completed YOLO Train'}</p>
+        {result?.model_path && <p className="text-gray-400" title={result.model_path}>Last run model: {compactPath(result.model_path)}</p>}
+      </div>}
       {!isSuccess && <p className={`text-xs ${data.status === 'fault' ? 'text-red-400' : 'text-gray-400'}`}>{data.description || (inputMode === 'yolo' ? 'Connect Dataset Builder, YOLO Train and Test Image, then run evaluation.' : 'Choose a JSON file, then run evaluation.')}</p>}
     </div><div className="border-t border-gray-700 px-3 py-2 text-[10px] text-gray-500">Output: evaluation metrics</div>
   </div>;

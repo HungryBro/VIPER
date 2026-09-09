@@ -75,6 +75,7 @@ def train(
     dataset_yaml: str,
     out_root: str,
     *,
+    model_path: str = DEFAULT_MODEL,
     epochs: int = 50,
     image_size: int = 640,
     batch: int = 16,
@@ -82,7 +83,7 @@ def train(
     run_name: Optional[str] = None,
 ) -> dict[str, Any]:
     dataset = _require_file(dataset_yaml, "Dataset YAML")
-    weights = _resolve_model(DEFAULT_MODEL)
+    weights = _resolve_model(model_path)
     project = _output_dir(out_root, "train")
     name = run_name or f"train_{uuid.uuid4().hex[:8]}"
 
