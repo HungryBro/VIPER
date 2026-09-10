@@ -290,41 +290,82 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
         let contentLeft = paneRect.left;
         const contentTop = paneRect.top;
         const contentRight = paneRect.right;
-        let contentBottom = paneRect.bottom;
+        const contentBottom = paneRect.bottom;
 
         const sidebarOverlapsPane = sidebarRect
           && sidebarRect.right > paneRect.left
           && sidebarRect.left < paneRect.right
           && sidebarRect.top < paneRect.bottom
           && sidebarRect.bottom > paneRect.top;
+        const logOverlapsPane = logRect
+          && logRect.right > paneRect.left
+          && logRect.left < paneRect.right
+          && logRect.top < paneRect.bottom
+          && logRect.bottom > paneRect.top;
 
         if (sidebarOverlapsPane && sidebarRect.left <= paneRect.left + 1) {
           contentLeft = Math.min(paneRect.right, sidebarRect.right + 12);
         }
 
-        if (logRect
-          && logRect.top > paneRect.top
-          && logRect.top < paneRect.bottom
-          && logRect.left < paneRect.right
-          && logRect.right > paneRect.left) {
-          contentBottom = Math.max(paneRect.top, logRect.top - 12);
+        const fitAreas = [{
+          left: contentLeft,
+          top: contentTop,
+          right: contentRight,
+          bottom: contentBottom,
+        }];
+
+        if (logOverlapsPane) {
+          const areasAroundLog = [] as typeof fitAreas;
+          const spaceAboveLog = logRect.top - 12;
+          const spaceLeftOfLog = logRect.left - 12;
+
+          // A bottom-right log panel leaves two safe rectangles. Choose the
+          // one that produces the larger workflow: above it on a tablet, or
+          // to its left on desktop and landscape mobile.
+          if (spaceAboveLog > contentTop) {
+            areasAroundLog.push({
+              left: contentLeft,
+              top: contentTop,
+              right: contentRight,
+              bottom: spaceAboveLog,
+            });
+          }
+
+          if (spaceLeftOfLog > contentLeft) {
+            areasAroundLog.push({
+              left: contentLeft,
+              top: contentTop,
+              right: spaceLeftOfLog,
+              bottom: contentBottom,
+            });
+          }
+
+          if (areasAroundLog.length > 0) {
+            fitAreas.splice(0, fitAreas.length, ...areasAroundLog);
+          }
         }
 
-        const availableWidth = Math.max(1, contentRight - contentLeft);
-        const availableHeight = Math.max(1, contentBottom - contentTop);
-        const nextViewport = getViewportForBounds(
-          getNodesBounds(nodes),
-          availableWidth,
-          availableHeight,
-          isCompactMobile ? 0.12 : 0.08,
-          isCompactMobile ? 2.5 : 5,
-          isCompactMobile ? 0.06 : 0.1,
-        );
+        const nodeBounds = getNodesBounds(nodes);
+        const minZoom = isCompactMobile ? 0.12 : 0.08;
+        const maxZoom = isCompactMobile ? 2.5 : 5;
+        const padding = isCompactMobile ? 0.06 : 0.1;
+        const bestFit = fitAreas
+          .map((area) => {
+            const width = Math.max(1, area.right - area.left);
+            const height = Math.max(1, area.bottom - area.top);
+            return {
+              area,
+              viewport: getViewportForBounds(nodeBounds, width, height, minZoom, maxZoom, padding),
+            };
+          })
+          .reduce((best, candidate) => (
+            candidate.viewport.zoom > best.viewport.zoom ? candidate : best
+          ));
 
         setViewport({
-          ...nextViewport,
-          x: nextViewport.x + (contentLeft - paneRect.left),
-          y: nextViewport.y + (contentTop - paneRect.top),
+          ...bestFit.viewport,
+          x: bestFit.viewport.x + (bestFit.area.left - paneRect.left),
+          y: bestFit.viewport.y + (bestFit.area.top - paneRect.top),
         }, { duration: 300 });
         return;
       }
