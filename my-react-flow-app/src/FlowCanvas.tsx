@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import ReactFlow, {
   MiniMap, Controls, Background, useNodesState, useEdgesState,
-  addEdge, ConnectionLineType, useReactFlow,
+  addEdge, ConnectionLineType, getNodesBounds, getViewportForBounds, useReactFlow,
   type Node as RFNode, type Edge, type Connection, BackgroundVariant, type Viewport
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -278,9 +278,64 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
 
     const fitWorkflowToCanvas = useCallback(() => {
       const isCompactMobile = document.querySelector('.viper-app')?.classList.contains('compact-mobile');
-      // Leave one small extra margin on phones so the complete workflow is visible.
-      fitView(isCompactMobile ? { padding: 0.2 } : undefined);
-    }, [fitView]);
+      const flowPane = document.querySelector('.react-flow');
+
+      // Fit inside the visible canvas on every breakpoint. Overlay panels are
+      // excluded from the fit area so nodes remain readable and unobscured.
+      if (flowPane instanceof HTMLElement && nodes.length > 0) {
+        const paneRect = flowPane.getBoundingClientRect();
+        const sidebarRect = document.querySelector('.viper-sidebar')?.getBoundingClientRect();
+        const logRect = document.querySelector('.viper-log-panel')?.getBoundingClientRect();
+
+        let contentLeft = paneRect.left;
+        const contentTop = paneRect.top;
+        const contentRight = paneRect.right;
+        let contentBottom = paneRect.bottom;
+
+        const sidebarOverlapsPane = sidebarRect
+          && sidebarRect.right > paneRect.left
+          && sidebarRect.left < paneRect.right
+          && sidebarRect.top < paneRect.bottom
+          && sidebarRect.bottom > paneRect.top;
+
+        if (sidebarOverlapsPane && sidebarRect.left <= paneRect.left + 1) {
+          contentLeft = Math.min(paneRect.right, sidebarRect.right + 12);
+        }
+
+        if (logRect
+          && logRect.top > paneRect.top
+          && logRect.top < paneRect.bottom
+          && logRect.left < paneRect.right
+          && logRect.right > paneRect.left) {
+          contentBottom = Math.max(paneRect.top, logRect.top - 12);
+        }
+
+        const availableWidth = Math.max(1, contentRight - contentLeft);
+        const availableHeight = Math.max(1, contentBottom - contentTop);
+        const nextViewport = getViewportForBounds(
+          getNodesBounds(nodes),
+          availableWidth,
+          availableHeight,
+          isCompactMobile ? 0.12 : 0.08,
+          isCompactMobile ? 2.5 : 5,
+          isCompactMobile ? 0.06 : 0.1,
+        );
+
+        setViewport({
+          ...nextViewport,
+          x: nextViewport.x + (contentLeft - paneRect.left),
+          y: nextViewport.y + (contentTop - paneRect.top),
+        }, { duration: 300 });
+        return;
+      }
+
+      fitView({
+        padding: isCompactMobile ? 0.06 : 0.1,
+        minZoom: isCompactMobile ? 0.12 : 0.08,
+        maxZoom: isCompactMobile ? 2.5 : 5,
+        duration: 300,
+      });
+    }, [fitView, nodes, setViewport]);
 
     useImperativeHandle(ref, () => ({
       getSnapshot: () => ({ nodes, edges, viewport: getViewport() }),
