@@ -171,3 +171,21 @@ def test_train_api_forwards_selected_base_model(monkeypatch):
     monkeypatch.setattr(yolo_adapter, 'train', fake_train)
     train_yolo(YOLOTrainReq(dataset_yaml='data.yaml', model_path='models/shapes-best.pt'))
     assert received['model_path'] == 'models/shapes-best.pt'
+
+
+def test_model_catalog_lists_project_relative_pt_files_only(tmp_path: Path, monkeypatch):
+    from server.routers import detection
+
+    models = tmp_path / "models"
+    (models / "nested").mkdir(parents=True)
+    (models / "shapes-best.pt").write_bytes(b"model")
+    (models / "nested" / "custom.pt").write_bytes(b"model")
+    (models / "readme.txt").write_text("not a model")
+    monkeypatch.setattr(yolo_adapter, "PROJECT_ROOT", tmp_path)
+
+    assert detection.list_yolo_models() == {
+        "models": [
+            {"path": "models/nested/custom.pt", "name": "custom.pt"},
+            {"path": "models/shapes-best.pt", "name": "shapes-best.pt"},
+        ]
+    }

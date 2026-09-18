@@ -1,7 +1,7 @@
-import { memo, useCallback, useMemo, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Handle, Position, type NodeProps, useEdges, useNodes, useReactFlow } from 'reactflow';
 import type { CustomNodeData } from '../../types';
-import { abs } from '../../lib/api';
+import { abs, getYOLOModels } from '../../lib/api';
 import { resolveYoloModel } from '../../lib/yoloModel';
 import { compactPath } from '../../lib/compactPath';
 
@@ -74,10 +74,41 @@ function Field({ label, value, type = 'text', onChange, readOnly = false, path =
   );
 }
 
+function ModelSelect({ value, models, onChange, loading, error }: {
+  value: string;
+  models: { path: string; name: string }[];
+  onChange: (value: string) => void;
+  loading: boolean;
+  error: string;
+}) {
+  const options = models.some((model) => model.path === value) || !value
+    ? models
+    : [{ path: value, name: `${value.split(/[\\/]/).pop()} (saved selection)` }, ...models];
+
+  return <label className="block text-[10px] text-gray-400">
+    <span className="mb-1 block">Base model</span>
+    <select
+      className="nodrag nowheel w-full rounded border border-gray-600 bg-gray-900 px-2 py-2 text-xs text-gray-100 outline-none focus:border-violet-400"
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      disabled={loading && models.length === 0}
+      title={value}
+    >
+      {!value && <option value="">{loading ? 'Loading models…' : 'Choose a model'}</option>}
+      {options.map((model) => <option key={model.path} value={model.path}>{model.name} · {model.path}</option>)}
+    </select>
+    {error && <span className="mt-1 block text-[10px] text-amber-300">Could not load model list: {error}</span>}
+    {!loading && !error && models.length === 0 && <span className="mt-1 block text-[10px] text-gray-500">No .pt models found in models/.</span>}
+  </label>;
+}
+
 function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mode: Mode }) {
   const rf = useReactFlow();
   const edges = useEdges();
   const nodes = useNodes<CustomNodeData>();
+  const [availableModels, setAvailableModels] = useState<{ path: string; name: string }[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(mode === 'train');
+  const [modelsError, setModelsError] = useState('');
   const config = CONFIG[mode];
   const params = useMemo(
     () => ({ ...DEFAULTS[mode], ...(data?.payload?.params || data?.params || {}) }),
@@ -88,6 +119,20 @@ function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mo
   const isFault = data.status === 'fault';
   const isConnected = edges.some((edge) => edge.target === id);
   const model = resolveYoloModel(id, nodes, edges, params.model_path);
+
+  useEffect(() => {
+    if (mode !== 'train') return;
+    const controller = new AbortController();
+    getYOLOModels(controller.signal)
+      .then((response) => setAvailableModels(response.models || []))
+      .catch((error: any) => {
+        if (error?.name !== 'AbortError') setModelsError(error?.message || 'Request failed');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setModelsLoading(false);
+      });
+    return () => controller.abort();
+  }, [mode]);
 
   const setParam = useCallback((key: string, value: string | number) => {
     rf.setNodes((nodes) => nodes.map((node) => {
@@ -131,13 +176,19 @@ function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mo
 
       <div className="space-y-2 p-3">
         {mode === 'train' && <Field path label="Dataset YAML" value={params.dataset_yaml} onChange={(v) => setParam('dataset_yaml', v)} />}
-        <Field
+        {mode === 'train' ? <ModelSelect
+          value={String(params.model_path || '')}
+          models={availableModels}
+          loading={modelsLoading}
+          error={modelsError}
+          onChange={(value) => setParam('model_path', value)}
+        /> : <Field
           path
-          label={mode === 'train' ? 'Base model' : 'Model weights'}
-          value={mode === 'train' ? params.model_path : model.path || 'Waiting for YOLO Train…'}
-          readOnly={mode !== 'train' && !!model.source}
+          label="Model weights"
+          value={model.path || 'Waiting for YOLO Train…'}
+          readOnly={!!model.source}
           onChange={(v) => setParam('model_path', v)}
-        />
+        />}
         {mode !== 'train' && model.source && (
           <p className="break-all text-[10px] text-cyan-300">
             From: {model.source.data.label || model.source.type} · {model.path ? 'connected output (read-only)' : 'run YOLO Train first'}

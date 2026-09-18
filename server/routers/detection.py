@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Literal, Optional
 
 from fastapi import APIRouter, HTTPException
@@ -10,6 +11,19 @@ from ..algos.detection import dataset_builder, yolo_adapter
 
 
 router = APIRouter()
+
+
+@router.get("/models")
+def list_yolo_models() -> dict[str, list[dict[str, str]]]:
+    """List bundled YOLO weights as project-relative paths for the UI."""
+    models_dir = (yolo_adapter.PROJECT_ROOT / "models").resolve()
+    models: list[dict[str, str]] = []
+    if models_dir.is_dir():
+        for path in sorted(models_dir.rglob("*.pt")):
+            resolved = path.resolve()
+            if resolved.is_file() and resolved.is_relative_to(models_dir):
+                models.append({"path": resolved.relative_to(yolo_adapter.PROJECT_ROOT).as_posix(), "name": path.name})
+    return {"models": models}
 
 
 class YOLOTrainReq(BaseModel):

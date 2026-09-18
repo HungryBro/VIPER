@@ -43,6 +43,11 @@ export async function runYOLOTrain(request: Record<string, any>, signal?: AbortS
   return handleResponse(resp);
 }
 
+export async function getYOLOModels(signal?: AbortSignal): Promise<{ models: { path: string; name: string }[] }> {
+  const resp = await apiFetch(`${API_BASE}/api/detection/models`, { signal });
+  return handleResponse(resp);
+}
+
 export async function createYOLODataset(request: Record<string, any>, signal?: AbortSignal) {
   const resp = await apiFetch(`${API_BASE}/api/detection/dataset`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request), signal,
