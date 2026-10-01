@@ -36,6 +36,7 @@ const DEFAULTS: Record<Mode, Record<string, any>> = {
     confidence: 0.25,
     iou: 0.7,
     image_size: 640,
+    class_ids: '',
   },
   gradcam: {
     model_path: 'models/yolo11n.pt',
@@ -151,6 +152,7 @@ function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mo
   }, [id, mode, rf]);
 
   const result = data?.payload?.json || {};
+  const trainingProgress = data?.payload?.training_progress;
   const imageUrl = mode === 'detect'
     ? data?.payload?.result_image_url || result.output_image_url
     : data?.payload?.result_image_url || result.overlay_url;
@@ -165,13 +167,23 @@ function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mo
 
       <div className="flex items-center justify-between rounded-t-lg bg-gray-700 px-3 py-2">
         <strong className={config.text}>{config.title}</strong>
-        <button
-          className={`nodrag rounded px-2 py-1 text-xs font-semibold text-white ${isRunning ? 'cursor-wait bg-yellow-600' : config.button}`}
-          disabled={isRunning}
-          onClick={() => data?.onRunNode?.(id)}
-        >
-          {isRunning ? 'Running…' : '▶ Run'}
-        </button>
+        {mode === 'train' && isRunning ? (
+          <button
+            className="nodrag rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-500"
+            disabled={Boolean(trainingProgress?.cancel_requested)}
+            onClick={() => data?.onCancelNode?.(id)}
+          >
+            {trainingProgress?.cancel_requested ? 'Canceling…' : '■ Cancel'}
+          </button>
+        ) : (
+          <button
+            className={`nodrag rounded px-2 py-1 text-xs font-semibold text-white ${isRunning ? 'cursor-wait bg-yellow-600' : config.button}`}
+            disabled={isRunning}
+            onClick={() => data?.onRunNode?.(id)}
+          >
+            {isRunning ? 'Running…' : '▶ Run'}
+          </button>
+        )}
       </div>
 
       <div className="space-y-2 p-3">
@@ -202,19 +214,42 @@ function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mo
         )}
 
         {mode === 'train' && (
-          <div className="grid grid-cols-3 gap-2">
-            <Field label="Epochs" type="number" value={params.epochs} onChange={(v) => setParam('epochs', v)} />
+          <>
+            <div className="grid grid-cols-3 gap-2">
+              <Field label="Epochs" type="number" value={params.epochs} onChange={(v) => setParam('epochs', v)} />
             <Field label="Image size" type="number" value={params.image_size} onChange={(v) => setParam('image_size', v)} />
             <Field label="Batch" type="number" value={params.batch} onChange={(v) => setParam('batch', v)} />
-          </div>
+            </div>
+            <p className="text-[10px] text-gray-500">Set Epochs to the number of training rounds you want.</p>
+            {(isRunning || trainingProgress) && (
+              <div className="rounded border border-violet-400/40 bg-gray-900/70 p-2">
+                <div className="mb-1 flex justify-between text-[10px] text-violet-200">
+                  <span>{trainingProgress?.message || 'Preparing training…'}</span>
+                  <span>{Math.round(Number(trainingProgress?.progress || 0))}%</span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-gray-700">
+                  <div
+                    className="h-full rounded-full bg-violet-500 transition-[width] duration-300"
+                    style={{ width: `${Math.min(100, Math.max(0, Number(trainingProgress?.progress || 0)))}%` }}
+                  />
+                </div>
+                <p className="mt-1 text-[10px] text-gray-400">
+                  Epoch {Number(trainingProgress?.current_epoch || 0)} / {Number(trainingProgress?.total_epochs || params.epochs || 0)}
+                </p>
+              </div>
+            )}
+          </>
         )}
 
         {mode === 'detect' && (
-          <div className="grid grid-cols-3 gap-2">
-            <Field label="Confidence" type="number" value={params.confidence} onChange={(v) => setParam('confidence', v)} />
-            <Field label="IoU" type="number" value={params.iou} onChange={(v) => setParam('iou', v)} />
-            <Field label="Image size" type="number" value={params.image_size} onChange={(v) => setParam('image_size', v)} />
-          </div>
+          <>
+            <div className="grid grid-cols-3 gap-2">
+              <Field label="Confidence" type="number" value={params.confidence} onChange={(v) => setParam('confidence', v)} />
+              <Field label="IoU" type="number" value={params.iou} onChange={(v) => setParam('iou', v)} />
+              <Field label="Image size" type="number" value={params.image_size} onChange={(v) => setParam('image_size', v)} />
+            </div>
+            <Field label="Class IDs (CSV, optional)" value={params.class_ids} onChange={(v) => setParam('class_ids', v)} />
+          </>
         )}
 
         {mode === 'gradcam' && (

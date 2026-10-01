@@ -14,6 +14,7 @@ export interface CustomNodeData {
   status?: NodeStatus;
   
   onRunNode?: (id: string) => void;
+  onCancelNode?: (id: string) => void;
 
   inputs?: PortDef[];
   outputs?: PortDef[];

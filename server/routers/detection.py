@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Lock
 from typing import Literal, Optional
+from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -11,6 +14,71 @@ from ..algos.detection import dataset_builder, yolo_adapter
 
 
 router = APIRouter()
+
+# Training can take minutes on a CPU.  Keep it off the request thread and let
+# the canvas poll a small status object for real epoch progress.
+_training_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="viper-yolo-train")
+_training_jobs: dict[str, dict] = {}
+_training_jobs_lock = Lock()
+
+
+def _update_training_job(training_job_id: str, **changes: object) -> None:
+    with _training_jobs_lock:
+        _training_jobs.setdefault(training_job_id, {}).update(changes)
+
+
+def _training_job_snapshot(job_id: str) -> dict | None:
+    with _training_jobs_lock:
+        job = _training_jobs.get(job_id)
+        return dict(job) if job is not None else None
+
+
+def _run_training_job(job_id: str, request: "YOLOTrainReq") -> None:
+    def is_cancel_requested() -> bool:
+        return bool((_training_job_snapshot(job_id) or {}).get("cancel_requested"))
+
+    def report_progress(current_epoch: int, total_epochs: int) -> None:
+        completed = min(max(current_epoch, 0), total_epochs)
+        canceling = is_cancel_requested()
+        _update_training_job(
+            job_id,
+            status="running",
+            current_epoch=completed,
+            total_epochs=total_epochs,
+            progress=round((completed / total_epochs) * 100, 1) if total_epochs else 0.0,
+            message="Canceling after the current batch…" if canceling else f"Training epoch {completed} of {total_epochs}",
+        )
+
+    _update_training_job(job_id, status="running", message="Preparing the training run…")
+    try:
+        result = yolo_adapter.train(
+            dataset_yaml=request.dataset_yaml,
+            out_root=RESULT_DIR,
+            model_path=request.model_path,
+            epochs=request.epochs,
+            image_size=request.image_size,
+            batch=request.batch,
+            device=request.device,
+            run_name=request.run_name,
+            on_progress=report_progress,
+            should_cancel=is_cancel_requested,
+        )
+    except yolo_adapter.TrainingCanceled:
+        _update_training_job(job_id, status="canceled", message="Training canceled")
+        return
+    except Exception as exc:
+        _update_training_job(job_id, status="fault", message=str(exc), error=str(exc))
+        return
+
+    _update_training_job(
+        job_id,
+        status="success",
+        current_epoch=request.epochs,
+        total_epochs=request.epochs,
+        progress=100.0,
+        message="Training completed",
+        result=_urls(result, {}),
+    )
 
 
 @router.get("/models")
@@ -34,6 +102,41 @@ class YOLOTrainReq(BaseModel):
     batch: int = Field(default=16, ge=1)
     device: Optional[str] = None
     run_name: Optional[str] = None
+
+
+@router.post("/train/start")
+def start_yolo_train(req: YOLOTrainReq):
+    job_id = uuid4().hex
+    _update_training_job(
+        job_id,
+        job_id=job_id,
+        status="queued",
+        current_epoch=0,
+        total_epochs=req.epochs,
+        progress=0.0,
+        message="Waiting to start…",
+    )
+    _training_executor.submit(_run_training_job, job_id, req)
+    return _training_job_snapshot(job_id)
+
+
+@router.get("/train/jobs/{job_id}")
+def get_yolo_training_job(job_id: str):
+    job = _training_job_snapshot(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Training job not found")
+    return job
+
+
+@router.post("/train/jobs/{job_id}/cancel")
+def cancel_yolo_training_job(job_id: str):
+    job = _training_job_snapshot(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Training job not found")
+    if job.get("status") in {"success", "fault", "canceled"}:
+        return job
+    _update_training_job(job_id, cancel_requested=True, message="Canceling after the current batch…")
+    return _training_job_snapshot(job_id)
 
 
 class YOLOAnnotation(BaseModel):
@@ -63,6 +166,7 @@ class YOLODetectReq(BaseModel):
     confidence: float = Field(default=0.25, ge=0.0, le=1.0)
     iou: float = Field(default=0.7, ge=0.0, le=1.0)
     image_size: int = Field(default=640, ge=32)
+    class_ids: Optional[list[int]] = None
     device: Optional[str] = None
 
 
@@ -141,6 +245,7 @@ def detect_yolo(req: YOLODetectReq):
                 confidence=req.confidence,
                 iou=req.iou,
                 image_size=req.image_size,
+                class_ids=req.class_ids,
                 device=req.device,
             ),
             {"output_image_path": "output_image_url"},

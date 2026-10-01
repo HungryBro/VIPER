@@ -9,13 +9,17 @@ from __future__ import annotations
 import json
 import uuid
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Any, Callable, Iterable, Optional
 
 import numpy as np
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_MODEL = "models/yolo11n.pt"
+
+
+class TrainingCanceled(RuntimeError):
+    """Raised when a user stops an in-progress YOLO training job."""
 
 
 def _require_file(value: str, label: str) -> Path:
@@ -81,6 +85,8 @@ def train(
     batch: int = 16,
     device: Optional[str] = None,
     run_name: Optional[str] = None,
+    on_progress: Optional[Callable[[int, int], None]] = None,
+    should_cancel: Optional[Callable[[], bool]] = None,
 ) -> dict[str, Any]:
     dataset = _require_file(dataset_yaml, "Dataset YAML")
     weights = _resolve_model(model_path)
@@ -88,6 +94,22 @@ def train(
     name = run_name or f"train_{uuid.uuid4().hex[:8]}"
 
     model = _load_yolo(weights)
+    if should_cancel and should_cancel():
+        raise TrainingCanceled("Training canceled")
+    if on_progress and hasattr(model, "add_callback"):
+        def report_epoch(trainer: Any) -> None:
+            # Ultralytics stores the zero-based epoch on the trainer.
+            on_progress(int(getattr(trainer, "epoch", 0)) + 1, int(getattr(trainer, "epochs", epochs)))
+
+        model.add_callback("on_train_epoch_end", report_epoch)
+    if should_cancel and hasattr(model, "add_callback"):
+        def stop_after_current_batch(trainer: Any) -> None:
+            if should_cancel():
+                # Ultralytics checks this flag between batches, so canceling
+                # does not corrupt the current optimizer step or output files.
+                trainer.stop = True
+
+        model.add_callback("on_train_batch_end", stop_after_current_batch)
     kwargs: dict[str, Any] = {
         "data": str(dataset),
         "epochs": epochs,
@@ -100,6 +122,8 @@ def train(
     if device:
         kwargs["device"] = device
     result = model.train(**kwargs)
+    if should_cancel and should_cancel():
+        raise TrainingCanceled("Training canceled")
 
     save_dir = Path(getattr(result, "save_dir", project / name)).resolve()
     best_weight = save_dir / "weights" / "best.pt"
@@ -134,6 +158,7 @@ def detect(
     confidence: float = 0.25,
     iou: float = 0.7,
     image_size: int = 640,
+    class_ids: Optional[list[int]] = None,
     device: Optional[str] = None,
 ) -> dict[str, Any]:
     import cv2
@@ -148,6 +173,8 @@ def detect(
         "imgsz": image_size,
         "verbose": False,
     }
+    if class_ids:
+        kwargs["classes"] = class_ids
     if device:
         kwargs["device"] = device
     results = model.predict(**kwargs)
@@ -192,6 +219,7 @@ def detect(
             "confidence": confidence,
             "iou": iou,
             "image_size": image_size,
+            "class_ids": class_ids,
             "device": device,
         },
     }

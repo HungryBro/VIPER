@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import time
 
 import cv2
 import numpy as np
@@ -54,9 +55,15 @@ class FakeTrainResult:
 class FakeTrainModel:
     def __init__(self, save_dir: Path):
         self.save_dir = save_dir
+        self.callbacks = {}
+
+    def add_callback(self, event, callback):
+        self.callbacks[event] = callback
 
     def train(self, **kwargs):
         self.train_kwargs = kwargs
+        if callback := self.callbacks.get("on_train_epoch_end"):
+            callback(type("Trainer", (), {"epoch": 1, "epochs": kwargs["epochs"]})())
         weights = self.save_dir / "weights"
         weights.mkdir(parents=True)
         (weights / "best.pt").write_bytes(b"best")
@@ -91,7 +98,7 @@ def test_detect_writes_viper_image_and_json(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(yolo_adapter, "_load_yolo", lambda _: fake_model)
 
     result = yolo_adapter.detect(
-        str(image), str(tmp_path / "outputs"), str(model), confidence=0.4, iou=0.6
+        str(image), str(tmp_path / "outputs"), str(model), confidence=0.4, iou=0.6, class_ids=[0, 2]
     )
 
     assert result["status"] == "success"
@@ -102,6 +109,8 @@ def test_detect_writes_viper_image_and_json(tmp_path: Path, monkeypatch):
     assert Path(result["json_path"]).is_file()
     assert fake_model.predict_kwargs["conf"] == 0.4
     assert fake_model.predict_kwargs["iou"] == 0.6
+    assert fake_model.predict_kwargs["classes"] == [0, 2]
+    assert result["parameters"]["class_ids"] == [0, 2]
 
 
 def test_detect_rejects_missing_model(tmp_path: Path):
@@ -160,6 +169,39 @@ def test_train_returns_best_model_for_downstream_nodes(tmp_path: Path, monkeypat
     assert result['base_model'] == loaded_models[0]
 
 
+def test_train_reports_completed_epochs_to_progress_callback(tmp_path: Path, monkeypatch):
+    dataset = tmp_path / "data.yaml"
+    dataset.write_text("path: .\ntrain: images\nval: images\nnames: [shape]\n")
+    progress = []
+    monkeypatch.setattr(yolo_adapter, "_load_yolo", lambda _: FakeTrainModel(tmp_path / "runs" / "unit"))
+
+    yolo_adapter.train(str(dataset), str(tmp_path / "outputs"), epochs=3, batch=1, on_progress=lambda epoch, total: progress.append((epoch, total)))
+
+    assert progress == [(2, 3)]
+
+
+def test_train_stops_before_start_when_cancellation_is_requested(tmp_path: Path, monkeypatch):
+    dataset = tmp_path / "data.yaml"
+    dataset.write_text("path: .\ntrain: images\nval: images\nnames: [shape]\n")
+    model = FakeTrainModel(tmp_path / "runs" / "unit")
+    monkeypatch.setattr(yolo_adapter, "_load_yolo", lambda _: model)
+
+    with pytest.raises(yolo_adapter.TrainingCanceled):
+        yolo_adapter.train(str(dataset), str(tmp_path / "outputs"), should_cancel=lambda: True)
+    assert not hasattr(model, "train_kwargs")
+
+
+def test_cancel_training_job_marks_a_running_job_for_cancellation():
+    from server.routers import detection
+
+    job_id = "unit-cancel-job"
+    detection._update_training_job(job_id, job_id=job_id, status="running", progress=20.0)
+    job = detection.cancel_yolo_training_job(job_id)
+
+    assert job["cancel_requested"] is True
+    assert job["status"] == "running"
+
+
 def test_train_api_forwards_selected_base_model(monkeypatch):
     from server.routers.detection import YOLOTrainReq, train_yolo
     received = {}
@@ -171,6 +213,27 @@ def test_train_api_forwards_selected_base_model(monkeypatch):
     monkeypatch.setattr(yolo_adapter, 'train', fake_train)
     train_yolo(YOLOTrainReq(dataset_yaml='data.yaml', model_path='models/shapes-best.pt'))
     assert received['model_path'] == 'models/shapes-best.pt'
+
+
+def test_background_train_job_exposes_progress_and_result(monkeypatch):
+    from server.routers import detection
+
+    def fake_train(**kwargs):
+        kwargs["on_progress"](1, kwargs["epochs"])
+        return {"status": "success", "tool": "YOLOTrain", "best_model_path": "/tmp/best.pt"}
+
+    monkeypatch.setattr(detection.yolo_adapter, "train", fake_train)
+    started = detection.start_yolo_train(detection.YOLOTrainReq(dataset_yaml="data.yaml", epochs=2))
+    job_id = started["job_id"]
+    job = started
+    deadline = time.monotonic() + 1
+    while job["status"] in {"queued", "running"} and time.monotonic() < deadline:
+        time.sleep(0.01)
+        job = detection.get_yolo_training_job(job_id)
+
+    assert job["status"] == "success"
+    assert job["progress"] == 100.0
+    assert job["result"]["best_model_path"] == "/tmp/best.pt"
 
 
 def test_model_catalog_lists_project_relative_pt_files_only(tmp_path: Path, monkeypatch):

@@ -76,15 +76,15 @@ export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
   },
   description: 'ANNOTATE + BUILD + TRAIN + EVALUATE + DETECT + GRAD-CAM',
   longDescription: {
-    en: 'Fine-tunes the bundled Shapes model for five epochs using nine annotated images. Detect, Grad-CAM and both evaluations use the newly trained weights. These sample images may overlap the pretrained model training data, so the scores demonstrate the workflow, not generalisation to unseen images. Select models/yolo11n.pt as the Base model and use a larger dataset and more epochs to train a new Shapes detector.',
-    th: 'Fine-tune โมเดล Shapes ที่เตรียมไว้ 5 รอบด้วยภาพที่มีป้ายกำกับ 9 ภาพ แล้วส่งโมเดลที่เทรนใหม่ไป Detect, Grad-CAM และ Evaluation ทั้งสองแบบ ภาพตัวอย่างอาจซ้ำกับข้อมูลที่ใช้เทรนโมเดลตั้งต้น คะแนนจึงใช้สาธิต workflow ไม่ใช่วัดความสามารถกับภาพใหม่ หากต้องการฝึกตัวตรวจจับใหม่ ให้เลือก Base model เป็น models/yolo11n.pt พร้อมเพิ่มชุดข้อมูลและจำนวนรอบ',
+    en: 'Fine-tunes a selected YOLO base model for 100 epochs using nine annotated Shapes images. Detect, Grad-CAM and both evaluations use the newly trained weights. The bundled Shapes model is a fast starting point; when choosing a general-purpose model such as YOLOv8, YOLO11 or YOLO12, keep the 100-epoch setting or add more varied labelled images.',
+    th: 'Fine-tune โมเดล YOLO ที่เลือกเป็นเวลา 100 รอบด้วยภาพ Shapes ที่มีป้ายกำกับ 9 ภาพ แล้วส่งโมเดลที่เทรนใหม่ไป Detect, Grad-CAM และ Evaluation ทั้งสองแบบ โมเดล Shapes ที่มากับระบบจะเริ่มต้นได้เร็ว ส่วนโมเดลทั่วไปอย่าง YOLOv8, YOLO11 หรือ YOLO12 ควรใช้ 100 รอบตามค่าเริ่มต้น หรือเพิ่มภาพที่ติดป้ายกำกับให้หลากหลายขึ้น',
   },
   color: 'cyan',
   nodes: [
     {
       id: 'shapes-e2e-images',
       type: 'multi-image-input',
-      position: { x: -28.65850339859901, y: 647.035313276307 },
+      position: { x: 9.76844823711042, y: 628.8330730278129 },
       data: {
         label: 'Shapes Dataset Images',
         status: 'idle',
@@ -95,7 +95,7 @@ export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
     {
       id: 'shapes-e2e-dataset',
       type: 'yolo-dataset',
-      position: { x: 330, y: 190 },
+      position: { x: 372.4718939131526, y: 177.86517316767072 },
       data: {
         label: 'Build Shapes Dataset',
         status: 'idle',
@@ -113,14 +113,14 @@ export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
       data: {
         label: 'Train Shapes YOLO',
         status: 'idle',
-        description: 'Fine-tunes the bundled Shapes model on the annotated sample images.',
-        payload: { params: { model_path: MODEL_PATH, epochs: 5, image_size: 640, batch: 4 } },
+        description: 'Fine-tunes the selected base model for 100 epochs on the annotated sample images.',
+        payload: { params: { model_path: 'models/yolo11n.pt', epochs: 100, image_size: 640, batch: 4 } },
       },
     } as Node,
     {
       id: 'shapes-e2e-test-image',
       type: 'image-input',
-      position: { x: 858.3700451187246, y: 363.8779010387507 },
+      position: { x: 862.4149873961676, y: 446.7992177263343 },
       data: {
         label: 'Image Input',
         status: 'idle',
@@ -131,18 +131,18 @@ export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
     {
       id: 'shapes-e2e-detect',
       type: 'yolo-detect',
-      position: { x: 1280.743091193914, y: 68.12138907804595 },
+      position: { x: 1294.0626130478465, y: 216.50732747724965 },
       data: {
         label: 'Detect Shapes',
         status: 'idle',
         description: 'Runs the freshly trained model on the test image.',
-        payload: { params: { model_path: 'models/yolo11n.pt', confidence: 0.25, iou: 0.7, image_size: 640 } },
+        payload: { params: { model_path: 'models/yolo11n.pt', confidence: 0.25, iou: 0.7, image_size: 640, class_ids: '2' } },
       },
     } as Node,
     {
       id: 'shapes-e2e-gradcam',
       type: 'yolo-gradcam',
-      position: { x: 1281.8648620746717, y: 504.9114710869171 },
+      position: { x: 1296.2251406420569, y: 742.5740162061687 },
       data: {
         label: 'Explain Shapes Detection',
         status: 'idle',
@@ -153,7 +153,7 @@ export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
     {
       id: 'shapes-e2e-evaluation',
       type: 'detection-evaluation',
-      position: { x: 853.6627411167512, y: 972.0942131979696 },
+      position: { x: 861.7526256716376, y: 1020.6335205272867 },
       data: {
         label: 'Evaluate Shapes Model',
         status: 'idle',
@@ -171,7 +171,7 @@ export const SHAPES_END_TO_END_TEMPLATE: WorkflowTemplate = {
     {
       id: 'shapes-e2e-classification-evaluation',
       type: 'classification-evaluation',
-      position: { x: 342.1877689016443, y: 973.780169750989 },
+      position: { x: 370.502364843746, y: 911.083564450621 },
       data: {
         label: 'Classify Shapes Test Result',
         status: 'idle',

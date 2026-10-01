@@ -21,6 +21,7 @@ export type UseFlowHistoryArgs = {
 const TRANSIENT_NODE_DATA_KEYS = new Set([
   'status',
   'onRunNode',
+  'onCancelNode',
   'payload',
   'json',
   'output',

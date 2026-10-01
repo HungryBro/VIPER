@@ -167,6 +167,7 @@ export function sanitizeWorkflowDocument(
     const dataFields = { ...node.data };
     const payload = dataFields.payload;
     delete dataFields.onRunNode;
+    delete dataFields.onCancelNode;
     delete dataFields.payload;
     const cleanData: CustomNodeData = {
       ...dataFields,

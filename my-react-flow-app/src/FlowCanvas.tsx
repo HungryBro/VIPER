@@ -24,6 +24,7 @@ import { runSegmentation } from './lib/runners/segmentation';
 import { runDetectionNode } from './lib/runners/detection';
 import { runYOLODatasetNode } from './lib/runners/yoloDataset';
 import { runClassificationEvaluationNode, runDetectionEvaluationNode } from './lib/runners/evaluation';
+import { cancelYOLOTrainJob } from './lib/api';
 
 // ---------- Hooks / Utils ----------
 import { useFlowHotkeys } from './hooks/useFlowHotkeys';
@@ -254,12 +255,51 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
 
         addLog(`[${nodeName}] ✅ Completed`, 'success', nodeId);
       } catch (err: any) {
+        if (err?.canceled) {
+          addLog(`[${nodeName}] ⏹ Training canceled`, 'warning', nodeId);
+          setNodes((nds) => nds.map((n) => (n.id === nodeId ? {
+            ...n,
+            data: { ...n.data, status: 'idle' as NodeStatus, description: 'Training canceled' },
+          } : n)));
+          return;
+        }
         addLog(`[${nodeName}] 💥 Error: ${cleanErrorMessage(err.message)}`, 'error', nodeId);
         setNodes((nds) => nds.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, status: 'fault' as NodeStatus } } : n)));
         setIncomingEdgesStatus(nodeId, 'error');
         throw err;
       }
     }, [setNodes, addLog, setIncomingEdgesStatus, getNodes, getEdges]);
+
+    const cancelNodeById = useCallback(async (nodeId: string) => {
+      const node = getNodes().find((candidate) => candidate.id === nodeId);
+      const jobId = node?.data?.payload?.training_progress?.job_id;
+      if (!jobId) {
+        addLog('No active YOLO training job found.', 'warning', nodeId);
+        return;
+      }
+      try {
+        const job = await cancelYOLOTrainJob(jobId);
+        isCanceledRef.current = true;
+        setNodes((nds) => nds.map((candidate) => candidate.id === nodeId ? {
+          ...candidate,
+          data: {
+            ...candidate.data,
+            description: job.message || 'Canceling training…',
+            payload: {
+              ...(candidate.data.payload || {}),
+              training_progress: {
+                ...(candidate.data.payload?.training_progress || {}),
+                ...job,
+                cancel_requested: true,
+              },
+            },
+          },
+        } : candidate));
+        addLog(`[${node.data.label || 'YOLO Train'}] ⏹ Cancel requested`, 'warning', nodeId);
+      } catch (error: any) {
+        addLog(`Could not cancel training: ${cleanErrorMessage(error?.message || '')}`, 'error', nodeId);
+      }
+    }, [addLog, getNodes, setNodes]);
 
     const addNodeFromLibrary = useCallback((nodeType: string) => {
       const id = getId();
@@ -271,10 +311,10 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
         id,
         type: nodeType,
         position,
-        data: { label: nodeType.toUpperCase(), status: 'idle', onRunNode: (nodeId: string) => runNodeById(nodeId) },
+        data: { label: nodeType.toUpperCase(), status: 'idle', onRunNode: (nodeId: string) => runNodeById(nodeId), onCancelNode: (nodeId: string) => cancelNodeById(nodeId) },
       }));
       addLog(`Added ${nodeType}`, 'info', id);
-    }, [addLog, runNodeById, screenToFlowPosition, setNodes]);
+    }, [addLog, cancelNodeById, runNodeById, screenToFlowPosition, setNodes]);
 
     const fitWorkflowToCanvas = useCallback(() => {
       const isCompactMobile = document.querySelector('.viper-app')?.classList.contains('compact-mobile');
@@ -383,7 +423,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       restoreSnapshot: (newNodes, newEdges, newViewport) => {
         if (isApplyingHistoryRef.current) (isApplyingHistoryRef.current as any) = true;
         const nodesWithFunc = newNodes.map(n => ({
-          ...n, data: { ...n.data, onRunNode: (id: string) => runNodeById(id) }
+          ...n, data: { ...n.data, onRunNode: (id: string) => runNodeById(id), onCancelNode: (id: string) => cancelNodeById(id) }
         }));
         setNodes(nodesWithFunc);
         setEdges(newEdges);
@@ -394,7 +434,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       },
       fitView: fitWorkflowToCanvas,
       addNode: addNodeFromLibrary,
-    }), [addNodeFromLibrary, edges, fitWorkflowToCanvas, getViewport, runNodeById, setEdges, setNodes, setViewport, nodes, isApplyingHistoryRef]);
+    }), [addNodeFromLibrary, cancelNodeById, edges, fitWorkflowToCanvas, getViewport, runNodeById, setEdges, setNodes, setViewport, nodes, isApplyingHistoryRef]);
 
     useFlowHotkeys({ getPastePosition: () => lastMousePosRef.current, runNodeById, undo, redo });
 
@@ -402,13 +442,13 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       setNodes((nds) => {
         let changed = false;
         const updated = nds.map((n) => {
-          if (n.data && typeof n.data.onRunNode === 'function') return n;
+          if (n.data && typeof n.data.onRunNode === 'function' && typeof n.data.onCancelNode === 'function') return n;
           changed = true;
-          return { ...n, data: { ...(n.data || {}), onRunNode: (id: string) => runNodeById(id) } };
+          return { ...n, data: { ...(n.data || {}), onRunNode: (id: string) => runNodeById(id), onCancelNode: (id: string) => cancelNodeById(id) } };
         });
         return changed ? updated : nds;
       });
-    }, [nodes, runNodeById, setNodes]);
+    }, [cancelNodeById, nodes, runNodeById, setNodes]);
 
 
     useEffect(() => {
@@ -507,7 +547,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       const id = getId();
       setNodes((nds) => nds.concat({
         id, type, position: screenToFlowPosition({ x: e.clientX, y: e.clientY }),
-        data: { label: type.toUpperCase(), status: 'idle', onRunNode: (id: string) => runNodeById(id) },
+        data: { label: type.toUpperCase(), status: 'idle', onRunNode: (id: string) => runNodeById(id), onCancelNode: (id: string) => cancelNodeById(id) },
       }));
       addLog(`Added ${type}`, 'info', id);
     }, [screenToFlowPosition, setNodes, runNodeById, addLog]);
