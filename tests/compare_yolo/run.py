@@ -101,6 +101,8 @@ def load_settings(path):
     integer(cam["color_seed"], "gradcam.color_seed")
     if type(cam["show_boxes"]) is not bool or cam["target_output_type"] not in ("class", "box", "all"):
         raise ValueError("Invalid gradcam.show_boxes or gradcam.target_output_type")
+    if not isinstance(settings.get("preview", {}), dict) or type(settings.get("preview", {}).get("show", True)) is not bool:
+        raise ValueError("preview.show must be true or false")
     return settings, dataset, root, data, model, images, output
 
 
@@ -110,7 +112,7 @@ def check_dependencies():
         raise ValueError(f"Missing dependencies: {', '.join(missing)}. Run: python3 -m pip install -r {HERE / 'requirements.txt'}")
 
 
-def run_experiment(loaded, reuse_weights=None):
+def run_experiment(loaded, reuse_weights=None, *, no_show=False):
     settings, dataset, source_root, data, base_model, images, output = loaded
     check_dependencies()  # Fail before training when CAM dependencies are absent.
     runtime = HERE / ".runtime"
@@ -182,6 +184,15 @@ def run_experiment(loaded, reuse_weights=None):
                 failures.append(f"{image.name} / {method}: {exc}")
                 print(f"FAILED {failures[-1]}", file=sys.stderr, flush=True)
     print(f"Images: {folder / 'detect'}\nCAM images: {folder / 'gradcam'}", flush=True)
+    from preview_results import build_comparison, show_comparison
+    comparison = build_comparison(folder, copied_images, settings["gradcam"]["methods"])
+    print(f"Combined image: {comparison}", flush=True)
+    if not no_show and settings.get("preview", {}).get("show", True):
+        try:
+            show_comparison(comparison)
+        except Exception as exc:
+            # A GUI problem must not invalidate already generated model outputs.
+            print(f"Cannot open preview window: {exc}. Open {comparison} manually.", file=sys.stderr)
     if failures:
         raise RuntimeError(f"{len(failures)} CAM task(s) failed. See errors above; other images were saved.")
     print("Completed Train / Detect / Grad-CAM experiment.", flush=True)
@@ -193,6 +204,7 @@ def main():
     parser.add_argument("--list-models", action="store_true", help="List local base models and exit")
     parser.add_argument("--check", action="store_true", help="Validate settings, input files and dependencies without training")
     parser.add_argument("--weights", type=Path, help="Optional existing experiment weights: skip training and repeat Detect/CAM")
+    parser.add_argument("--no-show", action="store_true", help="Save comparison.png without opening the image window")
     args = parser.parse_args()
     if args.list_models:
         for path in sorted((PROJECT / "models").rglob("*.pt")):
@@ -206,7 +218,7 @@ def main():
             check_dependencies()
             print("Settings, inputs and dependencies are available.")
         else:
-            run_experiment(loaded, reuse)
+            run_experiment(loaded, reuse, no_show=args.no_show)
         return 0
     except (ValueError, OSError, KeyError, TypeError, RuntimeError, ImportError) as exc:
         print(f"Error: {exc}", file=sys.stderr)

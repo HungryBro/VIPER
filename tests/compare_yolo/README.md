@@ -22,6 +22,16 @@ source .venv/bin/activate
 python run.py
 ```
 
+หลังรันเสร็จจะเปิดหน้าต่าง Python แสดงภาพเรียงซ้ายไปขวา:
+**Input → Detect → GradCAM → GradCAMPlusPlus → EigenCAM → LayerCAM**
+โดยใช้ภาพ overlay ของแต่ละวิธี หากมีหลายภาพทดสอบจะแสดงคนละแถว
+ปิดหน้าต่างเมื่อดูเสร็จเพื่อให้โปรแกรมจบ ภาพรวมจะบันทึกเป็น `comparison.png`
+ในโฟลเดอร์ของรันนั้นด้วย ถ้าไม่ได้เลือก CAM บางวิธี ช่องนั้นจะแสดง Not selected
+
+ตั้ง `preview.show: false` ใน setting หรือรัน `python run.py --no-show`
+เพื่อบันทึกภาพรวมโดยไม่เปิดหน้าต่าง สำหรับเครื่องที่ไม่มี graphical backend
+โปรแกรมจะแจ้งพาธภาพรวมให้เปิดเอง
+
 ตรวจค่าตั้งโดยไม่เทรนใช้ `python run.py --check` หลังเปิด environment
 
 เปิด Terminal ที่โฟลเดอร์หลัก VIPER:
@@ -106,6 +116,7 @@ CUDA ถ้ามี มิฉะนั้นใช้ CPU เพื่อให
 
 ```text
 outputs/run_วันเวลา_รหัส/
+  comparison.png                 ภาพ Input / Detect / CAM ทั้ง 4 รวมกัน
   settings.yaml                  ค่าที่ใช้ในรันนี้
   inputs/                        สำเนาภาพ โมเดลตั้งต้น และ dataset
   train/weights/best.pt           โมเดลที่เทรนใหม่

@@ -14,7 +14,7 @@ dataset_yaml: outputs/detection/datasets/dataset_c48f2aa2/data.yaml
 # เปลี่ยนเป็นไฟล์ .pt ที่มีอยู่ใน VIPER/models/ เช่น models/yolov8s.pt
 # ตัวเลือก: shapes-best.pt, yolo11n.pt, yolo11s.pt, yolo12n.pt,
 # yolo12s.pt, yolov8n.pt, yolov8s.pt
-base_model: models/yolo11n.pt
+base_model: models/shapes-best.pt
 
 # ภาพที่ใช้ทดสอบหลังเทรนเสร็จ ทั้ง Detect และ Grad-CAM ใช้รายการนี้ร่วมกัน
 # ใช้ไฟล์เดียวกับ Image Input ใน VIPER เพิ่มหลายภาพได้โดยเพิ่มบรรทัด - พาธภาพ
@@ -25,6 +25,13 @@ test_images:
 # โฟลเดอร์เก็บผลทดลอง ต้องเป็นโฟลเดอร์ย่อยภายใน tests/compare_yolo/
 # แต่ละครั้งจะสร้าง run_วันเวลา_รหัส ภายในนี้ เก็บโมเดลและภาพผลลัพธ์ของรันนั้น
 output_dir: tests/compare_yolo/outputs
+
+# การแสดงภาพรวมหลังจบ: Input → Detect → GradCAM → GradCAMPlusPlus → EigenCAM → LayerCAM
+# หลายภาพทดสอบจะแสดงคนละแถว และบันทึก comparison.png ไว้ในโฟลเดอร์ผลแต่ละรัน
+preview:
+  # true = เปิดหน้าต่างภาพรวมหลังรัน ปิดหน้าต่างเพื่อจบโปรแกรม
+  # false = บันทึกภาพรวมอย่างเดียว ไม่เปิดหน้าต่าง
+  show: true
 
 train:
   # จำนวนรอบที่ฝึกด้วยชุด train เช่น 10 เปลี่ยนเป็น 50 เพื่อเทรน 50 epochs

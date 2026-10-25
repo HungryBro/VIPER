@@ -25,6 +25,20 @@ textarea {
   }
 }
 
+/* Keep Fit available on touch tablets, including wide iPad Pro viewports.
+   Hide it only on desktop-sized, mouse-only layouts. */
+@media (min-width: 1024px) and (hover: hover) and (pointer: fine) {
+  .viper-fit-canvas-button {
+    display: none;
+  }
+}
+
+@media (min-width: 1024px) and (any-pointer: coarse) {
+  .viper-fit-canvas-button {
+    display: flex;
+  }
+}
+
 /* Phones in landscape are wide enough for Tailwind's tablet breakpoint but
    still have too little height for the desktop workspace chrome. */
 .compact-mobile .viper-header {

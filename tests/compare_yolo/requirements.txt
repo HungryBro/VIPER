@@ -1,3 +1,4 @@
 ultralytics>=8.3.0,<9
 grad-cam>=1.5.5,<2
 PyYAML>=6,<7
+matplotlib>=3.3
