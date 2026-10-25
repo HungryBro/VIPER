@@ -99,6 +99,18 @@ The backend endpoints are `POST /api/detection/train`,
 `outputs/detection/`; evaluation JSON files are written under
 `outputs/evaluation/detection/`; both are served through `/static`.
 
+### Independent YOLO experiment
+
+`tests/compare_yolo/run.py` trains a separate model on a copy of a VIPER-built
+dataset, then saves Detect images and overlays/raw heatmaps for GradCAM,
+GradCAMPlusPlus, EigenCAM, and LayerCAM. Configure shared input paths and all
+experiment parameters in `tests/compare_yolo/settings.yaml`. The runner uses
+Ultralytics and pytorch-grad-cam directly and writes into its own experiment
+folder, without importing VIPER runtime code or calling its APIs.
+
+See [tests/compare_yolo/README.md](tests/compare_yolo/README.md) for installation,
+commands, and how to open the resulting images alongside VIPER results.
+
 ---
 
 ## 🛠️ Tech Stack

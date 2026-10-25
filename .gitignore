@@ -22,6 +22,7 @@ pip-log.txt
 .pytest_cache/
 .coverage
 htmlcov/
+.visualize/
 
 # Build specific
 build-opencv/
