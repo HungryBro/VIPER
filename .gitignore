@@ -54,3 +54,7 @@ outputs/*
 # (Optional) ถ้าอยากเก็บโครงสร้างโฟลเดอร์ uploads ไว้แต่ไม่เอาไฟล์ข้างใน
 # ให้สร้างไฟล์เปล่าชื่อ .gitkeep ไว้ใน uploads แล้วเปิดบรรทัดนี้
 # !outputs/uploads/.gitkeep
+
+# Docs and graphify output
+docs/
+graphify-out/
