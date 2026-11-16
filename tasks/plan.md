@@ -1,6 +1,6 @@
 # แผนนำ Mockup v2 ไปลงใน VIPER จริง
 
-จัดทำ 14 พฤศจิกายน 2569 · ปรับตามโค้ดหลัง refactor (commit `ab4e0513`) 16 พฤศจิกายน 2569 · branch `codex/learning-platform`
+จัดทำ 14 พฤศจิกายน 2569 · ปรับตามโค้ดหลัง refactor (commit `ab4e0513`) 16 พฤศจิกายน 2569 · branch `learning-platform`
 ต้นทาง: `outputs/viper-learning-platform-v2.html` (source อยู่ที่ `outputs/viper-learning-v2/src/`)
 ปลายทาง: `my-react-flow-app/` (React 19 + TypeScript + Tailwind) และ `server/` (FastAPI + PostgreSQL)
 รายการ task แบบละเอียด: [todo.md](todo.md)
