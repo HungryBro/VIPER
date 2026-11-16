@@ -5,15 +5,8 @@ import Modal from '../common/Modal';
 import { abs } from '../../lib/api';
 import { useNodeStatus } from '../../hooks/useNodeStatus'; 
 import { ParameterLoader } from '../ParameterLoader';
-
-const SettingsSlidersIcon = ({ className = 'h-4 w-4' }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="black" aria-hidden="true">
-    <g strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4}>
-      <path d="M3 7h18" /><circle cx="9" cy="7" r="3.4" fill="white" />
-      <path d="M3 17h18" /><circle cx="15" cy="17" r="3.4" fill="white" />
-    </g>
-  </svg>
-);
+import { SettingsSlidersIcon } from './SettingsSlidersIcon';
+import { NODE_DEFAULTS } from '../../lib/nodeDefaults';
 
 type FLANNParams = {
   lowe_ratio: number;
@@ -24,14 +17,7 @@ type FLANNParams = {
   search_params: 'AUTO' | { checks?: number };
 };
 
-const DEFAULT_PARAMS: FLANNParams = {
-  lowe_ratio: 0.75,
-  ransac_thresh: 5.0,
-  draw_mode: 'good',
-  max_draw: 50, 
-  index_params: 'AUTO',
-  search_params: 'AUTO',
-};
+const DEFAULT_PARAMS: FLANNParams = { ...NODE_DEFAULTS.flannmatcher } as FLANNParams;
 
 const ALLOWED_FLANN_KEYS = [
   'lowe_ratio',

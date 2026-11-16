@@ -1,0 +1,1458 @@
+[
+  {
+    "official_key": "SIFT (Scale-Invariant Feature Transform)",
+    "description": "Extract robust SIFT image features.",
+    "enabled": true,
+    "workflow": {
+      "version": 1,
+      "nodes": [
+        {
+          "id": "n1-img1",
+          "type": "image-input",
+          "position": {
+            "x": 50,
+            "y": 10.8
+          },
+          "data": {
+            "label": "Input Image 1",
+            "status": "success",
+            "description": "Image loaded from sample dataset.",
+            "payload": {
+              "name": "1.png",
+              "url": "/static/samples/1.png",
+              "width": 512,
+              "height": 288
+            }
+          }
+        },
+        {
+          "id": "n2-sift",
+          "type": "sift",
+          "position": {
+            "x": 450,
+            "y": 140.83
+          },
+          "data": {
+            "label": "SIFT Extractor",
+            "status": "idle",
+            "description": "Ready to extract features...",
+            "payload": {
+              "params": {
+                "nfeatures": 500,
+                "nOctaveLayers": 3,
+                "contrastThreshold": 0.04,
+                "edgeThreshold": 12,
+                "sigma": 1.6
+              }
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1-img1",
+          "target": "n2-sift",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#64748b"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "official_key": "FLANN (Fast Library for Approximate Nearest Neighbors)",
+    "description": "Match image features with FLANN.",
+    "enabled": true,
+    "workflow": {
+      "version": 1,
+      "nodes": [
+        {
+          "id": "n1-img1",
+          "type": "image-input",
+          "position": {
+            "x": 50,
+            "y": 10.8
+          },
+          "data": {
+            "label": "Input Image 1",
+            "status": "success",
+            "description": "Image uploaded (512×288)",
+            "payload": {
+              "name": "1.png",
+              "url": "/static/samples/1.png",
+              "width": 512,
+              "height": 288
+            }
+          }
+        },
+        {
+          "id": "n3-sift-1",
+          "type": "sift",
+          "position": {
+            "x": 450,
+            "y": 140.83
+          },
+          "data": {
+            "label": "SIFT (Img 1)",
+            "status": "idle",
+            "description": "Ready to extract...",
+            "payload": {
+              "params": {
+                "nfeatures": 500,
+                "nOctaveLayers": 3,
+                "contrastThreshold": 0.04,
+                "edgeThreshold": 12,
+                "sigma": 1.6
+              }
+            }
+          }
+        },
+        {
+          "id": "n2-img2",
+          "type": "image-input",
+          "position": {
+            "x": 50,
+            "y": 560
+          },
+          "data": {
+            "label": "Input Image 2",
+            "status": "success",
+            "description": "Image uploaded (310×240)",
+            "payload": {
+              "name": "2.png",
+              "url": "/static/samples/2.png",
+              "width": 310,
+              "height": 240
+            }
+          }
+        },
+        {
+          "id": "n4-sift-2",
+          "type": "sift",
+          "position": {
+            "x": 450,
+            "y": 713.9
+          },
+          "data": {
+            "label": "SIFT (Img 2)",
+            "status": "idle",
+            "description": "Ready to extract...",
+            "payload": {
+              "params": {
+                "nfeatures": 0,
+                "nOctaveLayers": 3,
+                "contrastThreshold": 0.04,
+                "edgeThreshold": 10,
+                "sigma": 1.6
+              }
+            }
+          }
+        },
+        {
+          "id": "n5-flann",
+          "type": "flannmatcher",
+          "position": {
+            "x": 850,
+            "y": 420
+          },
+          "data": {
+            "label": "FLANN Matcher",
+            "status": "idle",
+            "description": "Ready to match...",
+            "payload": {
+              "params": {
+                "lowe_ratio": 0.4,
+                "ransac_thresh": 5,
+                "draw_mode": "good",
+                "index_params": "AUTO",
+                "search_params": "AUTO"
+              }
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1-img1",
+          "target": "n3-sift-1",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#64748b"
+          }
+        },
+        {
+          "id": "e2",
+          "source": "n2-img2",
+          "target": "n4-sift-2",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#64748b"
+          }
+        },
+        {
+          "id": "e3",
+          "source": "n3-sift-1",
+          "target": "n5-flann",
+          "targetHandle": "file1",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#64748b"
+          }
+        },
+        {
+          "id": "e4",
+          "source": "n4-sift-2",
+          "target": "n5-flann",
+          "targetHandle": "file2",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#64748b"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "official_key": "PSNR (Peak Signal-to-Noise Ratio)",
+    "description": "Measure image reconstruction quality with PSNR.",
+    "enabled": true,
+    "workflow": {
+      "version": 1,
+      "nodes": [
+        {
+          "id": "psnr-n1-ori",
+          "type": "image-input",
+          "position": {
+            "x": 50,
+            "y": -200
+          },
+          "data": {
+            "label": "Original (Ref)",
+            "status": "success",
+            "description": "Reference clean image",
+            "payload": {
+              "name": "ori.png",
+              "url": "/static/samples/ori.png",
+              "width": 172,
+              "height": 172
+            }
+          }
+        },
+        {
+          "id": "psnr-n2-noise",
+          "type": "image-input",
+          "position": {
+            "x": 50,
+            "y": 380
+          },
+          "data": {
+            "label": "Processed / Noisy",
+            "status": "success",
+            "description": "Noisy / Denoised version",
+            "payload": {
+              "name": "noise.jpg",
+              "url": "/static/samples/noise.jpg",
+              "width": 172,
+              "height": 172
+            }
+          }
+        },
+        {
+          "id": "psnr-n3-metric",
+          "type": "psnr",
+          "position": {
+            "x": 430,
+            "y": 250
+          },
+          "data": {
+            "label": "PSNR Metric",
+            "status": "idle",
+            "description": "Ready to calculate...",
+            "payload": {}
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "psnr-e1",
+          "source": "psnr-n1-ori",
+          "target": "psnr-n3-metric",
+          "targetHandle": "input1",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#64748b"
+          }
+        },
+        {
+          "id": "psnr-e2",
+          "source": "psnr-n2-noise",
+          "target": "psnr-n3-metric",
+          "targetHandle": "input2",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#64748b"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "official_key": "BRISQUE (Blind/Referenceless Image Spatial Quality Evaluator)",
+    "description": "Estimate no-reference image quality with BRISQUE.",
+    "enabled": true,
+    "workflow": {
+      "version": 1,
+      "nodes": [
+        {
+          "id": "brisque-n1-img",
+          "type": "image-input",
+          "position": {
+            "x": 50,
+            "y": 134.5
+          },
+          "data": {
+            "label": "Input Image (Moon)",
+            "status": "success",
+            "description": "Example for BRISQUE metric",
+            "payload": {
+              "name": "Moonsample.jpg",
+              "url": "/static/samples/Moonsample.jpg",
+              "width": 600,
+              "height": 570
+            }
+          }
+        },
+        {
+          "id": "brisque-n2-metric",
+          "type": "brisque",
+          "position": {
+            "x": 430,
+            "y": 290.5
+          },
+          "data": {
+            "label": "BRISQUE Metric",
+            "status": "idle",
+            "description": "Ready to calculate...",
+            "payload": {}
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "brisque-e1",
+          "source": "brisque-n1-img",
+          "target": "brisque-n2-metric",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#64748b"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "official_key": "Otsu Thresholding",
+    "description": "Segment an image using Otsu thresholding.",
+    "enabled": true,
+    "workflow": {
+      "version": 1,
+      "nodes": [
+        {
+          "id": "n1-moon",
+          "type": "image-input",
+          "position": {
+            "x": 250,
+            "y": 75.5
+          },
+          "data": {
+            "label": "Image Input (Moon)",
+            "status": "success",
+            "description": "Moon Image Loaded",
+            "payload": {
+              "name": "Moonsample.jpg",
+              "url": "/static/samples/Moonsample.jpg",
+              "width": 600,
+              "height": 570
+            }
+          }
+        },
+        {
+          "id": "n2-otsu",
+          "type": "otsu",
+          "position": {
+            "x": 680,
+            "y": 231.4
+          },
+          "data": {
+            "label": "Otsu Threshold",
+            "status": "idle",
+            "description": "Ready to calculate...",
+            "payload": {
+              "params": {
+                "gaussian_blur": true,
+                "blur_ksize": 5,
+                "invert": false,
+                "morph_open": false,
+                "morph_close": false,
+                "morph_kernel": 3,
+                "show_histogram": true
+              }
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1-moon",
+          "target": "n2-otsu",
+          "type": "smoothstep",
+          "style": {
+            "stroke": "#64748b",
+            "strokeWidth": 2
+          }
+        }
+      ]
+    }
+  },
+  {
+    "official_key": "Active Contour (Snake)",
+    "description": "Segment an image using an active contour.",
+    "enabled": true,
+    "workflow": {
+      "version": 1,
+      "nodes": [
+        {
+          "id": "n1-moon",
+          "type": "image-input",
+          "position": {
+            "x": 250,
+            "y": 75.5
+          },
+          "data": {
+            "label": "Image Input (Moon)",
+            "status": "success",
+            "description": "Moon Image Loaded",
+            "payload": {
+              "name": "Moonsample.jpg",
+              "url": "/static/samples/Moonsample.jpg",
+              "width": 600,
+              "height": 570
+            }
+          }
+        },
+        {
+          "id": "n2-snake",
+          "type": "snake",
+          "position": {
+            "x": 680,
+            "y": 99
+          },
+          "data": {
+            "label": "Snake Contour",
+            "status": "idle",
+            "description": "Ready to iterate...",
+            "payload": {
+              "params": {
+                "alpha": 0.015,
+                "beta": 10,
+                "gamma": 0.1,
+                "w_line": 0,
+                "w_edge": 1,
+                "max_iterations": 250,
+                "gaussian_blur_ksize": 0,
+                "convergence": 0.001,
+                "init_mode": "circle",
+                "init_radius": "250",
+                "init_points": 400
+              }
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1-moon",
+          "target": "n2-snake",
+          "type": "smoothstep",
+          "style": {
+            "stroke": "#64748b",
+            "strokeWidth": 2
+          }
+        }
+      ]
+    }
+  },
+  {
+    "official_key": "Homography Estimation",
+    "description": "Align images with feature matches and a homography.",
+    "enabled": true,
+    "workflow": {
+      "version": 1,
+      "nodes": [
+        {
+          "id": "n1-ref",
+          "type": "image-input",
+          "position": {
+            "x": 50,
+            "y": 10.8
+          },
+          "data": {
+            "label": "Image Input (Reference)",
+            "status": "success",
+            "description": "Reference Image Loaded",
+            "payload": {
+              "name": "1.png",
+              "url": "/static/samples/1.png",
+              "width": 512,
+              "height": 288
+            }
+          }
+        },
+        {
+          "id": "n3-sift-ref",
+          "type": "sift",
+          "position": {
+            "x": 450,
+            "y": 140.83
+          },
+          "data": {
+            "label": "SIFT Feature (Ref)",
+            "status": "idle",
+            "description": "Ready to extract...",
+            "payload": {
+              "params": {
+                "nfeatures": 500,
+                "nOctaveLayers": 3,
+                "contrastThreshold": 0.04,
+                "edgeThreshold": 12,
+                "sigma": 1.6
+              }
+            }
+          }
+        },
+        {
+          "id": "n2-target",
+          "type": "image-input",
+          "position": {
+            "x": 50,
+            "y": 560
+          },
+          "data": {
+            "label": "Image Input (Target)",
+            "status": "success",
+            "description": "Target Image Loaded",
+            "payload": {
+              "name": "2.png",
+              "url": "/static/samples/2.png",
+              "width": 310,
+              "height": 240
+            }
+          }
+        },
+        {
+          "id": "n4-sift-target",
+          "type": "sift",
+          "position": {
+            "x": 450,
+            "y": 713.9
+          },
+          "data": {
+            "label": "SIFT Feature (Target)",
+            "status": "idle",
+            "description": "Ready to extract...",
+            "payload": {
+              "params": {
+                "nfeatures": 0,
+                "nOctaveLayers": 3,
+                "contrastThreshold": 0.04,
+                "edgeThreshold": 10,
+                "sigma": 1.6
+              }
+            }
+          }
+        },
+        {
+          "id": "n5-flann",
+          "type": "flannmatcher",
+          "position": {
+            "x": 850,
+            "y": 420
+          },
+          "data": {
+            "label": "FLANN Matcher",
+            "status": "idle",
+            "description": "Ready to match...",
+            "payload": {
+              "params": {
+                "lowe_ratio": 0.4,
+                "ransac_thresh": 5,
+                "draw_mode": "good",
+                "index_params": "AUTO",
+                "search_params": "AUTO"
+              }
+            }
+          }
+        },
+        {
+          "id": "n6-homo",
+          "type": "homography-align",
+          "position": {
+            "x": 1250,
+            "y": 421.3
+          },
+          "data": {
+            "label": "Homography Warp",
+            "status": "idle",
+            "description": "Ready to warp...",
+            "payload": {
+              "params": {
+                "warp_mode": "image2_to_image1",
+                "blend": true
+              }
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1-ref",
+          "target": "n3-sift-ref",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#64748b"
+          }
+        },
+        {
+          "id": "e2",
+          "source": "n2-target",
+          "target": "n4-sift-target",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#64748b"
+          }
+        },
+        {
+          "id": "e3",
+          "source": "n3-sift-ref",
+          "target": "n5-flann",
+          "targetHandle": "file1",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#64748b"
+          }
+        },
+        {
+          "id": "e4",
+          "source": "n4-sift-target",
+          "target": "n5-flann",
+          "targetHandle": "file2",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#64748b"
+          }
+        },
+        {
+          "id": "e5",
+          "source": "n5-flann",
+          "target": "n6-homo",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#64748b"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "official_key": "Shapes — End-to-End Training & Evaluation",
+    "description": "Build, train, detect, explain, and evaluate a Shapes YOLO workflow.",
+    "enabled": true,
+    "workflow": {
+      "version": 1,
+      "nodes": [
+        {
+          "id": "shapes-e2e-images",
+          "type": "multi-image-input",
+          "position": {
+            "x": 9.76844823711042,
+            "y": 628.8330730278129
+          },
+          "data": {
+            "label": "Shapes Dataset Images",
+            "status": "idle",
+            "description": "9 preloaded annotated images: circle, triangle, square.",
+            "payload": {
+              "dataset_images": [
+                {
+                  "name": "multi_000.jpg",
+                  "path": "/static/samples/shapes-yolo/multi_000.jpg",
+                  "url": "/static/samples/shapes-yolo/multi_000.jpg",
+                  "width": 640,
+                  "height": 640
+                },
+                {
+                  "name": "multi_001.jpg",
+                  "path": "/static/samples/shapes-yolo/multi_001.jpg",
+                  "url": "/static/samples/shapes-yolo/multi_001.jpg",
+                  "width": 640,
+                  "height": 640
+                },
+                {
+                  "name": "multi_002.jpg",
+                  "path": "/static/samples/shapes-yolo/multi_002.jpg",
+                  "url": "/static/samples/shapes-yolo/multi_002.jpg",
+                  "width": 640,
+                  "height": 640
+                },
+                {
+                  "name": "multi_003.jpg",
+                  "path": "/static/samples/shapes-yolo/multi_003.jpg",
+                  "url": "/static/samples/shapes-yolo/multi_003.jpg",
+                  "width": 640,
+                  "height": 640
+                },
+                {
+                  "name": "multi_004.jpg",
+                  "path": "/static/samples/shapes-yolo/multi_004.jpg",
+                  "url": "/static/samples/shapes-yolo/multi_004.jpg",
+                  "width": 640,
+                  "height": 640
+                },
+                {
+                  "name": "multi_005.jpg",
+                  "path": "/static/samples/shapes-yolo/multi_005.jpg",
+                  "url": "/static/samples/shapes-yolo/multi_005.jpg",
+                  "width": 640,
+                  "height": 640
+                },
+                {
+                  "name": "circle_000.jpg",
+                  "path": "/static/samples/shapes-yolo/circle_000.jpg",
+                  "url": "/static/samples/shapes-yolo/circle_000.jpg",
+                  "width": 640,
+                  "height": 640
+                },
+                {
+                  "name": "triangle_000.jpg",
+                  "path": "/static/samples/shapes-yolo/triangle_000.jpg",
+                  "url": "/static/samples/shapes-yolo/triangle_000.jpg",
+                  "width": 640,
+                  "height": 640
+                },
+                {
+                  "name": "square_000.jpg",
+                  "path": "/static/samples/shapes-yolo/square_000.jpg",
+                  "url": "/static/samples/shapes-yolo/square_000.jpg",
+                  "width": 640,
+                  "height": 640
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "shapes-e2e-dataset",
+          "type": "yolo-dataset",
+          "position": {
+            "x": 372.4718939131526,
+            "y": 177.86517316767072
+          },
+          "data": {
+            "label": "Build Shapes Dataset",
+            "status": "idle",
+            "description": "Bounding boxes are preloaded from the bundled sample labels.",
+            "payload": {
+              "class_names": "circle, triangle, square",
+              "annotations_by_image": {
+                "/static/samples/shapes-yolo/multi_000.jpg": [
+                  {
+                    "class_id": 1,
+                    "x": 0.125781,
+                    "y": 0.652344,
+                    "width": 0.25,
+                    "height": 0.25
+                  },
+                  {
+                    "class_id": 0,
+                    "x": 0.182032,
+                    "y": 0.017969,
+                    "width": 0.229687,
+                    "height": 0.229687
+                  }
+                ],
+                "/static/samples/shapes-yolo/multi_001.jpg": [
+                  {
+                    "class_id": 2,
+                    "x": 0.139844,
+                    "y": 0.132031,
+                    "width": 0.317188,
+                    "height": 0.317188
+                  },
+                  {
+                    "class_id": 0,
+                    "x": 0.663282,
+                    "y": 0.074219,
+                    "width": 0.195312,
+                    "height": 0.195312
+                  }
+                ],
+                "/static/samples/shapes-yolo/multi_002.jpg": [
+                  {
+                    "class_id": 2,
+                    "x": 0.580469,
+                    "y": 0.507031,
+                    "width": 0.298438,
+                    "height": 0.298438
+                  },
+                  {
+                    "class_id": 1,
+                    "x": 0.197657,
+                    "y": 0.678906,
+                    "width": 0.198437,
+                    "height": 0.173437
+                  }
+                ],
+                "/static/samples/shapes-yolo/multi_003.jpg": [
+                  {
+                    "class_id": 2,
+                    "x": 0.303906,
+                    "y": 0.385157,
+                    "width": 0.235937,
+                    "height": 0.235937
+                  },
+                  {
+                    "class_id": 0,
+                    "x": 0.567968,
+                    "y": 0.480468,
+                    "width": 0.176563,
+                    "height": 0.176563
+                  },
+                  {
+                    "class_id": 1,
+                    "x": 0.594531,
+                    "y": 0.214844,
+                    "width": 0.195312,
+                    "height": 0.226562
+                  }
+                ],
+                "/static/samples/shapes-yolo/multi_004.jpg": [
+                  {
+                    "class_id": 1,
+                    "x": 0.446094,
+                    "y": 0.152343,
+                    "width": 0.276562,
+                    "height": 0.317188
+                  },
+                  {
+                    "class_id": 0,
+                    "x": 0.561719,
+                    "y": 0.486718,
+                    "width": 0.273438,
+                    "height": 0.273438
+                  }
+                ],
+                "/static/samples/shapes-yolo/multi_005.jpg": [
+                  {
+                    "class_id": 2,
+                    "x": 0.699219,
+                    "y": 0.142969,
+                    "width": 0.189062,
+                    "height": 0.189062
+                  },
+                  {
+                    "class_id": 0,
+                    "x": 0.603907,
+                    "y": 0.439844,
+                    "width": 0.232813,
+                    "height": 0.232813
+                  }
+                ],
+                "/static/samples/shapes-yolo/circle_000.jpg": [
+                  {
+                    "class_id": 0,
+                    "x": 0.316406,
+                    "y": 0.547656,
+                    "width": 0.317188,
+                    "height": 0.317188
+                  }
+                ],
+                "/static/samples/shapes-yolo/triangle_000.jpg": [
+                  {
+                    "class_id": 1,
+                    "x": 0.391406,
+                    "y": 0.444531,
+                    "width": 0.376563,
+                    "height": 0.340625
+                  }
+                ],
+                "/static/samples/shapes-yolo/square_000.jpg": [
+                  {
+                    "class_id": 2,
+                    "x": 0.269532,
+                    "y": 0.100782,
+                    "width": 0.345313,
+                    "height": 0.345313
+                  }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "id": "shapes-e2e-train",
+          "type": "yolo-train",
+          "position": {
+            "x": 860,
+            "y": 70
+          },
+          "data": {
+            "label": "Train Shapes YOLO",
+            "status": "idle",
+            "description": "Fine-tunes the selected base model for 100 epochs on the annotated sample images.",
+            "payload": {
+              "params": {
+                "model_path": "models/yolo11n.pt",
+                "epochs": 100,
+                "image_size": 640,
+                "batch": 4
+              }
+            }
+          }
+        },
+        {
+          "id": "shapes-e2e-test-image",
+          "type": "image-input",
+          "position": {
+            "x": 862.4149873961676,
+            "y": 446.7992177263343
+          },
+          "data": {
+            "label": "Image Input",
+            "status": "idle",
+            "description": "Preloaded shapes image for inference and XAI.",
+            "payload": {
+              "name": "multi_003.jpg",
+              "path": "/static/samples/shapes-yolo/multi_003.jpg",
+              "url": "/static/samples/shapes-yolo/multi_003.jpg",
+              "result_image_url": "/static/samples/shapes-yolo/multi_003.jpg",
+              "width": 640,
+              "height": 640
+            }
+          }
+        },
+        {
+          "id": "shapes-e2e-detect",
+          "type": "yolo-detect",
+          "position": {
+            "x": 1294.0626130478465,
+            "y": 216.50732747724965
+          },
+          "data": {
+            "label": "Detect Shapes",
+            "status": "idle",
+            "description": "Runs the freshly trained model on the test image.",
+            "payload": {
+              "params": {
+                "model_path": "models/yolo11n.pt",
+                "confidence": 0.25,
+                "iou": 0.7,
+                "image_size": 640,
+                "class_ids": "2"
+              }
+            }
+          }
+        },
+        {
+          "id": "shapes-e2e-gradcam",
+          "type": "yolo-gradcam",
+          "position": {
+            "x": 1296.2251406420569,
+            "y": 742.5740162061687
+          },
+          "data": {
+            "label": "Explain Shapes Detection",
+            "status": "idle",
+            "description": "Visualises the detector focus with Grad-CAM.",
+            "payload": {
+              "params": {
+                "model_path": "models/yolo11n.pt",
+                "method": "GradCAM",
+                "confidence": 0.2,
+                "target_layers": "",
+                "target_class_ids": ""
+              }
+            }
+          }
+        },
+        {
+          "id": "shapes-e2e-evaluation",
+          "type": "detection-evaluation",
+          "position": {
+            "x": 861.7526256716376,
+            "y": 1020.6335205272867
+          },
+          "data": {
+            "label": "Evaluate Shapes Model",
+            "status": "idle",
+            "description": "Runs the trained model against the dataset validation split.",
+            "payload": {
+              "params": {
+                "confidence_threshold": 0.25,
+                "iou_threshold": 0.5,
+                "nms_iou_threshold": 0.7,
+                "image_size": 640
+              }
+            }
+          }
+        },
+        {
+          "id": "shapes-e2e-classification-evaluation",
+          "type": "classification-evaluation",
+          "position": {
+            "x": 370.502364843746,
+            "y": 911.083564450621
+          },
+          "data": {
+            "label": "Classify Shapes Test Result",
+            "status": "idle",
+            "description": "Compares the trained YOLO prediction with the Test Image labels.",
+            "payload": {
+              "evaluation_input_mode": "yolo",
+              "params": {
+                "confidence_threshold": 0.25,
+                "iou_threshold": 0.5,
+                "nms_iou_threshold": 0.7,
+                "image_size": 640
+              }
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "shapes-e2e-images-dataset",
+          "source": "shapes-e2e-images",
+          "sourceHandle": "images",
+          "target": "shapes-e2e-dataset",
+          "targetHandle": "images",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#22d3ee"
+          }
+        },
+        {
+          "id": "shapes-e2e-dataset-train",
+          "source": "shapes-e2e-dataset",
+          "sourceHandle": "dataset",
+          "target": "shapes-e2e-train",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#22d3ee"
+          }
+        },
+        {
+          "id": "shapes-e2e-train-detect",
+          "source": "shapes-e2e-train",
+          "target": "shapes-e2e-detect",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#22d3ee"
+          }
+        },
+        {
+          "id": "shapes-e2e-image-detect",
+          "source": "shapes-e2e-test-image",
+          "sourceHandle": "img",
+          "target": "shapes-e2e-detect",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#22d3ee"
+          }
+        },
+        {
+          "id": "shapes-e2e-train-gradcam",
+          "source": "shapes-e2e-train",
+          "target": "shapes-e2e-gradcam",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#22d3ee"
+          }
+        },
+        {
+          "id": "shapes-e2e-image-gradcam",
+          "source": "shapes-e2e-test-image",
+          "sourceHandle": "img",
+          "target": "shapes-e2e-gradcam",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#22d3ee"
+          }
+        },
+        {
+          "id": "shapes-e2e-dataset-evaluation",
+          "source": "shapes-e2e-dataset",
+          "sourceHandle": "dataset",
+          "target": "shapes-e2e-evaluation",
+          "targetHandle": "dataset",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#22d3ee"
+          }
+        },
+        {
+          "id": "shapes-e2e-train-evaluation",
+          "source": "shapes-e2e-train",
+          "target": "shapes-e2e-evaluation",
+          "targetHandle": "model",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#22d3ee"
+          }
+        },
+        {
+          "id": "shapes-e2e-dataset-classification-evaluation",
+          "source": "shapes-e2e-dataset",
+          "sourceHandle": "dataset",
+          "target": "shapes-e2e-classification-evaluation",
+          "targetHandle": "dataset",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#22d3ee"
+          }
+        },
+        {
+          "id": "shapes-e2e-train-classification-evaluation",
+          "source": "shapes-e2e-train",
+          "target": "shapes-e2e-classification-evaluation",
+          "targetHandle": "model",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#22d3ee"
+          }
+        },
+        {
+          "id": "shapes-e2e-image-classification-evaluation",
+          "source": "shapes-e2e-test-image",
+          "sourceHandle": "img",
+          "target": "shapes-e2e-classification-evaluation",
+          "targetHandle": "image",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#22d3ee"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "official_key": "Shapes — Detection & XAI",
+    "description": "Run the bundled Shapes detector and Grad-CAM workflow.",
+    "enabled": true,
+    "workflow": {
+      "version": 1,
+      "nodes": [
+        {
+          "id": "shapes-xai-test-image",
+          "type": "image-input",
+          "position": {
+            "x": 0,
+            "y": 180
+          },
+          "data": {
+            "label": "Image Input",
+            "status": "idle",
+            "description": "Preloaded shapes image.",
+            "payload": {
+              "name": "multi_003.jpg",
+              "path": "/static/samples/shapes-yolo/multi_003.jpg",
+              "url": "/static/samples/shapes-yolo/multi_003.jpg",
+              "result_image_url": "/static/samples/shapes-yolo/multi_003.jpg",
+              "width": 640,
+              "height": 640
+            }
+          }
+        },
+        {
+          "id": "shapes-xai-detect",
+          "type": "yolo-detect",
+          "position": {
+            "x": 390,
+            "y": 20
+          },
+          "data": {
+            "label": "Detect with Shapes Model",
+            "status": "idle",
+            "description": "Uses the bundled Shapes weights.",
+            "payload": {
+              "params": {
+                "model_path": "models/shapes-best.pt",
+                "confidence": 0.25,
+                "iou": 0.7,
+                "image_size": 640
+              }
+            }
+          }
+        },
+        {
+          "id": "shapes-xai-gradcam",
+          "type": "yolo-gradcam",
+          "position": {
+            "x": 390,
+            "y": 457.406
+          },
+          "data": {
+            "label": "Grad-CAM with Shapes Model",
+            "status": "idle",
+            "description": "Uses the bundled Shapes weights.",
+            "payload": {
+              "params": {
+                "model_path": "models/shapes-best.pt",
+                "method": "GradCAM",
+                "confidence": 0.2,
+                "target_layers": "",
+                "target_class_ids": ""
+              }
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "shapes-xai-image-detect",
+          "source": "shapes-xai-test-image",
+          "sourceHandle": "img",
+          "target": "shapes-xai-detect",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#22d3ee"
+          }
+        },
+        {
+          "id": "shapes-xai-image-gradcam",
+          "source": "shapes-xai-test-image",
+          "sourceHandle": "img",
+          "target": "shapes-xai-gradcam",
+          "type": "smoothstep",
+          "style": {
+            "strokeWidth": 2,
+            "stroke": "#22d3ee"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "official_key": "CLAHE (Contrast Limited Adaptive Histogram Equalization)",
+    "description": "IMAGE + CLAHE",
+    "enabled": false,
+    "workflow": {
+      "version": 1,
+      "nodes": [
+        {
+          "id": "n1-enhance",
+          "type": "image-input",
+          "position": {
+            "x": 250,
+            "y": 50
+          },
+          "data": {
+            "label": "Input Image",
+            "status": "success",
+            "description": "Sample Image Loaded",
+            "payload": {
+              "name": "sample.jpg",
+              "url": "/static/samples/lele.jpg",
+              "width": 512,
+              "height": 512
+            }
+          }
+        },
+        {
+          "id": "n2-clahe",
+          "type": "clahe",
+          "position": {
+            "x": 650,
+            "y": 204.52
+          },
+          "data": {
+            "label": "CLAHE Enhancement",
+            "status": "idle",
+            "description": "Ready to enhance...",
+            "payload": {
+              "params": {
+                "clipLimit": 2,
+                "tileGridSizeX": 8,
+                "tileGridSizeY": 8
+              }
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1-enhance",
+          "target": "n2-clahe",
+          "type": "smoothstep",
+          "style": {
+            "stroke": "#64748b",
+            "strokeWidth": 2
+          }
+        }
+      ]
+    }
+  },
+  {
+    "official_key": "Real-ESRGAN (Super Resolution & Restoration)",
+    "description": "IMAGE + REAL-ESRGAN",
+    "enabled": false,
+    "workflow": {
+      "version": 1,
+      "nodes": [
+        {
+          "id": "n1-restore",
+          "type": "image-input",
+          "position": {
+            "x": 250,
+            "y": 50
+          },
+          "data": {
+            "label": "Input Image",
+            "status": "success",
+            "description": "Sample Image Loaded",
+            "payload": {
+              "name": "sample_64x64.png",
+              "url": "/static/samples/64x64.png",
+              "width": 64,
+              "height": 64
+            }
+          }
+        },
+        {
+          "id": "n2-realesrgan",
+          "type": "realesrgan",
+          "position": {
+            "x": 650,
+            "y": 100
+          },
+          "data": {
+            "label": "Real-ESRGAN Upscaler",
+            "status": "idle",
+            "description": "Ready to upscale (x4)...",
+            "payload": {
+              "params": {
+                "scale": 4,
+                "denoise": 0.4,
+                "model_name": "RealESRGAN_x4plus"
+              }
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1-restore",
+          "target": "n2-realesrgan",
+          "type": "smoothstep",
+          "style": {
+            "stroke": "#64748b",
+            "strokeWidth": 2
+          }
+        }
+      ]
+    }
+  },
+  {
+    "official_key": "DeepLab V3+ (Semantic Segmentation)",
+    "description": "IMAGE + DEEPLAB",
+    "enabled": false,
+    "workflow": {
+      "version": 1,
+      "nodes": [
+        {
+          "id": "n1-seg",
+          "type": "image-input",
+          "position": {
+            "x": 250,
+            "y": 50
+          },
+          "data": {
+            "label": "Input Image",
+            "status": "success",
+            "description": "Sample Image Loaded",
+            "payload": {
+              "name": "sample.jpg",
+              "url": "/static/samples/lele.jpg",
+              "width": 800,
+              "height": 600
+            }
+          }
+        },
+        {
+          "id": "n2-deeplab",
+          "type": "deeplab",
+          "position": {
+            "x": 650,
+            "y": 300
+          },
+          "data": {
+            "label": "DeepLab v3+",
+            "status": "idle",
+            "description": "Ready to segment...",
+            "payload": {
+              "params": {
+                "backbone": "resnet50",
+                "dataset": "coco",
+                "output_stride": 16
+              }
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1-seg",
+          "target": "n2-deeplab",
+          "type": "smoothstep",
+          "style": {
+            "stroke": "#64748b",
+            "strokeWidth": 2
+          }
+        }
+      ]
+    }
+  }
+]

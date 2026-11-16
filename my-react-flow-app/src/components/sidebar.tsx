@@ -1,19 +1,19 @@
 // src/components/sidebar.tsx
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { TEMPLATES, type WorkflowTemplate } from '../lib/workflowTemplates';
-import type { CurrentWorkflow, TemplateDetail } from '../lib/templateApi';
+import { TEMPLATE_INFO, type TemplateInfo } from '../lib/templateInfo';
+import { listOfficialTemplates, loadPlatformTemplate, type CurrentWorkflow, type TemplateDetail } from '../lib/templateApi';
+import { sidebarGroups } from '../lib/nodeCatalog';
 import AlgorithmInfoModal from './modals/AlgorithmInfoModal';
 import TemplatePlatformLibrary, { type PlatformTemplateView } from './TemplatePlatformLibrary';
 
 interface TemplateJobGroup {
   name: string;
   headerColor: string;
-  templates: WorkflowTemplate[];
+  templates: TemplateInfo[];
   sortOrder: number;
 }
 
 interface SidebarProps {
-  onLoadTemplate: ((template: WorkflowTemplate) => void) | null;
   getCurrentWorkflow: () => CurrentWorkflow | null;
   onLoadPlatformTemplate: (template: TemplateDetail) => void;
   onAddNode: (nodeType: string) => void;
@@ -41,7 +41,7 @@ const Icons: Record<string, React.FC<{ className?: string }>> = {
   )
 };
 
-const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate, onAddNode }: SidebarProps) => {
+const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode }: SidebarProps) => {
 
   const [activeTab, setActiveTab] = useState<'nodes' | 'templates'>('nodes');
   const [templateView, setTemplateView] = useState<PlatformTemplateView>('official');
@@ -55,12 +55,12 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate, o
     visible: false,
     x: 0,
     y: 0,
-    template: null as WorkflowTemplate | null,
+    template: null as TemplateInfo | null,
   });
 
   const [aboutModal, setAboutModal] = useState({
     visible: false,
-    template: null as WorkflowTemplate | null,
+    template: null as TemplateInfo | null,
   });
 
   useEffect(() => {
@@ -83,12 +83,12 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate, o
     if (window.matchMedia(COMPACT_MOBILE_QUERY).matches) setCollapsed(true);
   };
 
-  const loadOfficialTemplate = useCallback((officialKey: string) => {
-    const template = TEMPLATES.find((item) => item.name === officialKey);
-    if (template) onLoadTemplate?.(template);
-  }, [onLoadTemplate]);
+  const loadOfficialTemplate = useCallback(async (officialKey: string) => {
+    const official = (await listOfficialTemplates()).find((item) => item.official_key === officialKey);
+    if (official) onLoadPlatformTemplate(await loadPlatformTemplate(official.id));
+  }, [onLoadPlatformTemplate]);
 
-  const openContextMenu = (event: React.MouseEvent, t: WorkflowTemplate) => {
+  const openContextMenu = (event: React.MouseEvent, t: TemplateInfo) => {
     event.preventDefault();
     setContextMenu({
       visible: true,
@@ -123,116 +123,12 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate, o
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const jobs = useMemo(() => ([
-    { 
-      name: 'Input', 
-      headerColor: 'text-teal-400', 
-      algorithms: [
-        { type: 'image-input', label: 'Image Input', color: 'bg-teal-600' },
-        { type: 'multi-image-input', label: 'Multi Image Input', color: 'bg-teal-600' },
-      ]
-    },
-    // { 
-    //   name: 'Enhancement', 
-    //   headerColor: 'text-indigo-500', 
-    //   algorithms: [
-    //     { type: 'clahe', label: 'CLAHE', color: 'bg-indigo-500' }, 
-    //     { type: 'msrcr', label: 'MSRCR Retinex', color: 'bg-indigo-500' }, 
-    //     { type: 'zeroDce', label: 'Zero-DCE Lighten', color: 'bg-indigo-500' }
-    //   ] 
-    // },
-    // { 
-    //   name: 'Restoration', 
-    //   headerColor: 'text-red-500', 
-    //   algorithms: [
-    //     { type: 'dncnn', label: 'DnCNN Denoise', color: 'bg-red-500' }, 
-    //     { type: 'realesrgan', label: 'Real-ESRGAN', color: 'bg-red-500' }, 
-    //     { type: 'swinir', label: 'SwinIR Transformer', color: 'bg-red-500' }
-    //   ] 
-    // },
-    // { 
-    //   name: 'Segmentation', 
-    //   headerColor: 'text-yellow-500', 
-    //   algorithms: [
-    //     { type: 'deeplab', label: 'DeepLab v3+', color: 'bg-yellow-500' }, 
-    //     { type: 'maskrcnn', label: 'Mask R-CNN', color: 'bg-yellow-500' }, 
-    //     { type: 'unet', label: 'U-Net', color: 'bg-yellow-500' }
-    //   ] 
-    // },
-    { 
-      name: 'Feature Extraction', 
-      headerColor: 'text-green-500', 
-      algorithms: [
-        { type: 'sift', label: 'SIFT', color: 'bg-green-500' }, 
-        { type: 'surf', label: 'SURF', color: 'bg-green-500' }, 
-        { type: 'orb', label: 'ORB', color: 'bg-green-500' }
-      ] 
-    },
-    { 
-      name: 'Matching', 
-      headerColor: 'text-orange-500', 
-      algorithms: [
-        { type: 'bfmatcher', label: 'BFMatcher', color: 'bg-orange-500' }, 
-        { type: 'flannmatcher', label: 'FLANN Matcher', color: 'bg-orange-500' }
-      ] 
-    },
-    { 
-      name: 'Object Alignment', 
-      headerColor: 'text-purple-500', 
-      algorithms: [
-        { type: 'homography-align', label: 'Homography Align', color: 'bg-purple-500' }, 
-        { type: 'affine-align', label: 'Affine Align', color: 'bg-purple-500' }
-      ] 
-    },
-    { 
-      name: 'Classification', 
-      headerColor: 'text-pink-500', 
-      algorithms: [
-        { type: 'otsu', label: "Otsu's Threshold", color: 'bg-pink-500' }, 
-        { type: 'snake', label: 'Snake (Active Contour)', color: 'bg-pink-500' }
-      ] 
-    },
-    {
-      name: 'Evaluation',
-      headerColor: 'text-amber-400',
-      algorithms: [
-        { type: 'classification-evaluation', label: 'Classification Evaluation', color: 'bg-amber-600' },
-        { type: 'detection-evaluation', label: 'Detection Evaluation', color: 'bg-amber-600' },
-      ],
-    },
-    {
-      name: 'Object Detection & XAI',
-      headerColor: 'text-cyan-400',
-      algorithms: [
-        { type: 'yolo-dataset', label: 'YOLO Dataset Builder', color: 'bg-cyan-600' },
-        { type: 'yolo-train', label: 'YOLO Train', color: 'bg-cyan-600' },
-        { type: 'yolo-detect', label: 'YOLO Detect / Test', color: 'bg-cyan-600' },
-        { type: 'yolo-gradcam', label: 'YOLO Grad-CAM', color: 'bg-cyan-600' },
-      ],
-    },
-    { 
-      name: 'Quality Assessment', 
-      headerColor: 'text-blue-500', 
-      algorithms: [
-        { type: 'brisque', label: 'BRISQUE', color: 'bg-blue-500' }, 
-        { type: 'psnr', label: 'PSNR', color: 'bg-blue-500' }, 
-        { type: 'ssim', label: 'SSIM', color: 'bg-blue-500' }
-      ] 
-    },
-    { 
-      name: 'Saver', 
-      headerColor: 'text-gray-500', 
-      algorithms: [
-        { type: 'save-image', label: 'Save Image', color: 'bg-gray-500' }, 
-        { type: 'save-json', label: 'Save JSON', color: 'bg-gray-500' }
-      ] 
-    }
-  ]), []);
+  const jobs = useMemo(sidebarGroups, []);
 
   const templateJobs = useMemo(() => {
     const groups: Record<string, TemplateJobGroup> = {};
 
-    TEMPLATES.forEach(t => {
+    TEMPLATE_INFO.filter(t => t.enabled).forEach(t => {
       let key = 'Other';
       let headerColor = 'text-teal-400';
       let sortOrder = 99;
@@ -400,7 +296,7 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate, o
                           {job.templates.map((t, idx) => {
                             const style = getTemplateStyles(t.color ?? 'teal');
                             return (
-                              <button type="button" key={idx} onClick={() => onLoadTemplate?.(t)} onContextMenu={(e) => openContextMenu(e, t)} className={`group w-full touch-manipulation rounded-lg border border-gray-700 bg-gray-800/50 p-2 text-left hover:bg-gray-800 ${style.border} relative overflow-hidden shadow-md transition`}>
+                              <button type="button" key={idx} onClick={() => loadOfficialTemplate(t.name)} onContextMenu={(e) => openContextMenu(e, t)} className={`group w-full touch-manipulation rounded-lg border border-gray-700 bg-gray-800/50 p-2 text-left hover:bg-gray-800 ${style.border} relative overflow-hidden shadow-md transition`}>
                                 <div className={`absolute left-0 top-0 bottom-0 w-1 ${style.stripe} opacity-0 group-hover:opacity-100 transition`} />
                                 <h3 className={`text-[10px] font-black uppercase ${style.text} ${style.hoverText} mb-0.5`}>{t.name}</h3>
                                 <p className="text-[9px] text-gray-500 leading-tight line-clamp-2">{t.description}</p>
@@ -418,7 +314,6 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate, o
                 view={templateView}
                 getCurrentWorkflow={getCurrentWorkflow}
                 onLoad={onLoadPlatformTemplate}
-                onLoadOfficial={loadOfficialTemplate}
                 onViewChange={setTemplateView}
               />
             )}
@@ -430,7 +325,7 @@ const Sidebar = ({ onLoadTemplate, getCurrentWorkflow, onLoadPlatformTemplate, o
 
       {contextMenu.visible && (
         <div className="fixed z-[9999] bg-gray-800 border border-gray-700 text-[11px] font-bold uppercase rounded-md shadow-2xl py-1 w-48 overflow-hidden" style={{ top: contextMenu.y, left: contextMenu.x }}>
-          <button className="w-full text-left px-3 py-2 hover:bg-teal-600 text-white transition-colors flex items-center gap-2" onClick={() => { onLoadTemplate?.(contextMenu.template!); setContextMenu((c) => ({ ...c, visible: false })); }}>
+          <button className="w-full text-left px-3 py-2 hover:bg-teal-600 text-white transition-colors flex items-center gap-2" onClick={() => { loadOfficialTemplate(contextMenu.template!.name); setContextMenu((c) => ({ ...c, visible: false })); }}>
              <span className="text-xs">▶</span> Load Template
           </button>
           <button className="w-full text-left px-3 py-2 hover:bg-indigo-600 text-white transition-colors flex items-center gap-2" onClick={() => { setAboutModal({ visible: true, template: contextMenu.template }); setContextMenu((c) => ({ ...c, visible: false })); }}>

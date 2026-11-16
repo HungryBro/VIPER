@@ -1,10 +1,10 @@
 // src/components/modals/AlgorithmInfoModal.tsx
 
 import { useState } from "react";
-import type { WorkflowTemplate } from "../../lib/workflowTemplates";
+import type { TemplateInfo } from "../../lib/templateInfo";
 
 interface Props {
-  template: WorkflowTemplate | null;
+  template: TemplateInfo | null;
   onClose: () => void;
 }
 

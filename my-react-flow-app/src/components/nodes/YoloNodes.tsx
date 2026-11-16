@@ -4,6 +4,7 @@ import type { CustomNodeData } from '../../types';
 import { abs, getYOLOModels } from '../../lib/api';
 import { resolveYoloModel } from '../../lib/yoloModel';
 import { compactPath } from '../../lib/compactPath';
+import { NODE_DEFAULTS } from '../../lib/nodeDefaults';
 
 
 type Mode = 'train' | 'detect' | 'gradcam';
@@ -24,27 +25,9 @@ const CONFIG = {
 } as const;
 
 const DEFAULTS: Record<Mode, Record<string, any>> = {
-  train: {
-    dataset_yaml: '',
-    model_path: 'models/yolo11n.pt',
-    epochs: 50,
-    image_size: 640,
-    batch: 16,
-  },
-  detect: {
-    model_path: 'models/yolo11n.pt',
-    confidence: 0.25,
-    iou: 0.7,
-    image_size: 640,
-    class_ids: '',
-  },
-  gradcam: {
-    model_path: 'models/yolo11n.pt',
-    method: 'GradCAM',
-    confidence: 0.2,
-    target_layers: '',
-    target_class_ids: '',
-  },
+  train: NODE_DEFAULTS['yolo-train'],
+  detect: NODE_DEFAULTS['yolo-detect'],
+  gradcam: NODE_DEFAULTS['yolo-gradcam'],
 };
 
 function Field({ label, value, type = 'text', onChange, readOnly = false, path = false }: {

@@ -374,7 +374,7 @@ async def upload_template_cover(
     await file.seek(0)
     ensure_dirs(TEMPLATE_COVERS_DIR)
     saved_path = await save_upload(file, TEMPLATE_COVERS_DIR)
-    template.cover_url = static_url(saved_path, OUT)
+    template.cover_url = static_url(saved_path)
     _add_audit(
         db,
         actor_id=user.id,

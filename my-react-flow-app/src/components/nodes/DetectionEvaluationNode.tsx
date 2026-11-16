@@ -3,14 +3,10 @@ import { Handle, Position, type NodeProps, useEdges, useNodes, useReactFlow } fr
 
 import type { CustomNodeData } from '../../types';
 import { compactPath } from '../../lib/compactPath';
+import { NODE_DEFAULTS } from '../../lib/nodeDefaults';
 
 
-const DEFAULTS = {
-  confidence_threshold: 0.25,
-  iou_threshold: 0.5,
-  nms_iou_threshold: 0.7,
-  image_size: 640,
-};
+const DEFAULTS = { ...NODE_DEFAULTS['detection-evaluation'] };
 
 function percent(value: unknown): string {
   const numeric = Number(value);

@@ -234,13 +234,13 @@ def test_static_path_resolution(tmp_path, monkeypatch):
     """ทดสอบ logic การแปลง path ที่ขึ้นต้นด้วย /static/"""
     fake_root = tmp_path / "project"
     fake_root.mkdir()
-    monkeypatch.setattr("server.algos.ObjectAlignment.homography_alignment_adapter.PROJECT_ROOT", str(fake_root))
+    monkeypatch.setattr("server.utils_io.OUT", str(fake_root / "outputs"))
     
     (fake_root / "outputs").mkdir()
     real_file = fake_root / "outputs" / "test.jpg"
     with open(real_file, "w") as f: f.write("fake image content")
     
-    from server.algos.ObjectAlignment import homography_alignment_adapter as mod
-    resolved = mod._resolve_file_path("/static/test.jpg")
+    from server import utils_io as mod
+    resolved = mod.locate_file("/static/test.jpg")
     
     assert resolved == str(real_file)

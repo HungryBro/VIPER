@@ -4,19 +4,15 @@ import os
 import cv2
 import json
 import sys
-import uuid
-import hashlib 
-from datetime import datetime
 import numpy as np
 from typing import Any, Dict, Tuple, Optional
 
 import skimage.metrics
 
+from server.algos.inputs import image_input
+from server.cache_utils import config_hash, load_cached_json
+from server.utils_io import OUT
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
-
-def _ensure_dir(d: str):
-    os.makedirs(d, exist_ok=True)
 
 def is_color(img: np.ndarray) -> bool:
     return (img.ndim == 3) and (img.shape[2] in (3, 4))
@@ -48,47 +44,6 @@ def _ensure_valid_win_size(h: int, w: int, win_size: int | None) -> int:
     if ws % 2 == 0:
         ws = max(3, ws - 1)
     return ws
-
-def _resolve_path(path: str) -> str:
-    if path.lower().endswith(".json"):
-        try:
-            with open(path, 'r', encoding='utf-8') as f:
-                meta = json.load(f)
-            
-            extracted = (
-                meta.get("image", {}).get("original_path") or 
-                meta.get("output", {}).get("aligned_image") or
-                meta.get("output", {}).get("result_image_url") or
-                meta.get("result_image_url") 
-            )
-            if extracted:
-                return extracted
-        except (json.JSONDecodeError, FileNotFoundError, PermissionError):
-            pass
-    
-    if os.path.exists(path):
-        return path
-    
-    rel_path = os.path.join(PROJECT_ROOT, path.lstrip("/"))
-    if os.path.exists(rel_path):
-        return rel_path
-        
-    return path 
-
-
-def _validate_is_image(path: str, label: str):
-    if path.lower().endswith(".json"):
-        try:
-            with open(path, 'r', encoding='utf-8') as f:
-                meta = json.load(f)
-            tool = meta.get("tool") or meta.get("matching_tool")
-            if tool in ["SIFT", "SURF", "ORB", "BFMatcher", "FLANNBasedMatcher"]: 
-                raise ValueError(
-                    f"Invalid Input for '{label}': Received a '{tool}' result file. "
-                    "SSIM requires an Image file, not a Feature/Matcher JSON."
-                )
-        except (json.JSONDecodeError, FileNotFoundError, PermissionError):
-            pass
 
 
 def _serialize(
@@ -143,9 +98,6 @@ def run_ssim_assessment(
     **ssim_params
 ) -> Tuple[float, str, str, bool]:
     
-    _validate_is_image(original_img_path, "Input 1 (Original)")
-    _validate_is_image(processed_img_path, "Input 2 (Processed)")
-
     original_img_raw = cv2.imread(original_img_path, cv2.IMREAD_UNCHANGED)
     processed_img_raw = cv2.imread(processed_img_path, cv2.IMREAD_UNCHANGED)
 
@@ -202,8 +154,8 @@ def compute_ssim(
     **override_params
 ) -> Dict[str, Any]:
     
-    real_orig_path = _resolve_path(original_file)
-    real_proc_path = _resolve_path(processed_file)
+    real_orig_path = image_input(original_file, "SSIM", accept_features=True)
+    real_proc_path = image_input(processed_file, "SSIM", accept_features=True)
 
     ssim_parameters: Dict[str, Any] = {
         "data_range": None,         
@@ -241,8 +193,7 @@ def compute_ssim(
         "auto": auto_switch,
         "params": ssim_parameters
     }
-    config_str = json.dumps(config_map, sort_keys=True, default=str)
-    param_hash = hashlib.md5(config_str.encode('utf-8')).hexdigest()[:8]
+    param_hash = config_hash(config_map)
     
     json_result = _serialize(
         real_orig_path,
@@ -256,7 +207,7 @@ def compute_ssim(
     )
 
     if out_root is None:
-        out_root = os.path.join(PROJECT_ROOT, "outputs")
+        out_root = OUT
 
     out_dir = os.path.join(out_root, "features", "ssim_outputs")
     os.makedirs(out_dir, exist_ok=True)
@@ -266,13 +217,9 @@ def compute_ssim(
 
     json_path = os.path.join(out_dir, f"ssim_{stem_a}_vs_{stem_b}_{param_hash}.json")
     
-    if os.path.exists(json_path):
-         try:
-            with open(json_path, "r", encoding="utf-8") as f:
-                json.load(f)
-            return {"score": score, "json": json_result, "json_path": json_path}
-         except:
-            pass 
+    cached = load_cached_json(json_path)
+    if cached is not None:
+        return {"score": score, "json": json_result, "json_path": json_path}
 
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(json_result, f, indent=2, ensure_ascii=False)

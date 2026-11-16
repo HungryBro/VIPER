@@ -2,6 +2,8 @@
 import { getOutgoers } from 'reactflow';
 import type { Node, Edge, Connection } from 'reactflow';
 import type { CustomNodeData } from '../types'; 
+import { nodeSpec, type DataKind } from './nodeCatalog';
+import { nodeResult } from './nodeResult';
 
 export type ValidationResult = {
   isValid: boolean;
@@ -9,83 +11,14 @@ export type ValidationResult = {
 };
 
 
-const NODE_RULES: Record<string, { inputs: string[]; output: string }> = {
-  // --- Source ---
-  'image-input': { inputs: [], output: 'image' },
-  'multi-image-input': { inputs: [], output: 'images' },
-
-  // --- Features ---
-  'sift': { inputs: ['image'], output: 'feature' },
-  'surf': { inputs: ['image'], output: 'feature' },
-  'orb': { inputs: ['image'], output: 'feature' },
-
-  // --- Matching ---
-  'bfmatcher': { inputs: ['feature'], output: 'match' },
-  'flannmatcher': { inputs: ['feature'], output: 'match' },
-
-  // --- Alignment ---
-  'homography-align': { inputs: ['match'], output: 'image' },
-  'affine-align': { inputs: ['match'], output: 'image' },
-
-  // --- Enhancement / Processing ---
-  'clahe': { inputs: ['image'], output: 'image' },
-  'msrcr': { inputs: ['image'], output: 'image' },
-  'zero': { inputs: ['image'], output: 'image' },
-  'zerodce': { inputs: ['image'], output: 'image' },
-  'zero-dce': { inputs: ['image'], output: 'image' },
-  'zero_dce': { inputs: ['image'], output: 'image' },
-  'dncnn': { inputs: ['image'], output: 'image' },
-  'dcnn': { inputs: ['image'], output: 'image' },
-  'swinir': { inputs: ['image'], output: 'image' },
-  'real': { inputs: ['image'], output: 'image' },
-  'real-esrgan': { inputs: ['image'], output: 'image' },
-  'realesrgan': { inputs: ['image'], output: 'image' },
-
-  // --- Segmentation ---
-  'deep': { inputs: ['image'], output: 'image' },
-  'deeplab': { inputs: ['image'], output: 'image' },
-  'mask': { inputs: ['image'], output: 'image' },
-  'maskrcnn': { inputs: ['image'], output: 'image' },
-  'unet': { inputs: ['image'], output: 'image' },
-
-  // --- Classification / Logic ---
-  'otsu': { inputs: ['image'], output: 'mask' },
-  'snake': { inputs: ['image'], output: 'mask' },
-
-  // --- Object Detection / XAI ---
-  'yolo-dataset': { inputs: ['images'], output: 'dataset' },
-  'yolo-train': { inputs: ['dataset'], output: 'model' },
-  'yolo-detect': { inputs: ['image', 'model'], output: 'image' },
-  'yolo-gradcam': { inputs: ['image', 'model'], output: 'image' },
-
-  // --- Evaluation ---
-  'classification-evaluation': { inputs: ['dataset', 'model', 'image'], output: 'metric' },
-  'detection-evaluation': { inputs: ['dataset', 'model'], output: 'metric' },
-
-  // --- Quality Metrics ---
-  'brisque': { inputs: ['image'], output: 'metric' },
-  'psnr': { inputs: ['image', 'image'], output: 'metric' },
-  'ssim': { inputs: ['image', 'image'], output: 'metric' },
-
-  // --- Output Nodes (Flexible Savers) ---
-  'save-image': { 
-      inputs: ['image', 'feature', 'match', 'metric','mask'], 
-      output: 'none' 
-  },
-  'save-json': { 
-      inputs: ['any'], 
-      output: 'none' 
-  }, 
-};
-
 function isTypeCompatible(sourceType: string, targetType: string): boolean {
-  const sourceRule = NODE_RULES[sourceType.toLowerCase()];
-  const targetRule = NODE_RULES[targetType.toLowerCase()];
+  const sourceRule = nodeSpec(sourceType);
+  const targetRule = nodeSpec(targetType);
 
   if (!sourceRule || !targetRule) return true;
 
   const outputType = sourceRule.output;
-  const allowedInputs = targetRule.inputs;
+  const allowedInputs: readonly DataKind[] = targetRule.inputs;
 
   if (allowedInputs.includes('any')) return true;
   if (allowedInputs.includes(outputType)) return true;
@@ -187,7 +120,7 @@ export function validateNodeInput(
         const imageNode = sourceNodes.find((candidate) => candidate?.type === 'image-input');
         if (!datasetNode || datasetNode.data?.status !== 'success') return { isValid: false, message: 'Connect a completed YOLO Dataset Builder node.' };
         if (!trainNode?.data?.payload?.best_model_path) return { isValid: false, message: 'Connect a completed YOLO Train node.' };
-        if (!imageNode?.data?.payload?.path && !imageNode?.data?.payload?.url) return { isValid: false, message: 'Connect a Test Image node.' };
+        if (!nodeResult(imageNode)?.image) return { isValid: false, message: 'Connect a Test Image node.' };
       }
       break;
     }
@@ -265,7 +198,7 @@ export function validateNodeInput(
       break;
 
     default:
-      if (inputCount < 1 && !['image-input', 'multi-image-input'].includes(type)) {
+      if (inputCount < 1 && nodeSpec(type)?.inputs.length !== 0) {
           return { isValid: false, message: 'Missing input connection.' };
       }
       break;

@@ -1,20 +1,17 @@
 # server/routers/matching.py
-import os
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy.orm import Session
 
 from ..utils_io import resolve_image_path, OUT, static_url
 from ..database import get_db
-from .. import models
+from ..processing import failures_as, public_url, record_result
 
 from server.algos.matching.bfmatcher_adapter import run as bf_run
 from server.algos.matching.flannmatcher_adapter import run as flann_run
 
 router = APIRouter()
-
-BASE_URL = "http://localhost:8000"
 
 def _as_count(x) -> int:
     if isinstance(x, list):
@@ -24,14 +21,31 @@ def _as_count(x) -> int:
     except (TypeError, ValueError):
         return 0
 
-def clean_url_for_db(u: str) -> Optional[str]:
-    if not u: 
-        return None
-    normalized = os.path.normpath(u)
-    normalized = normalized.replace("\\", "/")
-    normalized = normalized.lstrip("/")
-    
-    return f"{BASE_URL}/{normalized}"
+def _match_response(db: Session, tool: str, node_type: str, parameters: dict, result: dict, fallback_description: str) -> dict:
+    """Record a matcher run and build the response both matcher endpoints return."""
+    stats = result.get("matching_statistics", {})
+    vis = result.get("vis_url")
+    web_json_url = static_url(result.get("json_path"))
+    web_vis_url = static_url(resolve_image_path(vis)) if vis else None
+    record_id = record_result(
+        db, node_type, parameters,
+        json_path=str(result.get("json_path")),
+        vis_path=vis,
+        json_url=public_url(web_json_url),
+        vis_url=public_url(web_vis_url),
+    )
+    return {
+        "status": "success",
+        "tool": tool,
+        "description": stats.get("summary") or fallback_description,
+        "matching_statistics": stats,
+        "vis_url": web_vis_url,
+        "json_url": web_json_url,
+        "json_path": result.get("json_path"),
+        "inputs": result.get("inputs", {}),
+        "input_features_details": result.get("input_features_details", {}),
+        "db_record_id": record_id
+    }
 
 class MatchReq(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -56,7 +70,7 @@ def match_bf(req: MatchReq, db: Session = Depends(get_db)):
     json_a_path = resolve_image_path(req.json_a)
     json_b_path = resolve_image_path(req.json_b)
 
-    try:
+    with failures_as(400, "BF Matcher failed: "):
         result = bf_run(
             json_a_path, json_b_path, OUT,
             lowe_ratio=req.lowe_ratio,
@@ -65,53 +79,21 @@ def match_bf(req: MatchReq, db: Session = Depends(get_db)):
             cross_check=req.cross_check,
             draw_mode=req.draw_mode,
         )
-        
+
         stats = result.get("matching_statistics", {})
         inliers = int(result.get("inliers", 0))
         good_cnt = _as_count(result.get("good_matches", stats.get("num_good_matches", 0)))
-        actual_params = result.get("bfmatcher_parameters_used", {})
-        
-        web_json_url = static_url(result.get("json_path"), OUT)
-        web_vis_url = static_url(result.get("vis_url"), OUT)
-
-        try:
-            db_result = models.AlgorithmResult(
-                node_type="bf_match",
-                parameters=actual_params,
-                json_path=str(result.get("json_path")),
-                vis_path=str(result.get("vis_url")),
-                json_url=clean_url_for_db(web_json_url),
-                vis_url=clean_url_for_db(web_vis_url)
-            )
-            db.add(db_result)
-            db.commit()
-            db.refresh(db_result)
-            record_id = db_result.id
-        except Exception as db_err:
-            db.rollback()
-            record_id = None
-
-        return {
-            "status": "success",
-            "tool": "BFMatcher",
-            "description": stats.get("summary") or f"{inliers} inliers / {good_cnt} matches",
-            "matching_statistics": stats,
-            "vis_url": web_vis_url,
-            "json_url": web_json_url,
-            "json_path": result.get("json_path"),
-            "inputs": result.get("inputs", {}),
-            "input_features_details": result.get("input_features_details", {}),
-            "db_record_id": record_id
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"BF Matcher failed: {str(e)}")
+        return _match_response(
+            db, "BFMatcher", "bf_match", result.get("bfmatcher_parameters_used", {}), result,
+            f"{inliers} inliers / {good_cnt} matches",
+        )
 
 @router.post("/flann")
 def match_flann(req: MatchReq, db: Session = Depends(get_db)):
     json_a_path = resolve_image_path(req.json_a)
     json_b_path = resolve_image_path(req.json_b)
 
-    try:
+    with failures_as(400, "FLANN Matcher failed: "):
         result = flann_run(
             json_a_path, json_b_path, OUT,
             lowe_ratio=req.lowe_ratio,       
@@ -126,40 +108,7 @@ def match_flann(req: MatchReq, db: Session = Depends(get_db)):
             max_draw=req.max_draw,
         )
 
-        stats = result.get("matching_statistics", {})
-        actual_params = result.get("flann_parameters_used", {})
-        
-        web_json_url = static_url(result.get("json_path"), OUT)
-        web_vis_url = static_url(result.get("vis_url"), OUT)
-
-        try:
-            db_result = models.AlgorithmResult(
-                node_type="flann_match",
-                parameters=actual_params,
-                json_path=str(result.get("json_path")),
-                vis_path=str(result.get("vis_url")),
-                json_url=clean_url_for_db(web_json_url),
-                vis_url=clean_url_for_db(web_vis_url)
-            )
-            db.add(db_result)
-            db.commit()
-            db.refresh(db_result)
-            record_id = db_result.id
-        except Exception as db_err:
-            db.rollback()
-            record_id = None
-
-        return {
-            "status": "success",
-            "tool": "FLANNBasedMatcher",
-            "description": stats.get("summary") or "FLANN Matching completed",
-            "matching_statistics": stats,
-            "vis_url": web_vis_url,
-            "json_url": web_json_url,
-            "json_path": result.get("json_path"),
-            "inputs": result.get("inputs", {}),
-            "input_features_details": result.get("input_features_details", {}),
-            "db_record_id": record_id
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"FLANN Matcher failed: {str(e)}")
+        return _match_response(
+            db, "FLANNBasedMatcher", "flann_match", result.get("flann_parameters_used", {}), result,
+            "FLANN Matching completed",
+        )

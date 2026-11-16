@@ -1,39 +1,25 @@
-# server/cache_utils.py
+"""Result caching shared by the algorithm adapters.
+
+An adapter names its output files after a hash of everything that determines
+the result. If those files already exist, the stored result is returned.
+"""
 import hashlib
 import json
 import os
-from typing import Any, Dict, Iterable, Optional, Tuple
+from typing import Any, Dict, Optional
 
-def _file_sig(path: str) -> Dict[str, Any]:
+
+def config_hash(config: Dict[str, Any]) -> str:
+    text = json.dumps(config, sort_keys=True, default=str)
+    return hashlib.md5(text.encode("utf-8")).hexdigest()[:8]
+
+
+def load_cached_json(json_path: str, *artifacts: str) -> Optional[Dict[str, Any]]:
+    """Return the stored result if its JSON and every listed artifact exist and the JSON parses."""
+    if not all(os.path.exists(p) for p in (json_path, *artifacts)):
+        return None
     try:
-        st = os.stat(path)
-        return {"path": os.path.abspath(path), "size": st.st_size, "mtime": int(st.st_mtime)}
-    except FileNotFoundError:
-        return {"path": os.path.abspath(path), "size": None, "mtime": None}
-
-def make_cache_key(name: str, *, files: Iterable[str] = (), params: Optional[Dict[str, Any]] = None) -> str:
-    
-    payload = {
-        "name": name,
-        "files": [_file_sig(f) for f in files],
-        "params": params or {},
-    }
-    raw = json.dumps(payload, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha1(raw.encode("utf-8")).hexdigest()  
-
-def ensure_dir(p: str) -> None:
-    os.makedirs(p, exist_ok=True)
-
-def feature_paths(out_root: str, subdir: str, stem: str, ext_json=".json", ext_img=".jpg") -> Tuple[str, str]:
-    
-    base_dir = os.path.join(out_root, "features", subdir)
-    ensure_dir(base_dir)
-    json_path = os.path.join(base_dir, f"{stem}{ext_json}")
-    vis_path = os.path.join(base_dir, f"{stem}{ext_img}")
-    return json_path, vis_path
-
-def metric_json_path(out_root: str, subdir: str, stem: str) -> str:
-    
-    base_dir = os.path.join(out_root, "features", subdir)
-    ensure_dir(base_dir)
-    return os.path.join(base_dir, f"{stem}.json")
+        with open(json_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return None

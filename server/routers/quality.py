@@ -1,13 +1,12 @@
 # server/routers/quality.py
-import os
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from ..utils_io import resolve_image_path, OUT, RESULT_DIR, static_url
+from ..utils_io import OUT, static_url
 from ..database import get_db
-from .. import models
+from ..processing import failures_as, public_url, record_result, require_file
 
 from server.algos.quality.brisque_adapter import run as brisque_run
 from server.algos.quality.psnr_adapter import run as psnr_run
@@ -15,15 +14,24 @@ from server.algos.quality.ssim_adapter import compute_ssim
 
 router = APIRouter()
 
-BASE_URL = "http://localhost:8000"
+# Quality metrics produce no picture. The results table shows "-" in the two
+# picture columns for them instead of an empty cell.
+NO_PICTURE = "-"
 
-def clean_url_for_db(u: str) -> Optional[str]:
-    if not u: 
-        return None
-    normalized = os.path.normpath(u)
-    normalized = normalized.replace("\\", "/")
-    normalized = normalized.lstrip("/")
-    return f"{BASE_URL}/{normalized}"
+
+def _record_metric(db: Session, node_type: str, parameters: dict, json_path: str, web_json_url: Optional[str]) -> Optional[int]:
+    return record_result(
+        db, node_type, parameters,
+        json_path=str(json_path),
+        vis_path=NO_PICTURE,
+        json_url=public_url(web_json_url),
+        vis_url=NO_PICTURE,
+    )
+
+
+def _require_pair(req: "MetricReq") -> tuple:
+    detail = "Original or Processed image not found"
+    return require_file(req.original_path, detail), require_file(req.processed_path, detail)
 
 class QualityReq(BaseModel):
     image_path: str
@@ -37,35 +45,13 @@ class MetricReq(BaseModel):
 
 @router.post("/brisque")
 def quality_brisque(req: QualityReq, db: Session = Depends(get_db)):
-    img_path = resolve_image_path(req.image_path)
-    if not os.path.exists(img_path):
-        raise HTTPException(status_code=404, detail="Image not found")
+    img_path = require_file(req.image_path, "Image not found")
 
-    try:
-        json_path, data = brisque_run(img_path, out_root=RESULT_DIR)
-        
-        web_json_url = static_url(json_path, OUT)
-        actual_params = data.get("parameters_used", {})
+    with failures_as(400):
+        json_path, data = brisque_run(img_path, out_root=OUT)
 
-        # ==========================================
-        # บันทึกผลลัพธ์ลง PostgreSQL
-        # ==========================================
-        try:
-            db_result = models.AlgorithmResult(
-                node_type="quality_brisque",
-                parameters=actual_params,
-                json_path=str(json_path),
-                vis_path="-",   # ใส่ - เพื่อความสวยงามใน Adminer
-                json_url=clean_url_for_db(web_json_url),
-                vis_url="-"     # ใส่ - ตามที่คุยกันไว้
-            )
-            db.add(db_result)
-            db.commit()
-            db.refresh(db_result)
-            record_id = db_result.id
-        except Exception as db_err:
-            db.rollback()
-            record_id = None
+        web_json_url = static_url(json_path)
+        record_id = _record_metric(db, "quality_brisque", data.get("parameters_used", {}), json_path, web_json_url)
 
         return {
             "status": "success",
@@ -76,37 +62,15 @@ def quality_brisque(req: QualityReq, db: Session = Depends(get_db)):
             "message": "Lower score = better perceptual quality",
             "db_record_id": record_id
         }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/psnr")
 def quality_psnr(req: MetricReq, db: Session = Depends(get_db)):
-    p1 = resolve_image_path(req.original_path)
-    p2 = resolve_image_path(req.processed_path)
-    
-    if not os.path.exists(p1) or not os.path.exists(p2):
-        raise HTTPException(status_code=404, detail="Original or Processed image not found")
+    p1, p2 = _require_pair(req)
 
-    try:
-        json_path, data = psnr_run(p1, p2, out_root=RESULT_DIR, use_luma=True)
-        web_json_url = static_url(json_path, OUT)
-
-        try:
-            db_result = models.AlgorithmResult(
-                node_type="quality_psnr",
-                parameters={"use_luma": True},
-                json_path=str(json_path),
-                vis_path="-",
-                json_url=clean_url_for_db(web_json_url),
-                vis_url="-"
-            )
-            db.add(db_result)
-            db.commit()
-            db.refresh(db_result)
-            record_id = db_result.id
-        except Exception as db_err:
-            db.rollback()
-            record_id = None
+    with failures_as(400):
+        json_path, data = psnr_run(p1, p2, out_root=OUT, use_luma=True)
+        web_json_url = static_url(json_path)
+        record_id = _record_metric(db, "quality_psnr", {"use_luma": True}, json_path, web_json_url)
 
         return {
             "status": "success",
@@ -116,16 +80,10 @@ def quality_psnr(req: MetricReq, db: Session = Depends(get_db)):
             "json_url": web_json_url,
             "db_record_id": record_id
         }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/ssim")
 def quality_ssim(req: MetricReq, db: Session = Depends(get_db)):
-    p1 = resolve_image_path(req.original_path)
-    p2 = resolve_image_path(req.processed_path)
-    
-    if not os.path.exists(p1) or not os.path.exists(p2):
-        raise HTTPException(status_code=404, detail="Original or Processed image not found")
+    p1, p2 = _require_pair(req)
 
     params = req.params or {}
     default_params = {
@@ -135,26 +93,10 @@ def quality_ssim(req: MetricReq, db: Session = Depends(get_db)):
     }
     final_params = {**default_params, **params}
 
-    try:
-        result = compute_ssim(p1, p2, out_root=RESULT_DIR, **final_params)
-        web_json_url = static_url(result["json_path"], OUT)
-
-        try:
-            db_result = models.AlgorithmResult(
-                node_type="quality_ssim",
-                parameters=final_params,
-                json_path=str(result["json_path"]),
-                vis_path="-",
-                json_url=clean_url_for_db(web_json_url),
-                vis_url="-"
-            )
-            db.add(db_result)
-            db.commit()
-            db.refresh(db_result)
-            record_id = db_result.id
-        except Exception as db_err:
-            db.rollback()
-            record_id = None
+    with failures_as(400):
+        result = compute_ssim(p1, p2, out_root=OUT, **final_params)
+        web_json_url = static_url(result["json_path"])
+        record_id = _record_metric(db, "quality_ssim", final_params, result["json_path"], web_json_url)
 
         return {
             "status": "success",
@@ -164,5 +106,3 @@ def quality_ssim(req: MetricReq, db: Session = Depends(get_db)):
             "message": "Higher is better (1.0 = identical)",
             "db_record_id": record_id
         }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))

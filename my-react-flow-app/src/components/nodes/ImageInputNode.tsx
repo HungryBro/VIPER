@@ -61,7 +61,8 @@ const ImageInputNode = memo(({ id, data, selected }: Props) => {
             url: absUrl,
             result_image_url: absUrl,
             width: dims.width,
-            height: dims.height
+            height: dims.height,
+            result: { image: f.path, preview: absUrl },
           },
           description: `Image uploaded (${dims.width}×${dims.height})`
         }

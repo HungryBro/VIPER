@@ -40,7 +40,7 @@ def run(image_path, out_root, model_path=None, **kwargs):
 
     # รับค่า Parameter
     scale = float(kwargs.get("scale", 4))
-    denoise_strength = float(kwargs.get("denoise", 1.0)) # ค่า default 1.0 (Full Effect)
+    denoise_strength = float(kwargs.get("denoise", 0.4))
     
     # Clip denoise ให้มั่นใจว่าอยู่ระหว่าง 0-1
     denoise_strength = max(0.0, min(1.0, denoise_strength))

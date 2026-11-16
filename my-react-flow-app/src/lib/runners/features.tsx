@@ -1,6 +1,7 @@
 // File: src/lib/runners/features.tsx
 import { runSift, runSurf, runOrb, abs } from '../api';
-import { markStartThenRunning, updateNodeStatus, findInputImage } from './utils';
+import { producesNoImage } from '../nodeCatalog';
+import { findInputImage } from './utils';
 import type { Edge } from 'reactflow';
 import type { RFNode, SetNodes } from './utils';
 import type { CustomNodeData } from '../../types';
@@ -15,7 +16,6 @@ export async function runFeature(
   const getIncoming = (id: string) => edges.filter((e) => e.target === id);
 
   const fail = async (msg: string) => {
-    await updateNodeStatus(nodeId, 'fault', setNodes);
     throw new Error(msg);
   };
 
@@ -25,9 +25,7 @@ export async function runFeature(
   }
 
   const prevNode = nodes.find((n) => n.id === incoming[0].source);
-  const BAD_SOURCES = ['sift', 'surf', 'orb', 'bfmatcher', 'flannmatcher', 'otsu', 'snake', 'psnr', 'ssim', 'brisque', 'save-json', 'save-image'];
-
-  if (prevNode && BAD_SOURCES.includes(prevNode.type || '')) {
+  if (prevNode && producesNoImage(prevNode.type)) {
     const tool = prevNode.data.label || prevNode.type;
     return fail(`Invalid Input: Feature Extraction requires a raw Image source, not a '${tool}' result.`);
   }
@@ -45,10 +43,9 @@ export async function runFeature(
     case 'sift': prefix = 'SIFT'; runner = runSift; break;
     case 'surf': prefix = 'SURF'; runner = runSurf; break;
     case 'orb': prefix = 'ORB'; runner = runOrb; break;
-    default: return;
+    default: return fail(`Unknown Feature node type: ${node.type}`);
   }
 
-  await markStartThenRunning(nodeId, `Running ${prefix}`, setNodes);
 
   try {
     const params = node.data.payload?.params;
@@ -91,7 +88,8 @@ export async function runFeature(
                   vis_url: visUrl,
                   json_url: resp.json_url,
                   num_keypoints: num_keypoints
-                }
+                },
+                result: { image: visUrl, preview: visUrl, json: resp.json_path ?? resp.json_url },
               },
             } as CustomNodeData,
           }

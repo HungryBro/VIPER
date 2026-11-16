@@ -5,7 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from ..utils_io import resolve_image_path, OUT, RESULT_DIR, static_url
+from ..utils_io import resolve_image_path, OUT, static_url
 
 from server.algos.restoration.dncnn import run as dncnn_run
 from server.algos.restoration.SwinIR import run as swinir_run
@@ -31,15 +31,15 @@ async def api_dncnn(req: RestorationReq):
         raise HTTPException(status_code=404, detail=f"Image not found at: {img_path}")
 
     try:
-        json_p, vis_p = dncnn_run(img_path, RESULT_DIR, model_path=req.model_path, **(req.params or {}))
+        json_p, vis_p = dncnn_run(img_path, OUT, model_path=req.model_path, **(req.params or {}))
         
         json_data = load_output_json(json_p)
 
         return {
             "status": "success",
             "tool": "DnCNN",
-            "json_url": static_url(json_p, OUT),
-            "vis_url": static_url(vis_p, OUT) if vis_p and os.path.exists(vis_p) else None,
+            "json_url": static_url(json_p),
+            "vis_url": static_url(vis_p) if vis_p and os.path.exists(vis_p) else None,
             "json_data": json_data 
         }
     except Exception as e:
@@ -52,15 +52,15 @@ async def api_swinir(req: RestorationReq):
         raise HTTPException(status_code=404, detail=f"Image not found at: {img_path}")
 
     try:
-        json_p, vis_p = swinir_run(img_path, RESULT_DIR, model_path=req.model_path, **(req.params or {}))
+        json_p, vis_p = swinir_run(img_path, OUT, model_path=req.model_path, **(req.params or {}))
         
         json_data = load_output_json(json_p)
 
         return {
             "status": "success",
             "tool": "SwinIR",
-            "json_url": static_url(json_p, OUT),
-            "vis_url": static_url(vis_p, OUT) if vis_p and os.path.exists(vis_p) else None,
+            "json_url": static_url(json_p),
+            "vis_url": static_url(vis_p) if vis_p and os.path.exists(vis_p) else None,
             "json_data": json_data
         }
     except Exception as e:
@@ -74,15 +74,15 @@ async def api_realesrgan(req: RestorationReq):
         raise HTTPException(status_code=404, detail=f"Image not found at: {img_path}")
 
     try:
-        json_p, vis_p = real_run(img_path, RESULT_DIR, model_path=req.model_path, **(req.params or {}))
+        json_p, vis_p = real_run(img_path, OUT, model_path=req.model_path, **(req.params or {}))
         
         json_data = load_output_json(json_p)
         
         return {
             "status": "success",
             "tool": "Real-ESRGAN",
-            "json_url": static_url(json_p, OUT),
-            "vis_url": static_url(vis_p, OUT) if vis_p and os.path.exists(vis_p) else None,
+            "json_url": static_url(json_p),
+            "vis_url": static_url(vis_p) if vis_p and os.path.exists(vis_p) else None,
             "json_data": json_data 
         }
     except Exception as e:

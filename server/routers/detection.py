@@ -9,7 +9,8 @@ from uuid import uuid4
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from ..utils_io import OUT, RESULT_DIR, resolve_image_path, static_url
+from ..schemas import YOLOAnnotation
+from ..utils_io import OUT, resolve_image_path, static_url
 from ..algos.detection import dataset_builder, yolo_adapter
 
 
@@ -53,7 +54,7 @@ def _run_training_job(job_id: str, request: "YOLOTrainReq") -> None:
     try:
         result = yolo_adapter.train(
             dataset_yaml=request.dataset_yaml,
-            out_root=RESULT_DIR,
+            out_root=OUT,
             model_path=request.model_path,
             epochs=request.epochs,
             image_size=request.image_size,
@@ -139,14 +140,6 @@ def cancel_yolo_training_job(job_id: str):
     return _training_job_snapshot(job_id)
 
 
-class YOLOAnnotation(BaseModel):
-    class_id: int = Field(ge=0)
-    x: float = Field(ge=0.0, le=1.0)
-    y: float = Field(ge=0.0, le=1.0)
-    width: float = Field(gt=0.0, le=1.0)
-    height: float = Field(gt=0.0, le=1.0)
-
-
 class YOLODatasetImage(BaseModel):
     image_path: str
     annotations: list[YOLOAnnotation] = Field(default_factory=list)
@@ -184,9 +177,9 @@ class YOLOGradCAMReq(BaseModel):
 def _urls(payload: dict, fields: dict[str, str]) -> dict:
     result = dict(payload)
     for path_field, url_field in fields.items():
-        result[url_field] = static_url(payload.get(path_field), OUT)
+        result[url_field] = static_url(payload.get(path_field))
     if payload.get("json_path"):
-        result["json_url"] = static_url(payload["json_path"], OUT)
+        result["json_url"] = static_url(payload["json_path"])
     return result
 
 
@@ -204,7 +197,7 @@ def create_yolo_dataset(req: YOLODatasetReq):
             dataset_builder.build_dataset(
                 images=images,
                 class_names=req.class_names,
-                out_root=RESULT_DIR,
+                out_root=OUT,
                 name=req.name,
                 validation_split=req.validation_split,
             ),
@@ -220,7 +213,7 @@ def train_yolo(req: YOLOTrainReq):
         return _urls(
             yolo_adapter.train(
                 dataset_yaml=req.dataset_yaml,
-                out_root=RESULT_DIR,
+                out_root=OUT,
                 model_path=req.model_path,
                 epochs=req.epochs,
                 image_size=req.image_size,
@@ -240,7 +233,7 @@ def detect_yolo(req: YOLODetectReq):
         return _urls(
             yolo_adapter.detect(
                 image_path=resolve_image_path(req.image_path),
-                out_root=RESULT_DIR,
+                out_root=OUT,
                 model_path=req.model_path or yolo_adapter.DEFAULT_MODEL,
                 confidence=req.confidence,
                 iou=req.iou,
@@ -260,7 +253,7 @@ def gradcam_yolo(req: YOLOGradCAMReq):
         return _urls(
             yolo_adapter.gradcam(
                 image_path=resolve_image_path(req.image_path),
-                out_root=RESULT_DIR,
+                out_root=OUT,
                 model_path=req.model_path or yolo_adapter.DEFAULT_MODEL,
                 method=req.method,
                 target_layers=req.target_layers,

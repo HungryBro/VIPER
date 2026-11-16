@@ -42,6 +42,11 @@ function saveResult(nodeId: string, params: Record<string, any>, response: any, 
         model_path: response.best_model_path || response.model_path,
         result_image_url: image ? abs(image) : undefined,
         output_image: image ? abs(image) : undefined,
+        result: {
+          image: image ? abs(image) : undefined,
+          preview: image ? abs(image) : undefined,
+          json: response.json_path ?? response.json_url,
+        },
       },
     },
   } : node));

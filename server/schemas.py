@@ -173,3 +173,12 @@ class AdminTemplateCommentsUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     comments_enabled: bool
+
+
+class YOLOAnnotation(BaseModel):
+    """One labelled box, as fractions of the image: centre x/y, width and height."""
+    class_id: int = Field(ge=0)
+    x: float = Field(ge=0.0, le=1.0)
+    y: float = Field(ge=0.0, le=1.0)
+    width: float = Field(gt=0.0, le=1.0)
+    height: float = Field(gt=0.0, le=1.0)

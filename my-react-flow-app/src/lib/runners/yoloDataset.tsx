@@ -50,6 +50,7 @@ export async function runYOLODatasetNode(node: RF, setNodes: SetNodes, nodes: RF
         json_url: response.json_url,
         dataset_yaml: response.dataset_yaml,
         dataset_yaml_url: response.dataset_yaml_url,
+        result: { json: response.json_path ?? response.json_url },
       },
     },
   } : item));

@@ -133,7 +133,6 @@ commands, and how to open the resulting images alongside VIPER results.
 VIPER/
 ├── my-react-flow-app/     # Next.js frontend with React Flow editor
 ├── server/                # FastAPI backend & pipeline logic
-├── Image-to-Descriptor/   # OpenCV image processing modules
 ├── tests/                 # Pytest test suite
 ├── outputs/samples/       # Sample pipeline outputs
 ├── Dockerfile

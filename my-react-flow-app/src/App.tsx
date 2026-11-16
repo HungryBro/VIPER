@@ -9,8 +9,8 @@ import WorkflowControls from './components/WorkflowControls';
 import WorkflowTabs from './components/WorkflowTabs';
 import UserMenu from './components/UserMenu';
 
-import type { WorkflowTemplate } from './lib/workflowTemplates';
 import { sanitizeWorkflowDocument, type TemplateDetail } from './lib/templateApi';
+import { nodeSpec } from './lib/nodeCatalog';
 import type { WorkflowTab, NodeStatus } from './types'; 
 
 const STORAGE_KEY_APP_TABS = 'n2n_app_tabs';
@@ -101,6 +101,8 @@ export default function App() {
                 oldPayload.vis_url || oldPayload.output_image ||         
                 oldPayload.result_image_url || oldPayload.output?.image_url ||    
                 oldPayload.output?.result_image_url || oldPayload.url || oldPayload.image_url;
+             // What the next node reads survives the reload; the rest is trimmed to keep storage small.
+             const result = oldPayload.result;
 
              if (imgUrl) {
                 const json = oldPayload.json || oldPayload.json_data || {};
@@ -120,10 +122,11 @@ export default function App() {
                     psnr: oldPayload.psnr,
                     ssim: oldPayload.ssim,
                     brisque: oldPayload.brisque,
-                    json_data: { detections: json.detections }
+                    json_data: { detections: json.detections },
+                    result,
                 };
              } 
-             else if (['psnr', 'ssim', 'brisque'].includes(node.type || '')) {
+             else if (nodeSpec(node.type)?.group === 'Quality Assessment') {
                 newPayload = oldPayload;
              }
           }
@@ -190,7 +193,7 @@ export default function App() {
     );
   }, [activeTabId, isRunning]);
 
-  const handleLoadTemplate = useCallback((template: WorkflowTemplate) => {
+  const handleLoadTemplate = useCallback((template: { name: string; nodes: WorkflowTab['nodes']; edges: WorkflowTab['edges'] }) => {
     syncCanvasToCurrentTab();
     const newId = `tab-${Date.now()}`;
     const cleanNodes = template.nodes.map(n => ({ ...n, data: { ...n.data, status: 'idle' as NodeStatus } }));
@@ -200,8 +203,7 @@ export default function App() {
     };
     setTabs((prev) => [...prev, newTab]);
     setActiveTabId(newId);
-    setTimeout(() => { canvasRef.current?.restoreSnapshot(cleanNodes, template.edges, { x: 0, y: 0, zoom: 1 }); }, 0);
-    setTimeout(() => { canvasRef.current?.fitView(); }, 200);
+    setTimeout(() => { canvasRef.current?.restoreSnapshot(cleanNodes, template.edges, 'fit'); }, 0);
   }, [syncCanvasToCurrentTab]);
 
   const handleSwitchTab = (newTabId: string) => {
@@ -268,13 +270,7 @@ export default function App() {
   }, [activeTabName]);
 
   const handleLoadPlatformTemplate = useCallback((template: TemplateDetail) => {
-    handleLoadTemplate({
-      name: template.name,
-      description: template.description,
-      color: 'teal',
-      nodes: template.workflow.nodes,
-      edges: template.workflow.edges,
-    });
+    handleLoadTemplate({ name: template.name, nodes: template.workflow.nodes, edges: template.workflow.edges });
   }, [handleLoadTemplate]);
 
   const handleAddNodeFromLibrary = useCallback((nodeType: string) => {
@@ -295,7 +291,6 @@ export default function App() {
       <div className="flex flex-grow overflow-hidden relative">
         <ReactFlowProvider>
           <Sidebar
-            onLoadTemplate={handleLoadTemplate}
             getCurrentWorkflow={getCurrentWorkflow}
             onLoadPlatformTemplate={handleLoadPlatformTemplate}
             onAddNode={handleAddNodeFromLibrary}

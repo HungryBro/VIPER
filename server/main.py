@@ -71,7 +71,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-ensure_dirs(UPLOAD_DIR, OUT)
+ensure_dirs(UPLOAD_DIR)
 app.mount("/static", StaticFiles(directory=OUT), name="static")
 app.include_router(auth.router)
 app.include_router(admin.router)
@@ -98,7 +98,7 @@ async def api_upload(files: list[UploadFile] = File(...)):
         saved.append({
             "name": f.filename,
             "path": path,                 
-            "url": static_url(path, OUT)
+            "url": static_url(path)
         })
     return {"files": saved}
 

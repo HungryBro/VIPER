@@ -1,19 +1,19 @@
 import os
 import sys
 import json
-import hashlib 
 from typing import Optional, Tuple, Dict, Any
 
 import cv2
 import numpy as np
 
+from server.algos.inputs import image_input
+from server.cache_utils import config_hash, load_cached_json
+from server.utils_io import OUT, PROJECT_ROOT, ensure_dirs
+
 # กำหนด Root Project และ Path ของ Model
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
 MODEL_PATH = os.path.join(PROJECT_ROOT, "server/algos/quality/brisque_models/brisque_model_live.yml")
 RANGE_PATH = os.path.join(PROJECT_ROOT, "server/algos/quality/brisque_models/brisque_range_live.yml")
 
-def _ensure_dir(d: str):
-    os.makedirs(d, exist_ok=True)
 
 def _to_uint8_gray(img: np.ndarray, image_path: str) -> np.ndarray:
     if img is None:
@@ -56,35 +56,16 @@ def _interpret_brisque(score: float) -> str:
 def run(image_path: str, out_root: Optional[str] = None) -> Tuple[str, Dict[str, Any]]:
     
     # 1. Handle JSON Input (from previous nodes)
-    if image_path.lower().endswith(".json"):
-        try:
-            with open(image_path, 'r', encoding='utf-8') as f:
-                meta = json.load(f)
-            # Check tool type
-            tool = meta.get("tool") or meta.get("matching_tool") or meta.get("alignment_tool")
-            # ImageInput node might produce a json with "tool": "ImageInput", we allow that.
-            # But Alignment/Matching results usually point to an image in "output".
-            image_path = (
-                meta.get("image", {}).get("original_path") or 
-                meta.get("output", {}).get("aligned_image") or
-                meta.get("output", {}).get("result_image_url") or
-                image_path
-            )
-        except (json.JSONDecodeError, FileNotFoundError, PermissionError):
-            pass
+    image_path = image_input(image_path, "BRISQUE", accept_features=True)
 
     # 2. Resolve Path
     abs_path = os.path.abspath(image_path)
-    if not os.path.exists(abs_path):
-         potential_path = os.path.join(PROJECT_ROOT, image_path.lstrip("/"))
-         if os.path.exists(potential_path):
-             abs_path = potential_path
 
     if out_root is None:
-        out_root = os.path.join(PROJECT_ROOT, "outputs")
+        out_root = OUT
         
     out_dir = os.path.join(out_root, "features", "brisque_outputs")
-    _ensure_dir(out_dir)
+    ensure_dirs(out_dir)
 
     # 3. Config & Hashing
     config_map = {
@@ -93,21 +74,16 @@ def run(image_path: str, out_root: Optional[str] = None) -> Tuple[str, Dict[str,
         "ver": "1.0",
         "mtime": os.path.getmtime(abs_path) if os.path.exists(abs_path) else 0
     }
-    config_str = json.dumps(config_map, sort_keys=True)
-    param_hash = hashlib.md5(config_str.encode('utf-8')).hexdigest()[:8]
+    param_hash = config_hash(config_map)
     
     base_name = os.path.splitext(os.path.basename(abs_path))[0]
     stem = f"brisque_{base_name}_{param_hash}"
     out_json = os.path.join(out_dir, f"{stem}.json")
 
     # 4. Cache Check
-    if os.path.exists(out_json):
-        try:
-            with open(out_json, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            return out_json, data
-        except Exception:
-            pass 
+    cached = load_cached_json(out_json)
+    if cached is not None:
+        return out_json, cached
 
     # 5. Load Image & Validation
     if not os.path.exists(abs_path):

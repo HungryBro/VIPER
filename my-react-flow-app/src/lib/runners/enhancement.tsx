@@ -1,7 +1,8 @@
 // File: src/lib/runners/enhancement.tsx
 import { type Node, type Edge } from 'reactflow'; 
+import { nodeSpec, producesNoImage } from '../nodeCatalog';
 import { runCLAHE, runMSRCR, runZeroDCE, abs } from '../api';
-import { markStartThenRunning, updateNodeStatus, findInputImage } from './utils';
+import { findInputImage } from './utils';
 import type { CustomNodeData } from '../../types';
 
 type RFNode = Node<CustomNodeData>;
@@ -19,11 +20,10 @@ export async function runEnhancement(
   const getIncoming = (id: string) => edges.filter((e) => e.target === id);
 
   const fail = async (msg: string) => {
-    await updateNodeStatus(nodeId, 'fault', setNodes);
     setNodes((nds: RFNode[]) =>
       nds.map((n: RFNode) =>
         n.id === nodeId
-          ? { ...n, data: { ...n.data, status: 'fault', description: msg } }
+          ? { ...n, data: { ...n.data, description: msg } }
           : n
       )
     );
@@ -37,15 +37,8 @@ export async function runEnhancement(
 
   const prevNode = nodes.find((n) => n.id === incoming[0].source);
 
-  const BAD_SOURCES = [
-    'bfmatcher', 'flannmatcher',     
-    'psnr', 'ssim', 'brisque',       
-    'save-json',                     
-    'otsu', 'snake', 
-    'sift', 'surf', 'orb' 
-  ];
 
-  if (prevNode && BAD_SOURCES.includes(prevNode.type || '')) {
+  if (prevNode && producesNoImage(prevNode.type)) {
     const tool = prevNode.data.label || prevNode.type;
     return fail(`Invalid Input: ${nodeLabel} requires a raw Image source, not a '${tool}' result.`);
   }
@@ -57,15 +50,10 @@ export async function runEnhancement(
 
   let prefix = '';
   let runner: any;
-  const nodeType = node.type?.toLowerCase() || '';
-
-  switch (nodeType) {
+  switch (nodeSpec(node.type)?.type) {
     case 'clahe': prefix = 'CLAHE'; runner = runCLAHE; break;
     case 'msrcr': prefix = 'MSRCR'; runner = runMSRCR; break;
-    case 'ZeroDCENode':
-    case 'zero':
-    case 'zerodce': 
-    case 'zero_dce': prefix = 'Zero-DCE'; runner = runZeroDCE; break;
+    case 'zeroDce': prefix = 'Zero-DCE'; runner = runZeroDCE; break;
     default: return fail(`Unknown Enhancement node type: ${node.type}`);
   }
 
@@ -91,7 +79,6 @@ export async function runEnhancement(
     }
   }
 
-  await markStartThenRunning(nodeId, `Running ${prefix}`, setNodes);
 
   try {
     const params = node.data.payload?.params || {};
@@ -126,7 +113,8 @@ export async function runEnhancement(
                   result_image_url: visUrl,
                   output_image: visUrl,
                   image_shape: resp.image_shape || resp.output?.shape || resp.shape,
-                  json_data: resp 
+                  json_data: resp,
+                  result: { image: visUrl, preview: visUrl, json: resp.json_path ?? resp.json_url },
                 },
               } as CustomNodeData,
             }

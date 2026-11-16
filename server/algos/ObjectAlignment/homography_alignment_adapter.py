@@ -3,42 +3,11 @@ import cv2
 import numpy as np
 import json
 import os
-import hashlib 
 from typing import Dict, Any
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+from server.cache_utils import config_hash, load_cached_json
+from server.utils_io import OUT, locate_file, read_json
 
-def _read_json(path: str):
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"JSON file not found: {path}")
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-def _resolve_file_path(path: str) -> str:
-    if not path: return path
-    if os.path.exists(path): return path
-    
-    if path.startswith("/static/"):
-        clean_path = path.replace("/static/", "", 1).lstrip("/")
-        candidate_outputs = os.path.join(PROJECT_ROOT, "outputs", clean_path)
-        if os.path.exists(candidate_outputs): return candidate_outputs
-        candidate_static = os.path.join(PROJECT_ROOT, "static", clean_path)
-        if os.path.exists(candidate_static): return candidate_static
-
-    filename = os.path.basename(path)
-    search_dirs = [
-        os.path.join(PROJECT_ROOT, "outputs", "samples", "json", "matching"),
-        os.path.join(PROJECT_ROOT, "outputs", "samples", "json", "alignment"),
-        os.path.join(PROJECT_ROOT, "outputs", "samples"),
-        os.path.join(PROJECT_ROOT, "outputs", "uploads"),
-        os.path.join(PROJECT_ROOT, "outputs"),
-    ]
-
-    for d in search_dirs:
-        candidate = os.path.join(d, filename)
-        if os.path.exists(candidate): return candidate
-
-    return path
 
 def run(
     match_json_path: str, 
@@ -46,8 +15,8 @@ def run(
     warp_mode: str = "image2_to_image1", 
     blend: bool = False
 ):
-    real_match_json = _resolve_file_path(match_json_path)
-    data = _read_json(real_match_json)
+    real_match_json = locate_file(match_json_path)
+    data = read_json(real_match_json)
 
     if "matching_tool" not in data:
         raise ValueError("Invalid input: Not a Matcher result.")
@@ -56,8 +25,8 @@ def run(
     img1_info = details.get("image1", {})
     img2_info = details.get("image2", {})
 
-    path1 = _resolve_file_path(img1_info.get("original_path") or img1_info.get("file_name"))
-    path2 = _resolve_file_path(img2_info.get("original_path") or img2_info.get("file_name"))
+    path1 = locate_file(img1_info.get("original_path") or img1_info.get("file_name"))
+    path2 = locate_file(img2_info.get("original_path") or img2_info.get("file_name"))
 
     if not path1 or not os.path.exists(path1): raise FileNotFoundError(f"Image 1 not found")
     if not path2 or not os.path.exists(path2): raise FileNotFoundError(f"Image 2 not found")
@@ -95,7 +64,7 @@ def run(
     if H is None: raise RuntimeError("Cannot compute homography.")
 
     if out_root is None:
-        out_root = os.path.join(PROJECT_ROOT, "outputs")
+        out_root = OUT
     
     out_dir = os.path.join(out_root, "features", "homography_outputs")
     os.makedirs(out_dir, exist_ok=True)
@@ -112,8 +81,7 @@ def run(
         "warp": warp_mode,
         "blend": blend
     }
-    config_str = json.dumps(config_map, sort_keys=True)
-    param_hash = hashlib.md5(config_str.encode('utf-8')).hexdigest()[:8]
+    param_hash = config_hash(config_map)
     
     base_match = os.path.splitext(os.path.basename(match_json_path))[0]
     stem = f"homo_{base_match}_{param_hash}"
@@ -124,15 +92,11 @@ def run(
     out_img_path = os.path.join(out_dir, out_img_name)
     out_json_path = os.path.join(out_dir, out_json_name)
 
-    if os.path.exists(out_json_path) and os.path.exists(out_img_path):
+    cached = load_cached_json(out_json_path, out_img_path)
+    if cached is not None:
         print(f"⚡ [Homography] Cache Hit: {out_img_name}")
-        try:
-            with open(out_json_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            data["json_path"] = out_json_path
-            return data
-        except:
-            pass 
+        cached["json_path"] = out_json_path
+        return cached
 
     print(f"⚙️ [Homography] Computing New Result...")
     h_target, w_target = target_img.shape[:2]

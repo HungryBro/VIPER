@@ -1,15 +1,15 @@
 // src/components/TemplateContextMenu.tsx
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import type { WorkflowTemplate } from '../lib/workflowTemplates';
+import type { TemplateInfo } from '../lib/templateInfo';
 
 type TemplateContextMenuProps = {
   x: number;
   y: number;
-  template: WorkflowTemplate;
+  template: TemplateInfo;
   onClose: () => void;
 
-  onLoadTemplate?: (template: WorkflowTemplate) => void;
+  onLoadTemplate?: (template: TemplateInfo) => void;
 
   currentLang: 'en' | 'th';
 };

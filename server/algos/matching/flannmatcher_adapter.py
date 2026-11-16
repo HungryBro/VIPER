@@ -1,106 +1,11 @@
 import os, json, cv2, sys
-import hashlib 
 import numpy as np
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, List
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+from server.cache_utils import config_hash, load_cached_json
+from server.utils_io import OUT
 
-def _read_json(path: str) -> Dict[str, Any]:
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"JSON file not found: {path}")
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-def _resolve_image_path(path: str) -> str:
-    if not path: return path
-    if os.path.exists(path): return path
-    
-    filename = os.path.basename(path)
-    search_dirs = [
-        os.path.join(PROJECT_ROOT, "outputs", "samples"),
-        os.path.join(PROJECT_ROOT, "outputs", "uploads"),
-        os.path.join(PROJECT_ROOT, "outputs"),
-    ]
-
-    for d in search_dirs:
-        candidate = os.path.join(d, filename)
-        if os.path.exists(candidate):
-            return candidate
-
-    rel_path = os.path.join(PROJECT_ROOT, path.lstrip("/"))
-    if os.path.exists(rel_path): return rel_path
-    
-    return path
-
-def _image_size(img_path: str) -> Tuple[Optional[int], Optional[int], Optional[int]]:
-    if not img_path: return None, None, None
-    real_path = _resolve_image_path(img_path)
-    if not os.path.exists(real_path):
-        return None, None, None
-        
-    img = cv2.imread(real_path, cv2.IMREAD_UNCHANGED)
-    if img is None:
-        return None, None, None
-    h, w = img.shape[:2]
-    c = 1 if img.ndim == 2 else img.shape[2]
-    return w, h, c
-
-
-def load_descriptor_data(json_path: str) -> Tuple[List[cv2.KeyPoint], np.ndarray, str, str, Dict[str, Any]]:
-    data = _read_json(json_path)
-
-    if "matching_tool" in data:
-        raise ValueError(f"Error: Invalid input. Input is a '{data['matching_tool']}' result, expected Feature files.")
-
-    tool = str(data.get("tool", "UNKNOWN")).upper()
-    kps_raw = data.get("keypoints", [])
-    
-    img_path = data.get("image", {}).get("original_path")
-    if not img_path:
-         img_path = data.get("image", {}).get("file_name")
-    
-    if img_path:
-        img_path = _resolve_image_path(img_path)
-
-    keypoints: List[cv2.KeyPoint] = []
-    desc_list: List[Any] = []
-    for kp in kps_raw:
-        keypoints.append(
-            cv2.KeyPoint(
-                x=float(kp["x"]), y=float(kp["y"]),
-                size=float(kp.get("size", 1.0)),
-                angle=float(kp.get("angle", -1)),
-                response=float(kp.get("response", 0)),
-                octave=int(kp.get("octave", 0)),
-                class_id=int(kp.get("class_id", -1)),
-            )
-        )
-        if kp.get("descriptor") is not None:
-            desc_list.append(kp["descriptor"])
-
-    extra: Dict[str, Any] = {}
-
-    if tool in ("SIFT", "SURF"):
-        descriptors = np.array(desc_list, dtype=np.float32)
-        desc_dim = int(data.get("descriptor_dim", 128))
-        if descriptors.size == 0:
-            descriptors = np.empty((0, desc_dim), dtype=np.float32)
-
-    elif tool == "ORB":
-        descriptors = np.array(desc_list, dtype=np.uint8)
-        if descriptors.size == 0:
-            descriptors = np.empty((0, 32), dtype=np.uint8)
-        try:
-            extra["WTA_K"] = int(data.get("orb_parameters_used", {}).get("WTA_K"))
-        except Exception:
-            extra["WTA_K"] = None
-    else:
-        if desc_list:
-             descriptors = np.array(desc_list)
-        else:
-             descriptors = np.empty((0, 0))
-
-    return keypoints, descriptors, tool, img_path, extra
+from .features_io import image_size, load_features
 
 
 def humanize_index_name(index_params: Dict[str, Any]) -> str:
@@ -142,8 +47,8 @@ def run(
     max_draw: Optional[int] = None,
 ) -> Dict[str, Any]:
 
-    kp1, des1, tool1, img1_path, extra1 = load_descriptor_data(json_a)
-    kp2, des2, tool2, img2_path, extra2 = load_descriptor_data(json_b)
+    kp1, des1, tool1, img1_path, extra1 = load_features(json_a, "FLANNMatcher")
+    kp2, des2, tool2, img2_path, extra2 = load_features(json_b, "FLANNMatcher")
 
     if tool1 != tool2 and tool1 != "UNKNOWN" and tool2 != "UNKNOWN":
         raise ValueError(f": Tool mismatch: {tool1} vs {tool2}")
@@ -212,7 +117,7 @@ def run(
         mode_in = "good"
 
     if out_root is None:
-        out_root = os.path.join(PROJECT_ROOT, "outputs")
+        out_root = OUT
         
     out_dir = os.path.join(out_root, "features", "flannmatcher_outputs")
     if not os.path.exists(out_dir):
@@ -233,21 +138,16 @@ def run(
         "mode": mode_in,
         "draw": max_draw
     }
-    config_str = json.dumps(config_map, sort_keys=True, default=str)
-    param_hash = hashlib.md5(config_str.encode('utf-8')).hexdigest()[:8]
+    param_hash = config_hash(config_map)
     stem = f"flann_{param_hash}"
     
     out_json_path = os.path.join(out_dir, f"{stem}.json")
     out_vis_path = os.path.join(out_dir, f"{stem}_vis.jpg")
 
-    if os.path.exists(out_json_path) and os.path.exists(out_vis_path):
-         try:
-            with open(out_json_path, "r", encoding="utf-8") as f:
-                d = json.load(f)
-            d["json_path"] = out_json_path
-            return d
-         except:
-            pass
+    cached = load_cached_json(out_json_path, out_vis_path)
+    if cached is not None:
+        cached["json_path"] = out_json_path
+        return cached
 
     flann = cv2.FlannBasedMatcher(index_params, search_params)
     raw_matches: List[Any] = []
@@ -294,8 +194,8 @@ def run(
     else:
         homography_reason = "not_enough_good_matches"
 
-    w1, h1, c1 = _image_size(img1_path)
-    w2, h2, c2 = _image_size(img2_path)
+    w1, h1, c1 = image_size(img1_path)
+    w2, h2, c2 = image_size(img2_path)
 
     img1 = cv2.imread(img1_path) if img1_path and os.path.exists(img1_path) else None
     img2 = cv2.imread(img2_path) if img2_path and os.path.exists(img2_path) else None

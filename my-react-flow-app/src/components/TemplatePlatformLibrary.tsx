@@ -28,7 +28,6 @@ type Props = {
   view: PlatformTemplateView;
   getCurrentWorkflow: () => CurrentWorkflow | null;
   onLoad: (template: TemplateDetail) => void;
-  onLoadOfficial: (officialKey: string) => void;
   onViewChange: (view: PlatformTemplateView) => void;
 };
 
@@ -88,7 +87,6 @@ export default function TemplatePlatformLibrary({
   view,
   getCurrentWorkflow,
   onLoad,
-  onLoadOfficial,
   onViewChange,
 }: Props) {
   const { user } = useAuth();
@@ -207,13 +205,7 @@ export default function TemplatePlatformLibrary({
     setError('');
     setNotice('');
     try {
-      const loaded = await loadPlatformTemplate(template.id);
-      if (template.is_official) {
-        if (!template.official_key) throw new Error('Official template is missing its workflow key.');
-        onLoadOfficial(template.official_key);
-      } else {
-        onLoad(loaded);
-      }
+      onLoad(await loadPlatformTemplate(template.id));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to load template');
     } finally {

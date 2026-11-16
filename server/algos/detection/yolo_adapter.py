@@ -13,8 +13,10 @@ from typing import Any, Callable, Iterable, Optional
 
 import numpy as np
 
+from server import utils_io
 
-PROJECT_ROOT = Path(__file__).resolve().parents[3]
+
+PROJECT_ROOT = Path(utils_io.PROJECT_ROOT)
 DEFAULT_MODEL = "models/yolo11n.pt"
 
 

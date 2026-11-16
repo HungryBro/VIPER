@@ -10,7 +10,8 @@ from pydantic import BaseModel, Field
 from server.algos.evaluation import evaluate_classification
 from server.algos.evaluation.detection_evaluator import evaluate_yolo_dataset
 from server.algos.evaluation.yolo_classification_evaluator import evaluate_yolo_test_image
-from server.utils_io import OUT, RESULT_DIR, resolve_image_path, static_url
+from server.schemas import YOLOAnnotation
+from server.utils_io import OUT, resolve_image_path, static_url
 
 
 router = APIRouter()
@@ -33,14 +34,6 @@ class DetectionEvaluationReq(BaseModel):
     nms_iou_threshold: float = Field(default=0.7, gt=0.0, le=1.0)
     image_size: int = Field(default=640, ge=32)
     device: str | None = None
-
-
-class YOLOAnnotation(BaseModel):
-    class_id: int = Field(ge=0)
-    x: float = Field(ge=0.0, le=1.0)
-    y: float = Field(ge=0.0, le=1.0)
-    width: float = Field(gt=0.0, le=1.0)
-    height: float = Field(gt=0.0, le=1.0)
 
 
 class YOLOClassificationEvaluationReq(BaseModel):
@@ -88,14 +81,14 @@ def yolo_classification_evaluation(req: YOLOClassificationEvaluationReq) -> dict
             model_path=req.model_path,
             class_names=req.class_names,
             annotations=[annotation.model_dump() for annotation in req.annotations],
-            out_root=RESULT_DIR,
+            out_root=OUT,
             confidence_threshold=req.confidence_threshold,
             iou_threshold=req.iou_threshold,
             nms_iou_threshold=req.nms_iou_threshold,
             image_size=req.image_size,
             device=req.device,
         )
-        result["json_url"] = static_url(result["json_path"], OUT)
+        result["json_url"] = static_url(result["json_path"])
         return result
     except (FileNotFoundError, ValueError, RuntimeError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
@@ -108,14 +101,14 @@ def detection_evaluation(req: DetectionEvaluationReq) -> dict[str, Any]:
         result = evaluate_yolo_dataset(
             dataset_yaml=req.dataset_yaml,
             model_path=req.model_path,
-            out_root=RESULT_DIR,
+            out_root=OUT,
             confidence_threshold=req.confidence_threshold,
             iou_threshold=req.iou_threshold,
             nms_iou_threshold=req.nms_iou_threshold,
             image_size=req.image_size,
             device=req.device,
         )
-        result["json_url"] = static_url(result["json_path"], OUT)
+        result["json_url"] = static_url(result["json_path"])
         return result
     except (FileNotFoundError, ValueError, RuntimeError) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc

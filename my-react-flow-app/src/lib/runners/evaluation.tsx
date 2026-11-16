@@ -2,9 +2,9 @@ import type { Edge } from 'reactflow';
 
 import type { CustomNodeData } from '../../types';
 import { runClassificationEvaluation, runDetectionEvaluation, runYOLOClassificationEvaluation } from '../api';
-import { markStartThenRunning, type RFNode, type SetNodes } from './utils';
+import { type RFNode, type SetNodes } from './utils';
+import { nodeResult } from '../nodeResult';
 
-const EVALUATION_DEFAULTS = { confidence_threshold: 0.25, iou_threshold: 0.5, nms_iou_threshold: 0.7, image_size: 640 };
 
 function isClassificationInput(value: unknown): value is Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -21,11 +21,6 @@ function connectedNode(node: RFNode, nodes: RFNode[], edges: Edge[], type: strin
 function classNames(value: unknown): string[] {
   if (Array.isArray(value)) return value.map(String).map((name) => name.trim()).filter(Boolean);
   return typeof value === 'string' ? value.split(',').map((name) => name.trim()).filter(Boolean) : [];
-}
-
-function imagePath(payload: Record<string, any>): string | undefined {
-  return [payload.path, payload.image_path, payload.url, payload.result_image_url]
-    .find((value) => typeof value === 'string' && value.trim());
 }
 
 function imageAnnotations(payload: Record<string, any>, path: string): any[] | undefined {
@@ -54,7 +49,6 @@ export async function runClassificationEvaluationNode(
   const fail = (message: string) => failNode(node, setNodes, message);
   let response: any;
   try {
-    await markStartThenRunning(node.id, 'Classification Evaluation', setNodes);
     if (inputMode === 'file') {
       const input = node.data?.payload?.evaluation_input;
       if (!isClassificationInput(input)) return fail('Choose a Classification Evaluation JSON file containing y_true and y_pred.');
@@ -65,8 +59,7 @@ export async function runClassificationEvaluationNode(
       const imageNode = connectedNode(node, nodes, edges, 'image-input');
       const datasetPayload = datasetNode?.data?.payload || {};
       const trainPayload = trainNode?.data?.payload || {};
-      const testPayload = imageNode?.data?.payload || {};
-      const path = imagePath(testPayload);
+      const path = nodeResult(imageNode)?.image;
       const annotations = path ? imageAnnotations(datasetPayload, path) : undefined;
       const names = classNames(datasetPayload.class_names);
       // This evaluation uses the Builder's labels directly.  It does not need
@@ -76,7 +69,7 @@ export async function runClassificationEvaluationNode(
       if (!trainPayload.best_model_path) return fail('Connect a completed YOLO Train node.');
       if (!path) return fail('Connect a Test Image with an uploaded image.');
       if (!names.length || !annotations?.length) return fail('Use a Test Image that belongs to the connected labelled YOLO Dataset Builder.');
-      const raw = { ...EVALUATION_DEFAULTS, ...(node.data?.payload?.params || {}) };
+      const raw = { ...(node.data?.payload?.params || {}) };
       const params = Object.fromEntries(Object.entries(raw).map(([key, value]) => [key, Number(value)]));
       response = await runYOLOClassificationEvaluation({
         image_path: path,
@@ -93,7 +86,7 @@ export async function runClassificationEvaluationNode(
         ...item.data,
         status: 'success',
         description: Number.isFinite(accuracy) ? `Accuracy ${(accuracy * 100).toFixed(1)}%` : 'Classification evaluation completed',
-        payload: { ...(item.data?.payload || {}), json: response, evaluation_result: response, output: response, json_path: response.json_path, json_url: response.json_url },
+        payload: { ...(item.data?.payload || {}), json: response, evaluation_result: response, output: response, json_path: response.json_path, json_url: response.json_url, result: { json: response.json_path ?? response.json_url } },
       } as CustomNodeData,
     } : item));
   } catch (error: any) {
@@ -113,13 +106,12 @@ export async function runDetectionEvaluationNode(node: RFNode, setNodes: SetNode
   const modelPath = connectedOutput(node, nodes, edges, 'yolo-train', 'best_model_path');
   if (!datasetYaml) return fail('Connect a completed YOLO Dataset Builder node.');
   if (!modelPath) return fail('Connect a completed YOLO Train node.');
-  const rawParams = { ...EVALUATION_DEFAULTS, ...(node.data?.payload?.params || {}) };
+  const rawParams = { ...(node.data?.payload?.params || {}) };
   const params = { confidence_threshold: Number(rawParams.confidence_threshold), iou_threshold: Number(rawParams.iou_threshold), nms_iou_threshold: Number(rawParams.nms_iou_threshold), image_size: Number(rawParams.image_size) };
-  await markStartThenRunning(node.id, 'Detection Evaluation', setNodes);
   try {
     const response = await runDetectionEvaluation({ dataset_yaml: datasetYaml, model_path: modelPath, ...params }, signal);
     const rate = Number(response?.metrics?.detection_rate);
-    setNodes((current) => current.map((item) => item.id === node.id ? { ...item, data: { ...item.data, status: 'success', description: Number.isFinite(rate) ? `Detection rate ${(rate * 100).toFixed(1)}%` : 'Detection evaluation completed', payload: { ...(item.data?.payload || {}), params, json: response, evaluation_result: response, output: response, json_path: response.json_path, json_url: response.json_url } } as CustomNodeData } : item));
+    setNodes((current) => current.map((item) => item.id === node.id ? { ...item, data: { ...item.data, status: 'success', description: Number.isFinite(rate) ? `Detection rate ${(rate * 100).toFixed(1)}%` : 'Detection evaluation completed', payload: { ...(item.data?.payload || {}), params, json: response, evaluation_result: response, output: response, json_path: response.json_path, json_url: response.json_url, result: { json: response.json_path ?? response.json_url } } } as CustomNodeData } : item));
   } catch (error: any) {
     if (error?.name === 'AbortError') return;
     return fail(error?.message || 'Detection evaluation failed.');
