@@ -1,0 +1,14 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "viper-v2",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "-e",
+        "const h=require('http'),f=require('fs'),p=require('path');const r='/Users/dolphin/Desktop/VIPER/outputs/viper-learning-v2';h.createServer((q,s)=>{let u=decodeURIComponent(q.url.split('?')[0]);if(u==='/')u='/index.html';f.readFile(p.join(r,u),(e,d)=>{if(e){s.writeHead(404);return s.end()}s.writeHead(200,{'content-type':u.endsWith('.html')?'text/html; charset=utf-8':'application/octet-stream'});s.end(d)})}).listen(8765)"
+      ],
+      "port": 8765
+    }
+  ]
+}
