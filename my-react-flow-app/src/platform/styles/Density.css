@@ -140,7 +140,7 @@
   .viper-platform .global-header.platform-header{height:96px!important;min-height:96px!important;padding:6px 16px 42px;gap:8px;align-items:center}
   .viper-platform .global-header.platform-header.guest-header{height:92px!important;min-height:92px!important;padding:6px 16px 42px}
   .viper-platform .global-header.platform-header .global-nav{left:8px;right:8px;bottom:3px;height:36px;max-width:none;gap:2px;justify-content:flex-start}
-  .viper-platform .global-header.platform-header .global-nav button{height:32px;padding:0 10px;font-size:12px}
+  .viper-platform .global-header.platform-header .global-nav button,.viper-platform .global-header.platform-header .global-nav a{height:32px;padding:0 10px;font-size:12px}
   .viper-platform .platform-header .notification-popup,.viper-platform .platform-header .account-menu{top:50px}
 }
 
@@ -175,8 +175,8 @@
 /* tokens for shadows + touch targets */
 .viper-platform{--shade:#0f1b3a}
 .viper-platform[data-theme=dark]{--shade:#000}
-@media(max-width:699px){.viper-platform .page button:not(.icon-btn):not(.template-preview){min-height:44px}.viper-platform .global-header.platform-header .global-nav button{height:44px}.viper-platform .icon-btn{min-width:44px;min-height:44px}}
-@media(pointer:coarse){.viper-platform .btn,.viper-platform .lab-actions .btn,.viper-platform .node-actions>button{min-height:44px}.viper-platform .global-header.platform-header .global-nav button{height:40px}}
+@media(max-width:699px){.viper-platform .page button:not(.icon-btn):not(.template-preview){min-height:44px}.viper-platform .global-header.platform-header .global-nav button,.viper-platform .global-header.platform-header .global-nav a{height:44px}.viper-platform .icon-btn{min-width:44px;min-height:44px}}
+@media(pointer:coarse){.viper-platform .btn,.viper-platform .lab-actions .btn,.viper-platform .node-actions>button{min-height:44px}.viper-platform .global-header.platform-header .global-nav button,.viper-platform .global-header.platform-header .global-nav a{height:40px}}
 
 /* Lab บนมือถือ: หัวข้อบรรทัดเดียว, คลังโหนดไม่ทับแผงผลลัพธ์ */
 @media(max-width:699px){

@@ -75,7 +75,7 @@
 
 /* Keep the agreed compact text header and its complete English navigation. */
 .viper-platform .global-header.platform-header { border-color: var(--line); }
-.viper-platform .global-header.platform-header .global-nav button.active { color: var(--blue-ink); }
+.viper-platform .global-header.platform-header .global-nav button.active, .viper-platform .global-header.platform-header .global-nav a.active { color: var(--blue-ink); }
 .viper-platform .header-role-switch { background: var(--subtle); }
 .viper-platform .header-role-switch button[aria-pressed=true] { color: var(--blue-ink); }
 .viper-platform .platform-header .header-brand-caption { border-color: var(--line); }

@@ -6,6 +6,7 @@ import { createBrowserRouter } from 'react-router-dom';
 
 import App from './App';
 import LabPage from './pages/LabPage';
+import Layout from './platform/Layout';
 import { NotFoundPage, NotReadyPage, RootErrorBoundary } from './pages/StatusPages';
 
 const PLANNED_PATHS = [
@@ -29,10 +30,16 @@ export const router = createBrowserRouter([
     Component: App,
     ErrorBoundary: RootErrorBoundary,
     children: [
-      { index: true, Component: NotReadyPage },
+      // /lab ไม่อยู่ใต้ Layout ของแพลตฟอร์ม: มีหัวของ editor เอง (T14 ค่อยรวม header)
       { path: 'lab', Component: LabPage },
-      ...PLANNED_PATHS.map((path) => ({ path, Component: NotReadyPage })),
-      { path: '*', Component: NotFoundPage },
+      {
+        Component: Layout,
+        children: [
+          { index: true, Component: NotReadyPage },
+          ...PLANNED_PATHS.map((path) => ({ path, Component: NotReadyPage })),
+          { path: '*', Component: NotFoundPage },
+        ],
+      },
     ],
   },
 ]);

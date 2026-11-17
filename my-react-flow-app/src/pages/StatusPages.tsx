@@ -3,6 +3,8 @@
 import type { ReactNode } from 'react';
 import { Link, isRouteErrorResponse, useLocation, useRouteError } from 'react-router-dom';
 
+import { Empty } from '../platform/ui';
+
 function StatusShell({ title, children }: { title: string; children: ReactNode }) {
   return (
     <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-6">
@@ -20,26 +22,39 @@ function StatusShell({ title, children }: { title: string; children: ReactNode }
   );
 }
 
+// สองหน้านี้อยู่ใต้ Layout ของแพลตฟอร์ม (.viper-platform) จึงใช้ Empty ของ platform/ui
+function PlatformStatus({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="page">
+      <Empty
+        title={title}
+        action={
+          <Link to="/lab" className="btn primary">
+            ไปที่ Lab
+          </Link>
+        }
+      >
+        {children}
+      </Empty>
+    </div>
+  );
+}
+
 export function NotReadyPage() {
   const { pathname } = useLocation();
   return (
-    <StatusShell title="หน้านี้ยังไม่พร้อม">
-      <p>
-        หน้า <code className="rounded bg-slate-800 px-1.5 py-0.5 text-teal-200">{pathname}</code> กำลังย้ายมาจากแบบ
-        mockup v2 ระหว่างนี้ใช้ Lab ได้ตามปกติ
-      </p>
-    </StatusShell>
+    <PlatformStatus title="หน้านี้ยังไม่พร้อม">
+      หน้า <code>{pathname}</code> กำลังย้ายมาจากแบบ mockup v2 ระหว่างนี้ใช้ Lab ได้ตามปกติ
+    </PlatformStatus>
   );
 }
 
 export function NotFoundPage() {
   const { pathname } = useLocation();
   return (
-    <StatusShell title="ไม่พบหน้านี้">
-      <p>
-        ไม่มีหน้า <code className="rounded bg-slate-800 px-1.5 py-0.5 text-teal-200">{pathname}</code> ใน VIPER
-      </p>
-    </StatusShell>
+    <PlatformStatus title="ไม่พบหน้านี้">
+      ไม่มีหน้า <code>{pathname}</code> ใน VIPER
+    </PlatformStatus>
   );
 }
 
