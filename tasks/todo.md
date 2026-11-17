@@ -43,7 +43,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
   - [ ] มีภาพ mockup ของทุกแถวที่ 1440×900 และ 375×812 ใน `outputs/parity-report/mockup/` ครบ 3 บทบาท
 - ตรวจ: นับจำนวนแถวเทียบกับจำนวน component ที่ export ใน `Platform.jsx`, `Learning.jsx`, `Teaching.jsx`, `Guest.jsx` และ function ใน `App.jsx` ต้องไม่มีตัวไหนไม่มีแถว
 - ขึ้นกับ: ไม่มี
-- ไฟล์: `tasks/parity.md`, `scripts/parity_screenshots.mjs` (ส่วนถ่าย mockup)
+- ไฟล์: `tasks/parity.md`, `scripts/parity_screenshots.py` (ส่วนถ่าย mockup)
 - ขนาด: M
 - skill: `webapp-testing` (สคริปต์ Playwright ถ่ายภาพ mockup) · ติดตั้งแล้ว 17 พ.ย.: Playwright 1.65.2 ใน `.venv` + Chromium 159 รันด้วย `./.venv/bin/python`
 - ผู้ทำ: Sonnet subagent (medium) · ชุด I1
@@ -379,7 +379,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
   - [ ] แถวที่ `ว่างตามแผน` หรือ `ตัดออก` มีป้ายและเหตุผลชัดเจน
 - ตรวจ: เปิดรายงานในเบราว์เซอร์ ไม่มีภาพเสีย จำนวนแถวเท่ากับตารางเทียบ
 - ขึ้นกับ: T2, T21, ต้องมี session ที่ผู้ใช้ login ไว้ (admin และบัญชีธรรมดา)
-- ไฟล์: `scripts/parity_screenshots.mjs`, `scripts/build_parity_report.mjs`
+- ไฟล์: `scripts/parity_screenshots.py`, `scripts/build_parity_report.mjs`
 - ขนาด: M
 - skill: `webapp-testing` (ใช้ `storage_state` เก็บ session ที่ login แล้ว)
 - ผู้ทำ: Sonnet subagent (medium) · ชุด I2 · ตัวหลักเตรียม session ที่ login แล้วให้ก่อน
