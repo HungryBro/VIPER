@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from ..auth import require_admin, utc_now
@@ -9,6 +9,7 @@ from ..config import settings
 from ..database import get_db
 from ..models import AuditLog, Template, User
 from ..schemas import (
+    AdminAuditActionCount,
     AdminAuditLogPublic,
     AdminTemplateCommentsUpdate,
     AdminUserPublic,
@@ -47,18 +48,70 @@ def _add_admin_audit(
     )
 
 
+def _escape_like(term: str) -> str:
+    return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 @router.get("/audit-logs", response_model=list[AdminAuditLogPublic])
 def list_audit_logs(
+    response: Response,
     limit: int = Query(default=200, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    action: list[str] | None = Query(default=None),
+    action_prefix: list[str] | None = Query(default=None),
+    q: str | None = Query(default=None, max_length=200),
     _: User = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    # รูปแบบ response ยังเป็น list เดิม ยอดรวมที่ตรงตัวกรองส่งทาง header X-Total-Count
+    conditions = []
+    if action:
+        conditions.append(AuditLog.action.in_(action))
+    if action_prefix:
+        conditions.append(
+            or_(*[AuditLog.action.like(f"{_escape_like(prefix)}%", escape="\\") for prefix in action_prefix])
+        )
+    term = (q or "").strip()
+    if term:
+        pattern = f"%{_escape_like(term)}%"
+        conditions.append(
+            or_(
+                AuditLog.action.ilike(pattern, escape="\\"),
+                AuditLog.target_type.ilike(pattern, escape="\\"),
+                AuditLog.target_id.ilike(pattern, escape="\\"),
+                AuditLog.request_path.ilike(pattern, escape="\\"),
+                AuditLog.actor.has(
+                    or_(
+                        User.display_name.ilike(pattern, escape="\\"),
+                        User.email.ilike(pattern, escape="\\"),
+                    )
+                ),
+            )
+        )
+
+    total = db.scalar(select(func.count()).select_from(AuditLog).where(*conditions)) or 0
+    response.headers["X-Total-Count"] = str(total)
     return db.scalars(
         select(AuditLog)
         .options(joinedload(AuditLog.actor))
+        .where(*conditions)
         .order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
         .limit(limit)
+        .offset(offset)
     ).all()
+
+
+@router.get("/audit-logs/actions", response_model=list[AdminAuditActionCount])
+def list_audit_actions(
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    rows = db.execute(
+        select(AuditLog.action, func.count(AuditLog.id))
+        .group_by(AuditLog.action)
+        .order_by(AuditLog.action)
+    ).all()
+    return [{"action": name, "count": count} for name, count in rows]
 
 
 @router.get("/users", response_model=list[AdminUserPublic])

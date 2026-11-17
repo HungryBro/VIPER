@@ -55,6 +55,11 @@ class AdminAuditLogPublic(BaseModel):
     created_at: datetime
 
 
+class AdminAuditActionCount(BaseModel):
+    action: str
+    count: int
+
+
 class WorkflowDocument(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
