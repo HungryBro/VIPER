@@ -219,15 +219,15 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `frontend-ui-engineering`
 - ผู้ทำ: Sonnet subagent (medium) · ชุด C
 
-### [ ] T12 หน้า Templates ด้วย template และคอมเมนต์จริง
+### [x] T12 หน้า Templates ด้วย template และคอมเมนต์จริง
 ย้าย `TemplateLibrary` และ `TemplateDetail` ต่อกับ `templateApi.ts` แยกแท็บ Official / Public / ของฉัน
 
 - เกณฑ์รับ
-  - [ ] แสดง Official 9, Public และของฉันตามข้อมูลจริง พร้อมปก เจ้าของ เวลาแก้ไข และรายการโหนดของ workflow
-  - [ ] เจ้าของแก้ชื่อ คำอธิบาย การมองเห็น และปกได้; admin เปิดปิดคอมเมนต์ได้; เขียนและลบคอมเมนต์ได้
-  - [ ] template แบบ Private ของคนอื่นไม่ปรากฏในรายการ (รวม admin; admin เปิดด้วย id ได้ตามพฤติกรรมเดิม ดู plan.md ข้อ 8)
-  - [ ] แสดง template จริงของ VIPER จากฐานข้อมูลเท่านั้น: รวมทุกแท็บของทุกผู้ใช้ครอบคลุมแถวที่ไม่ถูกลบครบ (13 แถว ณ 17 พ.ย.) ไม่มี template ตัวอย่างของ mockup หลุดเข้ามา
-  - [ ] ลบ template ผ่าน modal ยืนยัน (แถว C-14) ปุ่มลบแสดงตามสิทธิ์ของ T8.1
+  - [x] แสดง Official 9, Public และของฉันตามข้อมูลจริง พร้อมปก เจ้าของ เวลาแก้ไข และรายการโหนดของ workflow
+  - [x] เจ้าของแก้ชื่อ คำอธิบาย การมองเห็น และปกได้; admin เปิดปิดคอมเมนต์ได้; เขียนและลบคอมเมนต์ได้
+  - [x] template แบบ Private ของคนอื่นไม่ปรากฏในรายการ (รวม admin; admin เปิดด้วย id ได้ตามพฤติกรรมเดิม ดู plan.md ข้อ 8)
+  - [x] แสดง template จริงของ VIPER จากฐานข้อมูลเท่านั้น: รวมทุกแท็บของทุกผู้ใช้ครอบคลุมแถวที่ไม่ถูกลบครบ (13 แถว ณ 17 พ.ย.) ไม่มี template ตัวอย่างของ mockup หลุดเข้ามา
+  - [x] ลบ template ผ่าน modal ยืนยัน (แถว C-14) ปุ่มลบแสดงตามสิทธิ์ของ T8.1
 - ตรวจ: FE, `pytest tests/test_templates_api.py tests/test_comments_api.py`, เทียบจำนวนแต่ละแท็บกับ SQL (`deleted_at IS NULL`), ค้นใน `src/` ไม่พบชื่อ template ตัวอย่างของ mockup
 - ขึ้นกับ: T6
 - ไฟล์: `src/platform/pages/TemplatesPage.tsx`, `src/platform/TemplateDetail.tsx`, `src/lib/templateApi.ts`
