@@ -5,7 +5,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 
 import App from './App';
-import LabPage from './pages/LabPage';
 import LoginPage from './components/LoginPage';
 import Layout from './platform/Layout';
 import HomeRoute from './platform/pages/HomeRoute';
@@ -38,7 +37,8 @@ export const router = createBrowserRouter([
         Component: RequireAuth,
         children: [
           // /lab ไม่อยู่ใต้ Layout ของแพลตฟอร์ม: มีหัวของ editor เอง (T14 ค่อยรวม header)
-          { path: 'lab', Component: LabPage },
+          // ตัว editor render โดย LabHost ใน App.tsx เพื่อให้ค้าง mount ไว้ตอนไป route อื่น route นี้มีไว้กันสิทธิ์และจับ path
+          { path: 'lab', element: null },
         ],
       },
       {

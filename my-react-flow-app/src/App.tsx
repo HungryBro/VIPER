@@ -1,12 +1,43 @@
 // File: src/App.tsx
 // route ราก (T4) editor เดิมย้ายไปอยู่ที่ src/pages/LabPage.tsx (route /lab)
 // header/footer/ธีมของแพลตฟอร์มอยู่ใน src/platform/Layout.tsx (T6) ซึ่งครอบทุก route ยกเว้น /lab
-import { Outlet } from 'react-router-dom';
+import { useState } from 'react';
+import { Outlet, useMatch } from 'react-router-dom';
+
+import { useAuth } from './auth/AuthContext';
+import LabPage from './pages/LabPage';
+
+// editor ของ /lab ถูก mount ครั้งแรกที่ผู้ใช้เปิด /lab แล้วค้างไว้ตลอด (ผู้ใช้ตัดสินใจหลังจุดตรวจ 1)
+// ตอนอยู่ route อื่นแค่ซ่อน: งานที่รันอยู่รันต่อ การแก้ไม่หาย และ undo/redo, Log panel, clipboard ยังอยู่
+// การกันผู้ที่ไม่ได้ login ยังเป็นหน้าที่ของ RequireAuth ที่ route /lab ส่วนนี้ mount เฉพาะเมื่อมี user
+function LabHost() {
+  const { user } = useAuth();
+  const onLab = useMatch('/lab') !== null;
+  const [mounted, setMounted] = useState(false);
+
+  // ปรับ state ระหว่าง render ตามรูปแบบที่ React แนะนำ (ไม่ใช้ effect เพื่อไม่ให้กระพริบหนึ่งเฟรม)
+  if (user && onLab && !mounted) setMounted(true);
+  if (!user && mounted) setMounted(false);
+
+  if (!user || !mounted) return null;
+
+  return (
+    <div
+      className="viper-lab-host"
+      aria-hidden={!onLab || undefined}
+      inert={!onLab}
+      style={onLab ? undefined : { position: 'fixed', inset: 0, visibility: 'hidden', pointerEvents: 'none' }}
+    >
+      <LabPage active={onLab} />
+    </div>
+  );
+}
 
 export default function App() {
   return (
     <>
       <Outlet />
+      <LabHost />
     </>
   );
 }

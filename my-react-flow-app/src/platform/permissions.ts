@@ -34,8 +34,10 @@ export function navItemsFor(user: MaybeUser): NavItem[] {
   if (teacher) items.push({ to: '/submissions', label: 'Submissions' });
   items.push({ to: '/templates', label: 'Templates' });
   if (admin) items.push({ to: '/users', label: 'Users' });
-  // ผู้เรียนและ admin เห็น My Submissions (ผู้สอนจะดูงานตัวเองในแท็บ grades)
-  items.push({ to: teacher ? '/submissions?tab=grades' : '/submissions', label: 'My Submissions' });
+  // ตาม mockup: My Submissions แสดงเมื่อ !admin && (!teacher || learnsSomething) (ผู้ใช้ยืนยันหลังจุดตรวจ 1 ให้ซ่อนของ admin)
+  // ของจริงยังไม่มีการลงทะเบียนเรียน (learnsSomething = false) จนกว่าจะมีระบบคอร์ส ผู้สอนจึงไม่เห็นเมนูนี้
+  const learnsSomething = false;
+  if (!admin && (!teacher || learnsSomething)) items.push({ to: '/submissions', label: 'My Submissions' });
   if (admin) items.push({ to: '/logs', label: 'Platform Logs' });
   items.push({ to: '/lab', label: 'Lab' });
   return items;

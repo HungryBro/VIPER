@@ -38,6 +38,8 @@ interface FlowCanvasProps {
   onPipelineDone: () => void;
   onFlowChange?: (changes: { nodes: RFNode[]; edges: Edge[]; viewport: Viewport }) => void;
   currentTabName: string;
+  /** false while LabPage is kept mounted but hidden behind another route: hotkeys are off, everything else keeps running. */
+  active?: boolean;
 }
 
 const getId = () => `node_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
@@ -74,7 +76,7 @@ function getDownstreamNodes(sourceId: string, edges: Edge[]): Set<string> {
 }
 
 const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
-  ({ isRunning, onPipelineDone, onFlowChange, currentTabName }, ref) => {
+  ({ isRunning, onPipelineDone, onFlowChange, currentTabName, active = true }, ref) => {
 
     const { screenToFlowPosition, fitView, getViewport, setViewport, getNodes, getEdges } = useReactFlow();
 
@@ -417,7 +419,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       fitWorkflowToCanvas();
     }, [nodes, fitWorkflowToCanvas]);
 
-    useFlowHotkeys({ getPastePosition: () => lastMousePosRef.current, runNodeById, undo, redo });
+    useFlowHotkeys({ getPastePosition: () => lastMousePosRef.current, runNodeById, undo, redo, enabled: active });
 
     useEffect(() => {
       setNodes((nds) => {

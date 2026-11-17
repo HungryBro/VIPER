@@ -180,7 +180,10 @@ export function Header({ theme, onToggleTheme }: { theme: PlatformTheme; onToggl
                   onClick={() => {
                     setAccountOpen(false);
                     // ออกจากระบบแล้วกลับหน้าแรก (ไม่ให้ RequireAuth พาไป /login?next=หน้าเดิม)
-                    void logout().then(() => navigate('/', { replace: true }));
+                    // ถ้า POST /api/auth/logout ล้ม AuthContext ล้าง user แล้ว ก็ยังกลับหน้าแรกเหมือนกัน
+                    void logout()
+                      .catch(() => undefined)
+                      .then(() => navigate('/', { replace: true }));
                   }}
                 >
                   <LogOut size={16} />

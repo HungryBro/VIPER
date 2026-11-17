@@ -131,6 +131,7 @@
 | R-39 | เมนูผู้ใช้เดิม: อวตาร ชื่อ role ปุ่มเปิด User Management (admin) และ Log out | `src/components/UserMenu.tsx`, `src/components/AdminUserPanel.tsx` | ผู้ดูแลยังเปิดแผนจัดการผู้ใช้ได้จาก header ใหม่หรือหน้า Users | ยังไม่ตรวจ | T23 |
 | R-40 | โหมด compact-mobile ของ editor (จอแคบ ≤767px) | `src/App.tsx` (`COMPACT_MOBILE_QUERY`), `src/FlowCanvas.tsx` | เปิด `/lab` ที่ 375px ใช้งาน editor ได้ ปุ่มไม่ทับกัน | ยังไม่ตรวจ | T23, T24 |
 | R-41 | ผลลัพธ์ในโหนด (ภาพ ตัวชี้วัด payload) และการเก็บ payload ย่อไว้หลัง refresh | `src/lib/nodeResult.ts`, `src/App.tsx` | รันโหนดมีภาพ refresh แล้วโหนดถัดไปยังอ่านผลต่อได้ | ยังไม่ตรวจ | T23 |
+| R-43 | Lab ค้าง mount ตอนไป route อื่น (ผู้ใช้ตัดสินใจหลังจุดตรวจ 1): งานที่รันอยู่รันต่อ, การแก้/undo/redo/Log panel/clipboard ไม่หาย, กด Stop ได้หลังกลับมา, hotkey ไม่ทำงานตอนซ่อน, fit view ตอนกลับ | `src/App.tsx` (`LabHost`), `src/pages/LabPage.tsx` (`active`), `src/FlowCanvas.tsx`, `src/hooks/useFlowHotkeys.ts` (`enabled`) | เปิด `/lab` กด Start แล้วไป `/templates` ทันที กด Cmd+Z/Delete ในหน้านั้น กลับ `/lab` ดู log ผล และ undo; ทำซ้ำแล้วกด Stop ตอนกลับมา (ตรวจครั้งแรก 17 พ.ย.: ผ่าน) | ยังไม่ตรวจ | T23 |
 | R-42 | Seed Official template ตอนเริ่ม server (ไม่ซ้ำ ไม่สร้างทับ) | `server/official_templates.py`, `server/main.py` | เริ่ม server ซ้ำแล้ว Official ยังเป็น 9 แถว มี workflow | ยังไม่ตรวจ | T23 |
 
 ## ส่วนที่ 3: ตรวจความครบ (component/function ใน source ของ mockup ทุกตัวต้องมีแถว)

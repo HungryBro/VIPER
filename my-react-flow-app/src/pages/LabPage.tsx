@@ -17,7 +17,9 @@ const STORAGE_KEY_APP_TABS = 'n2n_app_tabs';
 const STORAGE_KEY_ACTIVE_TAB = 'n2n_active_tab_id';
 const COMPACT_MOBILE_QUERY = '(max-width: 767px), (max-height: 560px) and (pointer: coarse)';
 
-export default function LabPage() {
+// `active` เป็น false เมื่อ editor ถูกเก็บ mount ไว้แต่ซ่อนอยู่หลัง route อื่น (ดู LabHost ใน src/App.tsx)
+// งานที่รัน การแก้ undo/redo, Log panel และ clipboard จึงอยู่ครบเมื่อกลับมา
+export default function LabPage({ active = true }: { active?: boolean }) {
   const [isRunning, setIsRunning] = useState(false);
   const [isCompactMobile, setIsCompactMobile] = useState(() => (
     typeof window !== 'undefined' && window.matchMedia(COMPACT_MOBILE_QUERY).matches
@@ -277,6 +279,22 @@ export default function LabPage() {
     canvasRef.current?.addNode(nodeType);
   }, []);
 
+  // กลับมาที่ /lab: รอให้ layout คำนวณขนาด canvas ใหม่ (หน้าต่างอาจเปลี่ยนขนาดระหว่างซ่อน) แล้ว fit view
+  const wasActiveRef = useRef(active);
+  useEffect(() => {
+    const becameActive = active && !wasActiveRef.current;
+    wasActiveRef.current = active;
+    if (!becameActive) return;
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => canvasRef.current?.fitView());
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
+  }, [active]);
+
   return (
     <div className={`viper-app w-screen h-[100dvh] flex flex-col overflow-hidden bg-gray-900 text-white ${isCompactMobile ? 'compact-mobile' : ''}`}>
       <div className="viper-header relative z-30 flex min-h-16 items-center gap-2 border-b-2 border-teal-500 bg-gray-900 px-3 shadow-lg sm:gap-3">
@@ -296,7 +314,7 @@ export default function LabPage() {
             onAddNode={handleAddNodeFromLibrary}
           />
           <div className="flex-1 h-full relative">
-            <FlowCanvas ref={canvasRef} isRunning={isRunning} onPipelineDone={handleStop} onFlowChange={handleFlowChange} currentTabName={activeTabName} />
+            <FlowCanvas ref={canvasRef} isRunning={isRunning} onPipelineDone={handleStop} onFlowChange={handleFlowChange} currentTabName={activeTabName} active={active} />
           </div>
         </ReactFlowProvider>
       </div>

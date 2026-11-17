@@ -18,6 +18,8 @@ export type UseFlowHotkeysOptions = {
   runNodeById: (id: string) => void | Promise<void>;
   undo: () => void;
   redo: () => void;
+  /** false while the editor is kept mounted but hidden (another route is showing), so keys there don't edit the canvas. */
+  enabled?: boolean;
 };
 
 const isCmdOrCtrl = (e: KeyboardEvent) => e.metaKey || e.ctrlKey;
@@ -33,7 +35,7 @@ const makeId = () =>
   `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
 export function useFlowHotkeys(opts: UseFlowHotkeysOptions) {
-  const { getPastePosition, runNodeById, undo, redo } = opts;
+  const { getPastePosition, runNodeById, undo, redo, enabled = true } = opts;
   const { getNodes, getEdges, setNodes, setEdges, screenToFlowPosition } =
     useReactFlow<CustomNodeData>();
 
@@ -160,6 +162,7 @@ export function useFlowHotkeys(opts: UseFlowHotkeysOptions) {
   }, [getNodes, getEdges, setNodes, setEdges]);
 
   useEffect(() => {
+    if (!enabled) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (isTypingTarget(e.target)) return;
 
@@ -193,5 +196,5 @@ export function useFlowHotkeys(opts: UseFlowHotkeysOptions) {
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [undo, redo, doCopy, doPaste, doDelete]);
+  }, [enabled, undo, redo, doCopy, doPaste, doDelete]);
 }
