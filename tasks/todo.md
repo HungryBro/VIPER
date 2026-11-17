@@ -263,13 +263,13 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `frontend-ui-engineering`
 - ผู้ทำ: Sonnet subagent (medium) · ชุด D
 
-### [ ] T15 Endpoint ข้อมูลของผู้ใช้เอง
+### [x] T15 Endpoint ข้อมูลของผู้ใช้เอง
 เพิ่ม `GET /api/me/activity` (audit log ของตัวเอง แบ่งหน้า) และ `GET /api/me/summary` (จำนวน template ของฉัน จำนวนการรัน เวลาใช้งานล่าสุด)
 
 - เกณฑ์รับ
-  - [ ] คืนเฉพาะแถวที่ `actor_id` เป็นของผู้เรียก
-  - [ ] ตัวเลขใน summary ตรงกับ SQL
-  - [ ] ไม่ login ได้ 401
+  - [x] คืนเฉพาะแถวที่ `actor_id` เป็นของผู้เรียก
+  - [x] ตัวเลขใน summary ตรงกับ SQL
+  - [x] ไม่ login ได้ 401
 - ตรวจ: BE (เทสต์ใหม่ `tests/test_me_api.py` รวมกรณีผู้ใช้สองคนไม่เห็นข้อมูลกัน)
 - ขึ้นกับ: T1
 - ไฟล์: `server/routers/me.py`, `server/main.py`, `server/schemas.py`, `tests/test_me_api.py`
@@ -277,13 +277,13 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `api-and-interface-design` + `test-driven-development` + `security-and-hardening` (กันผู้ใช้เห็นข้อมูลของคนอื่น)
 - ผู้ทำ: Sonnet subagent (medium) · ชุด E
 
-### [ ] T16 หน้า Profile
+### [x] T16 หน้า Profile
 ย้าย `AccountProfile` แสดงชื่อ อีเมล และรูปจาก Google แบบอ่านอย่างเดียว แท็บผลงานใช้ template ของฉัน แท็บประวัติใช้ `/api/me/activity`
 
 - เกณฑ์รับ
-  - [ ] ไม่มีช่องแก้อีเมล และไม่มีปุ่ม "นำเข้าจากอีเมลสาธิต"
-  - [ ] จำนวนผลงานและประวัติตรงกับ T15
-  - [ ] ส่วนงานที่ส่งแสดงสถานะว่าง
+  - [x] ไม่มีช่องแก้อีเมล และไม่มีปุ่ม "นำเข้าจากอีเมลสาธิต"
+  - [x] จำนวนผลงานและประวัติตรงกับ T15
+  - [x] ส่วนงานที่ส่งแสดงสถานะว่าง
 - ตรวจ: FE, เทียบตัวเลขกับ `/api/me/summary`
 - ขึ้นกับ: T12, T15
 - ไฟล์: `src/platform/pages/ProfilePage.tsx`, `src/lib/meApi.ts`
@@ -291,13 +291,13 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `frontend-ui-engineering`
 - ผู้ทำ: Sonnet subagent (medium) · ชุด E
 
-### [ ] T17 Dashboard 3 แบบ
+### [x] T17 Dashboard 3 แบบ
 ย้าย `Dashboard`, `InstructorDashboard`, `AdminDashboard` ตัวเลขทั้งหมดมาจาก API จริง ส่วนคอร์สแสดงสถานะว่าง
 
 - เกณฑ์รับ
-  - [ ] Admin เห็นจำนวนผู้ใช้ template และเหตุการณ์จากข้อมูลจริง
-  - [ ] ผู้ใช้ธรรมดาเห็น "การทดลองล่าสุด" จากการรันจริงของตัวเอง
-  - [ ] ไม่มีตัวเลขหรือชื่อจากข้อมูลตัวอย่างของ mockup
+  - [x] Admin เห็นจำนวนผู้ใช้ template และเหตุการณ์จากข้อมูลจริง
+  - [x] ผู้ใช้ธรรมดาเห็น "การทดลองล่าสุด" จากการรันจริงของตัวเอง
+  - [x] ไม่มีตัวเลขหรือชื่อจากข้อมูลตัวอย่างของ mockup
 - ตรวจ: FE, เทียบตัวเลขทุกช่องกับ SQL
 - ขึ้นกับ: T9, T11, T15
 - ไฟล์: `src/platform/pages/DashboardPage.tsx`, `src/platform/pages/AdminDashboard.tsx`, `src/platform/pages/InstructorDashboard.tsx`
