@@ -306,10 +306,10 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ผู้ทำ: Sonnet subagent (medium) · ชุด E
 
 ### จุดตรวจ 2
-- [ ] agent: `agent-skills:code-reviewer`, `agent-skills:test-engineer`, `agent-skills:security-auditor` (ขอบเขต T8, T8.1, T15)
-- [ ] BE, FE, LAB ผ่าน
-- [ ] รัน `scripts/verify_migration.py` รอบแรก ผ่านข้อ 1 และข้อ 2
-- [ ] ค้นใน `src/` ไม่พบชื่อบัญชีตัวอย่างของ mockup (`John Doe`, `อริศรา`, `example.edu`)
+- [x] agent: `agent-skills:code-reviewer`, `agent-skills:test-engineer`, `agent-skills:security-auditor` (ขอบเขต T8, T8.1, T15)
+- [x] BE, FE, LAB ผ่าน
+- [ ] รัน `scripts/verify_migration.py` รอบแรก ผ่านข้อ 1 และข้อ 2 (สคริปต์นี้สร้างใน T21 ซึ่งอยู่หลังจุดตรวจนี้ 18 พ.ย. ตรวจแทนด้วยมือ: แถวเดิมทุกตารางตรง snapshot T1, ตัวเลข API ของ Users/Templates/Logs/me ตรง SQL)
+- [x] ค้นใน `src/` ไม่พบชื่อบัญชีตัวอย่างของ mockup (`John Doe`, `อริศรา`, `example.edu`)
 - [ ] **ให้ผู้ใช้ดูก่อนไประยะ 3**
 
 ---
