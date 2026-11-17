@@ -191,13 +191,13 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `frontend-ui-engineering`
 - ผู้ทำ: Sonnet subagent (medium) · ชุด F
 
-### [ ] T10 Audit log API: แบ่งหน้า ตัวกรอง และยอดรวม
+### [x] T10 Audit log API: แบ่งหน้า ตัวกรอง และยอดรวม
 ตอนนี้ดึงได้สูงสุด 500 แถวจาก 2,626 แถว (16 พ.ย.) เพิ่ม `offset`, ตัวกรอง `action`, คำค้น และคืนยอดรวม
 
 - เกณฑ์รับ
-  - [ ] ไล่ทุกหน้าแล้วได้ id ครบเท่ากับจำนวนแถวในฐานข้อมูล ไม่ซ้ำ ไม่ขาด
-  - [ ] กรองตาม action และคำค้นทำที่ server
-  - [ ] การเรียกแบบเดิม (`?limit=200`) ยังได้ผลเหมือนเดิม
+  - [x] ไล่ทุกหน้าแล้วได้ id ครบเท่ากับจำนวนแถวในฐานข้อมูล ไม่ซ้ำ ไม่ขาด
+  - [x] กรองตาม action และคำค้นทำที่ server
+  - [x] การเรียกแบบเดิม (`?limit=200`) ยังได้ผลเหมือนเดิม
 - ตรวจ: BE (เพิ่มเทสต์ใน `tests/test_admin_audit_logs.py`)
 - ขึ้นกับ: T1
 - ไฟล์: `server/routers/admin.py`, `server/schemas.py`, `tests/test_admin_audit_logs.py`
@@ -205,13 +205,13 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `api-and-interface-design` + `test-driven-development`
 - ผู้ทำ: Sonnet subagent (medium) · ชุด C
 
-### [ ] T11 หน้า Platform Logs ด้วย log จริง
+### [x] T11 หน้า Platform Logs ด้วย log จริง
 ย้ายหน้า `PlatformLogs` และ `LogDetail` ใช้ป้ายชื่อ action จาก `AdminAuditLogView` เดิม
 
 - เกณฑ์รับ
-  - [ ] แสดงผู้กระทำ เวลา ประเภท เป้าหมาย และผลลัพธ์ (สำเร็จเมื่อ `status_code` < 400) จากข้อมูลจริง
-  - [ ] ตัวกรองมี action ครบ 18 ชนิดที่มีในฐานข้อมูล และเลื่อนดูได้ถึงแถวแรกสุด
-  - [ ] ยอดรวมบนจอเท่ากับจำนวนแถวใน `audit_logs`
+  - [x] แสดงผู้กระทำ เวลา ประเภท เป้าหมาย และผลลัพธ์ (สำเร็จเมื่อ `status_code` < 400) จากข้อมูลจริง
+  - [x] ตัวกรองมี action ครบทุกชนิดที่มีในฐานข้อมูล (แผนเขียน 18 ชนิดเมื่อ 16 พ.ย. ณ 17 พ.ย. มี 20 ชนิด ตัวกรองดึงจาก `/api/admin/audit-logs/actions`) และเลื่อนดูได้ถึงแถวแรกสุด
+  - [x] ยอดรวมบนจอเท่ากับจำนวนแถวใน `audit_logs`
 - ตรวจ: FE, เทียบยอดรวมกับ SQL, เปิดรายละเอียด log `processing.run` หนึ่งรายการ
 - ขึ้นกับ: T6, T10
 - ไฟล์: `src/platform/pages/LogsPage.tsx`, `src/lib/adminApi.ts`, `src/components/AdminAuditLogView.tsx`
