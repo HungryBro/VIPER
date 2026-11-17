@@ -34,13 +34,13 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `deprecation-and-migration`
 - ผู้ทำ: Opus ตัวหลัก (high) ทำเอง (เป็นฐานของทุก task)
 
-### [ ] T2 สร้างตารางเทียบและถ่ายภาพ mockup ทุกหน้า
+### [x] T2 สร้างตารางเทียบและถ่ายภาพ mockup ทุกหน้า
 ไล่ทุกหน้า modal และส่วนร่วมใน source ของ mockup ลงตาราง พร้อมส่วนที่สองสำหรับความสามารถเดิมของของจริง แล้วถ่ายภาพ mockup เก็บเป็นภาพอ้างอิง
 
 - เกณฑ์รับ
-  - [ ] `tasks/parity.md` มีแถวครบทุก `view` ใน `App.jsx` (home 4 แบบ, lessons, course, lesson, teach, teachCourse, design, lab, history, review, grades, teachGrades, announcements, templates, users, logs, profile, login) และส่วนร่วม (header, กระดิ่ง, เมนูบัญชี, ธีม, footer, toast, modal ยืนยัน, modal ช่วยเหลือ, modal บันทึก template)
-  - [ ] ทุกแถวระบุแหล่งข้อมูลจริงและสถานะเป้าหมาย (`ย้าย` / `ว่างตามแผน` / `ตัดออก` + เหตุผล)
-  - [ ] มีภาพ mockup ของทุกแถวที่ 1440×900 และ 375×812 ใน `outputs/parity-report/mockup/` ครบ 3 บทบาท
+  - [x] `tasks/parity.md` มีแถวครบทุก `view` ใน `App.jsx` (home 4 แบบ, lessons, course, lesson, teach, teachCourse, design, lab, history, review, grades, teachGrades, announcements, templates, users, logs, profile, login) และส่วนร่วม (header, กระดิ่ง, เมนูบัญชี, ธีม, footer, toast, modal ยืนยัน, modal ช่วยเหลือ, modal บันทึก template)
+  - [x] ทุกแถวระบุแหล่งข้อมูลจริงและสถานะเป้าหมาย (`ย้าย` / `ว่างตามแผน` / `ตัดออก` + เหตุผล)
+  - [x] มีภาพ mockup ของทุกแถวที่ 1440×900 และ 375×812 ใน `outputs/parity-report/mockup/` ครบ 3 บทบาท
 - ตรวจ: นับจำนวนแถวเทียบกับจำนวน component ที่ export ใน `Platform.jsx`, `Learning.jsx`, `Teaching.jsx`, `Guest.jsx` และ function ใน `App.jsx` ต้องไม่มีตัวไหนไม่มีแถว
 - ขึ้นกับ: ไม่มี
 - ไฟล์: `tasks/parity.md`, `scripts/parity_screenshots.py` (ส่วนถ่าย mockup)
@@ -66,9 +66,9 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ผู้ทำ: Opus ตัวหลัก (high) ทำเอง (งานเล็ก)
 
 ### จุดตรวจ 0
-- [ ] agent: ไม่ใช้ รันเทสต์ตามเส้นฐาน
-- [ ] ไฟล์สำรอง, snapshot, ตารางเทียบ และภาพ mockup ครบ
-- [ ] BE และ FE ผ่านตามเส้นฐาน
+- [x] agent: ไม่ใช้ รันเทสต์ตามเส้นฐาน
+- [x] ไฟล์สำรอง, snapshot, ตารางเทียบ และภาพ mockup ครบ
+- [x] BE และ FE ผ่านตามเส้นฐาน
 
 ---
 
