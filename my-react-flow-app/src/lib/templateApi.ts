@@ -81,6 +81,10 @@ export async function listMyTemplates(): Promise<TemplateSummary[]> {
   return readJson<TemplateSummary[]>(await apiFetch('/api/templates/mine'));
 }
 
+export async function getPlatformTemplate(templateId: number): Promise<TemplateDetail> {
+  return readJson<TemplateDetail>(await apiFetch(`/api/templates/${templateId}`));
+}
+
 export async function createPlatformTemplate(
   payload: TemplateCreatePayload,
 ): Promise<TemplateDetail> {
