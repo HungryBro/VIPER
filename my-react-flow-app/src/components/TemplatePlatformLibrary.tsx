@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import {
   createPlatformTemplate,
   createTemplateComment,
+  deletePlatformTemplate,
   deleteTemplateComment,
   listMyTemplates,
   listOfficialTemplates,
@@ -366,6 +367,26 @@ export default function TemplatePlatformLibrary({
     }
   };
 
+  const deleteSelected = async (template: TemplateSummary) => {
+    // UI ลบเต็มรูปแบบ (modal ยืนยันตาม mockup) อยู่ใน T12 รอบนี้ใช้ confirm ของเบราว์เซอร์
+    const kind = template.is_official ? 'Official template' : 'template';
+    if (!window.confirm(`Delete the ${kind} "${template.name}"? It will be removed from every list.`)) return;
+
+    setBusyId(template.id);
+    setError('');
+    setNotice('');
+    try {
+      await deletePlatformTemplate(template.id);
+      if (openCommentsIdRef.current === template.id) setOpenCommentsId(null);
+      setNotice('Template deleted.');
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to delete template');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const changeCommentsEnabled = async (templateId: number, enabled: boolean) => {
     setBusyId(templateId);
     setError('');
@@ -544,6 +565,8 @@ export default function TemplatePlatformLibrary({
           // ตาราง plan.md ข้อ 7: admin และผู้สอนแก้ Official ได้ ส่วนเปิดปิดความคิดเห็นเป็นของ admin เท่านั้น (server ตรวจซ้ำ)
           const canManageOfficial = isAdmin || canTeach(user);
           const canManageSettings = template.is_official ? canManageOfficial : isOwner || isAdmin;
+          // ลบได้: Official = admin/ผู้สอน, template ทั่วไป = เจ้าของเท่านั้น (ตรงกับ DELETE /api/templates/{id})
+          const canDelete = template.is_official ? canManageOfficial : isOwner;
           const commentsOpen = openCommentsId === template.id;
           const comments = commentsByTemplate[template.id];
           const commentsLoading = commentsLoadingId === template.id;
@@ -655,6 +678,19 @@ export default function TemplatePlatformLibrary({
                             UPDATE CANVAS
                           </button>
                         </>
+                      )}
+                      {canDelete && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => {
+                            setOpenSettingsId(null);
+                            void deleteSelected(template);
+                          }}
+                          className="w-full rounded px-2 py-1.5 text-left text-[8px] font-bold text-red-300 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+                        >
+                          DELETE
+                        </button>
                       )}
                       {(template.is_official || isOwner) && isAdmin && <div className="my-1 border-t border-gray-700" />}
                       {isAdmin && (

@@ -1,10 +1,10 @@
 import os
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile, status
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session, joinedload
 
-from ..auth import require_active_user
+from ..auth import require_active_user, utc_now
 from ..database import get_db
 from ..models import AuditLog, Comment, Template, User
 from ..official_templates import ensure_official_template_records
@@ -27,7 +27,9 @@ ALLOWED_TEMPLATE_COVER_TYPES = {"image/jpeg", "image/png", "image/webp"}
 
 
 def _template_query():
-    return select(Template).options(joinedload(Template.owner))
+    # Every lookup and list goes through here, so a soft-deleted template is
+    # hidden everywhere (lists, detail, load, comments, update, cover, delete).
+    return select(Template).options(joinedload(Template.owner)).where(Template.deleted_at.is_(None))
 
 
 def _comment_query():
@@ -299,6 +301,58 @@ def delete_template_comment(
         )
     )
     db.delete(comment)
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete("/{template_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_template(
+    template_id: int,
+    request: Request,
+    user: User = Depends(require_active_user),
+    db: Session = Depends(get_db),
+):
+    # Missing, already deleted, or someone else's private template: 404 as when opening it.
+    template = _get_visible_template(db, template_id, user)
+    if template.is_official:
+        if not _can_manage_official(user):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only an admin or instructor can delete an Official template",
+            )
+    elif template.owner_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the template owner can delete it",
+        )
+
+    # Conditional update: of two concurrent deletes only one succeeds and logs.
+    deleted = db.execute(
+        update(Template)
+        .where(Template.id == template.id, Template.deleted_at.is_(None))
+        .values(deleted_at=utc_now())
+        .execution_options(synchronize_session=False)
+    )
+    if deleted.rowcount != 1:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+
+    _add_audit(
+        db,
+        actor_id=user.id,
+        action="template.delete",
+        template_id=template.id,
+        request=request,
+        details={
+            "name": template.name,
+            "is_official": template.is_official,
+            "official_key": template.official_key,
+            "visibility": template.visibility,
+            "owner_id": template.owner_id,
+            "deleted_by": {"id": user.id, "display_name": user.display_name},
+        },
+        status_code=status.HTTP_204_NO_CONTENT,
+    )
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

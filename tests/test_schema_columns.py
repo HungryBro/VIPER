@@ -149,3 +149,40 @@ def test_column_helpers_skip_missing_tables():
     _ensure_template_columns(engine)
 
     assert inspect(engine).get_table_names() == []
+
+
+def test_template_columns_add_deleted_at_null_for_existing_rows_and_keep_other_data():
+    engine = make_old_engine()
+    templates_before = read_rows(engine, "templates", "*")
+    assert "deleted_at" not in column_names(engine, "templates")
+
+    _ensure_template_columns(engine)
+
+    assert read_rows(engine, "templates", "deleted_at") == [(None,), (None,), (None,)]
+    assert read_rows(engine, "templates", "id, owner_id, name, description, visibility, workflow, "
+                     "comments_enabled, created_at, updated_at") == templates_before
+
+
+def test_deleted_at_is_added_to_a_table_that_already_has_the_official_columns():
+    engine = make_old_engine()
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE templates ADD COLUMN cover_url VARCHAR(500)"))
+        connection.execute(text("ALTER TABLE templates ADD COLUMN is_official BOOLEAN NOT NULL DEFAULT FALSE"))
+        connection.execute(text("ALTER TABLE templates ADD COLUMN official_key VARCHAR(160)"))
+        connection.execute(text("UPDATE templates SET is_official = 1, official_key = 'SIFT' WHERE id = 3"))
+    templates_before = read_rows(engine, "templates", "*")
+
+    _ensure_template_columns(engine)
+    _ensure_template_columns(engine)
+
+    assert read_columns(engine, "templates")[-1] == "deleted_at"
+    assert [row[:-1] for row in read_rows(engine, "templates", "*")] == templates_before
+    assert read_rows(engine, "templates", "deleted_at") == [(None,), (None,), (None,)]
+    # The column stores a timezone-aware timestamp that reads back through the ORM type.
+    with engine.begin() as connection:
+        connection.execute(text("UPDATE templates SET deleted_at = '2026-11-17 10:00:00.000000+00:00' WHERE id = 1"))
+    assert read_rows(engine, "templates", "id, deleted_at IS NOT NULL") == [(1, 1), (2, 0), (3, 0)]
+
+
+def read_columns(engine, table: str) -> list[str]:
+    return [column["name"] for column in inspect(engine).get_columns(table)]

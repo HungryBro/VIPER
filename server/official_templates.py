@@ -38,6 +38,8 @@ def ensure_official_template_records(db: Session) -> None:
 
     A record created before workflows were stored in the database has an empty
     workflow; it receives the seeded one. A workflow that has nodes is left alone.
+    A soft-deleted record still counts as existing, so it is never recreated,
+    and its workflow is never refilled.
     """
     owner = db.scalar(select(User).where(User.provider_subject == OFFICIAL_SUBJECT))
     if owner is None:
@@ -69,6 +71,6 @@ def ensure_official_template_records(db: Session) -> None:
                 is_official=True,
                 official_key=key,
             ))
-        elif _is_empty(template.workflow):
+        elif template.deleted_at is None and _is_empty(template.workflow):
             template.workflow = entry["workflow"]
     db.commit()

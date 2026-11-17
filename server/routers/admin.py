@@ -220,7 +220,7 @@ def update_template_comments(
     template = db.scalar(
         select(Template)
         .options(joinedload(Template.owner))
-        .where(Template.id == template_id)
+        .where(Template.id == template_id, Template.deleted_at.is_(None))
     )
     if template is None:
         raise HTTPException(

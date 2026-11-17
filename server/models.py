@@ -108,6 +108,9 @@ class Template(Base):
     # These fields give them a stable database record for covers and comments.
     is_official = Column(Boolean, nullable=False, default=False, server_default="false", index=True)
     official_key = Column(String(160), nullable=True, unique=True, index=True)
+    # Soft delete (DELETE /api/templates/{id}). A deleted row keeps its data and
+    # its official_key, so the seed never recreates a deleted Official template.
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(
         DateTime(timezone=True),

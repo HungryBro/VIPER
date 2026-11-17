@@ -14,8 +14,8 @@ from sqlalchemy.pool import StaticPool
 from server.config import settings
 from server.database import Base, get_db
 from server.main import app
-from server.models import AuditLog, Template, User
-from server.official_templates import OFFICIAL_TEMPLATE_CATALOG
+from server.models import AuditLog, Comment, Template, User
+from server.official_templates import OFFICIAL_TEMPLATE_CATALOG, ensure_official_template_records
 from server.routers import templates as templates_router
 from server.utils_io import OUT
 
@@ -785,5 +785,339 @@ def test_revoked_or_banned_instructor_loses_official_rights_immediately():
         assert while_banned.json()["detail"] == "Account is banned"
         with Session(engine) as db:
             assert db.get(Template, seeded_id).name == "While teaching"
+    finally:
+        app.dependency_overrides.clear()
+
+
+# ---------------------------------------------------------------------------
+# T8.1: soft delete (DELETE /api/templates/{id}, templates.deleted_at)
+# ---------------------------------------------------------------------------
+
+
+def delete_logs(engine) -> list[AuditLog]:
+    with Session(engine) as db:
+        logs = db.scalars(
+            select(AuditLog).where(AuditLog.action == "template.delete").order_by(AuditLog.id)
+        ).all()
+        for log in logs:
+            db.expunge(log)
+        return logs
+
+
+def test_admin_and_instructor_delete_official_and_learner_cannot():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    admin = add_user(engine, "admin", "admin@example.com", role="admin")
+    teacher = add_user(engine, "teacher", "teacher@example.com")
+    revoked = add_user(engine, "revoked", "revoked@example.com")
+    learner = add_user(engine, "learner", "learner@example.com")
+    set_can_teach(engine, teacher.id)
+
+    try:
+        with make_client(engine) as client:
+            authenticate(client, learner.id)
+            official = client.get("/api/templates/official").json()
+            first_id, second_id, third_id = (item["id"] for item in official[:3])
+            learner_delete = client.delete(f"/api/templates/{first_id}")
+
+            # can_teach was never granted (or was revoked): same as a learner.
+            authenticate(client, revoked.id)
+            revoked_delete = client.delete(f"/api/templates/{first_id}")
+
+            authenticate(client, teacher.id)
+            teacher_delete = client.delete(f"/api/templates/{first_id}")
+            teacher_again = client.delete(f"/api/templates/{first_id}")
+
+            authenticate(client, admin.id)
+            admin_delete = client.delete(f"/api/templates/{second_id}")
+            admin_again = client.delete(f"/api/templates/{first_id}")
+
+            authenticate(client, learner.id)
+            official_after = client.get("/api/templates/official")
+
+        assert learner_delete.status_code == 403
+        assert revoked_delete.status_code == 403
+        assert teacher_delete.status_code == 204
+        assert teacher_delete.content == b""
+        assert teacher_again.status_code == 404
+        assert admin_delete.status_code == 204
+        assert admin_again.status_code == 404
+        remaining = [item["id"] for item in official_after.json()]
+        assert first_id not in remaining
+        assert second_id not in remaining
+        assert third_id in remaining
+        assert len(remaining) == len(OFFICIAL_TEMPLATE_CATALOG) - 2
+
+        with Session(engine) as db:
+            # Soft delete: the rows and their data stay in the database.
+            first = db.get(Template, first_id)
+            second = db.get(Template, second_id)
+            assert first.deleted_at is not None
+            assert second.deleted_at is not None
+            assert first.is_official is True
+            assert first.official_key
+            assert db.get(Template, third_id).deleted_at is None
+
+        logs = delete_logs(engine)
+        assert [(log.actor_id, log.target_id) for log in logs] == [
+            (teacher.id, str(first_id)),
+            (admin.id, str(second_id)),
+        ]
+        assert logs[0].target_type == "template"
+        assert logs[0].status_code == 204
+        assert logs[0].details["is_official"] is True
+        assert logs[0].details["name"] == official[0]["name"]
+        assert logs[0].details["official_key"] == official[0]["official_key"]
+        assert logs[0].details["deleted_by"] == {"id": teacher.id, "display_name": "teacher"}
+        assert logs[1].details["deleted_by"] == {"id": admin.id, "display_name": "admin"}
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_owner_deletes_own_templates_and_nobody_else_can():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    owner = add_user(engine, "owner", "owner@example.com")
+    other = add_user(engine, "other", "other@example.com")
+    teacher = add_user(engine, "teacher", "teacher@example.com")
+    admin = add_user(engine, "admin", "admin@example.com", role="admin")
+    set_can_teach(engine, teacher.id)
+
+    try:
+        with make_client(engine) as client:
+            anonymous = client.delete("/api/templates/1")
+
+            authenticate(client, owner.id)
+            public_id = client.post(
+                "/api/templates",
+                json={"name": "Owner public", "visibility": "public", "workflow": workflow()},
+            ).json()["id"]
+            private_id = client.post(
+                "/api/templates",
+                json={"name": "Owner private", "visibility": "private", "workflow": workflow()},
+            ).json()["id"]
+
+            authenticate(client, other.id)
+            other_public = client.delete(f"/api/templates/{public_id}")
+            other_private = client.delete(f"/api/templates/{private_id}")
+            missing = client.delete("/api/templates/9999")
+
+            authenticate(client, teacher.id)
+            teacher_public = client.delete(f"/api/templates/{public_id}")
+            teacher_private = client.delete(f"/api/templates/{private_id}")
+
+            authenticate(client, admin.id)
+            admin_public = client.delete(f"/api/templates/{public_id}")
+            admin_private = client.delete(f"/api/templates/{private_id}")
+
+            authenticate(client, owner.id)
+            owner_public = client.delete(f"/api/templates/{public_id}")
+            owner_private = client.delete(f"/api/templates/{private_id}")
+            mine_after = client.get("/api/templates/mine")
+
+        assert anonymous.status_code == 401
+        assert other_public.status_code == 403
+        # Someone else's private template stays hidden, exactly like opening it.
+        assert other_private.status_code == 404
+        assert missing.status_code == 404
+        assert teacher_public.status_code == 403
+        assert teacher_private.status_code == 404
+        # Admins delete Official templates, not other people's templates.
+        assert admin_public.status_code == 403
+        assert admin_private.status_code == 403
+        assert owner_public.status_code == 204
+        assert owner_private.status_code == 204
+        assert mine_after.json() == []
+
+        logs = delete_logs(engine)
+        assert [(log.actor_id, log.target_id, log.details["is_official"], log.details["visibility"])
+                for log in logs] == [
+            (owner.id, str(public_id), False, "public"),
+            (owner.id, str(private_id), False, "private"),
+        ]
+        assert logs[0].details["name"] == "Owner public"
+        assert logs[0].details["owner_id"] == owner.id
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_learner_who_owns_an_official_template_cannot_delete_it_after_can_teach_is_revoked():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    admin = add_user(engine, "admin", "admin@example.com", role="admin")
+    teacher = add_user(engine, "teacher", "teacher@example.com")
+    set_can_teach(engine, teacher.id)
+
+    try:
+        with make_client(engine) as client:
+            authenticate(client, teacher.id)
+            official_id = client.post(
+                "/api/templates",
+                json={"name": "Lesson", "is_official": True, "workflow": workflow()},
+            ).json()["id"]
+
+            authenticate(client, admin.id)
+            client.patch(f"/api/admin/users/{teacher.id}", json={"can_teach": False})
+
+            authenticate(client, teacher.id)
+            owner_delete = client.delete(f"/api/templates/{official_id}")
+
+            authenticate(client, admin.id)
+            client.patch(f"/api/admin/users/{teacher.id}", json={"can_teach": True})
+            client.patch(
+                f"/api/admin/users/{teacher.id}",
+                json={"status": "banned", "banned_until": "2099-01-01T00:00:00+00:00"},
+            )
+            authenticate(client, teacher.id)
+            banned_delete = client.delete(f"/api/templates/{official_id}")
+
+        assert owner_delete.status_code == 403
+        assert banned_delete.status_code == 403
+        with Session(engine) as db:
+            assert db.get(Template, official_id).deleted_at is None
+        assert delete_logs(engine) == []
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_deleted_templates_are_hidden_from_every_list_and_endpoint():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    owner = add_user(engine, "owner", "owner@example.com")
+    admin = add_user(engine, "admin", "admin@example.com", role="admin")
+    cover_dir = os.path.join(OUT, "test-deleted-template-covers")
+    original_cover_dir = templates_router.TEMPLATE_COVERS_DIR
+    templates_router.TEMPLATE_COVERS_DIR = cover_dir
+
+    try:
+        with make_client(engine) as client:
+            authenticate(client, owner.id)
+            public_id = client.post(
+                "/api/templates",
+                json={"name": "Public", "visibility": "public", "workflow": workflow()},
+            ).json()["id"]
+            private_id = client.post(
+                "/api/templates",
+                json={"name": "Private", "visibility": "private", "workflow": workflow()},
+            ).json()["id"]
+            kept_id = client.post(
+                "/api/templates",
+                json={"name": "Kept", "visibility": "public", "workflow": workflow()},
+            ).json()["id"]
+            comment_id = client.post(
+                f"/api/templates/{public_id}/comments",
+                json={"body": "Before delete"},
+            ).json()["id"]
+            official_id = seeded_official_id(client)
+            official_comment_id = client.post(
+                f"/api/templates/{official_id}/comments",
+                json={"body": "On official"},
+            ).json()["id"]
+            assert client.delete(f"/api/templates/{public_id}").status_code == 204
+            assert client.delete(f"/api/templates/{private_id}").status_code == 204
+
+            authenticate(client, admin.id)
+            assert client.delete(f"/api/templates/{official_id}").status_code == 204
+            admin_toggle = client.patch(
+                f"/api/admin/templates/{official_id}/comments",
+                json={"comments_enabled": False},
+            )
+            admin_get_private = client.get(f"/api/templates/{private_id}")
+
+            authenticate(client, owner.id)
+            public_list = client.get("/api/templates")
+            official_list = client.get("/api/templates/official")
+            mine = client.get("/api/templates/mine")
+            responses = {}
+            for template_id in (public_id, private_id, official_id):
+                responses[template_id] = [
+                    client.get(f"/api/templates/{template_id}"),
+                    client.post(f"/api/templates/{template_id}/load"),
+                    client.get(f"/api/templates/{template_id}/comments"),
+                    client.post(f"/api/templates/{template_id}/comments", json={"body": "After delete"}),
+                    client.patch(f"/api/templates/{template_id}", json={"name": "Revived"}),
+                    client.patch(f"/api/templates/{template_id}", json={"visibility": "public"}),
+                    client.post(
+                        f"/api/templates/{template_id}/cover",
+                        files={"file": ("cover.png", b"cover", "image/png")},
+                    ),
+                    client.delete(f"/api/templates/{template_id}"),
+                ]
+            delete_comment = client.delete(f"/api/templates/{public_id}/comments/{comment_id}")
+            delete_official_comment = client.delete(
+                f"/api/templates/{official_id}/comments/{official_comment_id}"
+            )
+
+        assert [item["id"] for item in public_list.json()] == [kept_id]
+        assert official_id not in [item["id"] for item in official_list.json()]
+        assert [item["id"] for item in mine.json()] == [kept_id]
+        assert admin_toggle.status_code == 404
+        assert admin_get_private.status_code == 404
+        for template_id, results in responses.items():
+            assert [response.status_code for response in results] == [404] * len(results), template_id
+        assert delete_comment.status_code == 404
+        assert delete_official_comment.status_code == 404
+
+        with Session(engine) as db:
+            for template_id in (public_id, private_id, official_id):
+                saved = db.get(Template, template_id)
+                assert saved.deleted_at is not None
+                assert saved.name != "Revived"
+                assert saved.cover_url is None
+            assert db.get(Template, official_id).comments_enabled is True
+            # Soft delete keeps the comments; they are only unreachable.
+            assert db.get(Comment, comment_id) is not None
+            assert db.get(Comment, official_comment_id) is not None
+            assert db.scalar(select(Comment).where(Comment.body == "After delete")) is None
+        assert len(delete_logs(engine)) == 3
+    finally:
+        templates_router.TEMPLATE_COVERS_DIR = original_cover_dir
+        shutil.rmtree(cover_dir, ignore_errors=True)
+        app.dependency_overrides.clear()
+
+
+def test_seed_does_not_recreate_deleted_official_or_refill_its_workflow():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    admin = add_user(engine, "admin", "admin@example.com", role="admin")
+
+    with Session(engine) as db:
+        ensure_official_template_records(db)
+        rows = db.scalars(select(Template).where(Template.is_official.is_(True)).order_by(Template.id)).all()
+        deleted_id, emptied_deleted_id, emptied_kept_id = rows[0].id, rows[1].id, rows[2].id
+        deleted_key = rows[0].official_key
+        # Rows from before workflows lived in the database have an empty workflow.
+        rows[1].workflow = {"version": 1, "nodes": [], "edges": []}
+        rows[2].workflow = {"version": 1, "nodes": [], "edges": []}
+        db.commit()
+
+    try:
+        with make_client(engine) as client:
+            authenticate(client, admin.id)
+            assert client.delete(f"/api/templates/{deleted_id}").status_code == 204
+            assert client.delete(f"/api/templates/{emptied_deleted_id}").status_code == 204
+            official_after = client.get("/api/templates/official")
+
+        with Session(engine) as db:
+            ensure_official_template_records(db)
+            ensure_official_template_records(db)
+
+        with Session(engine) as db:
+            official_rows = db.scalars(select(Template).where(Template.is_official.is_(True))).all()
+            assert len(official_rows) == len(OFFICIAL_TEMPLATE_CATALOG)
+            assert [row.id for row in official_rows if row.official_key == deleted_key] == [deleted_id]
+            assert db.get(Template, deleted_id).deleted_at is not None
+            emptied_deleted = db.get(Template, emptied_deleted_id)
+            assert emptied_deleted.deleted_at is not None
+            assert emptied_deleted.workflow["nodes"] == []
+            # A row that is not deleted still receives the seeded workflow, as before.
+            assert db.get(Template, emptied_kept_id).workflow["nodes"]
+            assert len(db.scalars(select(User).where(User.provider == "system")).all()) == 1
+
+        assert official_after.status_code == 200
+        listed = {item["id"] for item in official_after.json()}
+        assert deleted_id not in listed
+        assert emptied_deleted_id not in listed
+        assert len(listed) == len(OFFICIAL_TEMPLATE_CATALOG) - 2
     finally:
         app.dependency_overrides.clear()

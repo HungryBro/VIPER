@@ -102,6 +102,13 @@ export async function updatePlatformTemplate(
   }));
 }
 
+// Soft delete ฝั่ง server (templates.deleted_at) สิทธิ์: Official = admin/ผู้สอน, template ทั่วไป = เจ้าของ
+export async function deletePlatformTemplate(templateId: number): Promise<void> {
+  await readJson<unknown>(await apiFetch(`/api/templates/${templateId}`, {
+    method: 'DELETE',
+  }));
+}
+
 export async function uploadTemplateCover(
   templateId: number,
   file: File,

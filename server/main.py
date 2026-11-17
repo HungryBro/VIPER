@@ -58,6 +58,8 @@ def _ensure_template_columns(bind: Engine | None = None) -> None:
             connection.execute(text("ALTER TABLE templates ADD COLUMN is_official BOOLEAN NOT NULL DEFAULT FALSE"))
         if "official_key" not in columns:
             connection.execute(text("ALTER TABLE templates ADD COLUMN official_key VARCHAR(160)"))
+        if "deleted_at" not in columns:
+            connection.execute(text("ALTER TABLE templates ADD COLUMN deleted_at TIMESTAMP WITH TIME ZONE"))
         connection.execute(text(
             "CREATE UNIQUE INDEX IF NOT EXISTS ix_templates_official_key "
             "ON templates (official_key)"
