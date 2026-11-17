@@ -235,13 +235,13 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `frontend-ui-engineering` + `test-driven-development`
 - ผู้ทำ: Sonnet subagent (medium) · ชุด D · ตัวหลักตรวจ diff ทันทีหลังจบ (ขนาด L)
 
-### [ ] T13 เปิด template ใน Lab และบันทึก template จาก Lab
+### [x] T13 เปิด template ใน Lab และบันทึก template จาก Lab
 ปุ่ม "เปิดใน Lab" โหลด workflow เข้าแท็บใหม่ของ editor และย้าย `SaveTemplateDialog` มาใช้ใน Lab
 
 - เกณฑ์รับ
-  - [ ] เปิด Official template และ template ของผู้ใช้ได้โหนดและเส้นครบ (ทั้งสองแบบโหลดจากฐานข้อมูลผ่าน `POST /api/templates/{id}/load`)
-  - [ ] บันทึกจาก Lab แล้วเห็นในแท็บ "ของฉัน" ทันที
-  - [ ] เกิด log `template.load` และ `template.create` ตามเดิม
+  - [x] เปิด Official template และ template ของผู้ใช้ได้โหนดและเส้นครบ (ทั้งสองแบบโหลดจากฐานข้อมูลผ่าน `POST /api/templates/{id}/load`)
+  - [x] บันทึกจาก Lab แล้วเห็นในแท็บ "ของฉัน" ทันที
+  - [x] เกิด log `template.load` และ `template.create` ตามเดิม
 - ตรวจ: FE, LAB, เปิด template "Homography Estimation" แล้วรันผ่าน
 - ขึ้นกับ: T12
 - ไฟล์: `src/platform/SaveTemplateDialog.tsx`, `src/pages/LabPage.tsx`, `src/components/sidebar.tsx`
@@ -249,13 +249,13 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `frontend-ui-engineering` + `test-driven-development`
 - ผู้ทำ: Sonnet subagent (medium) · ชุด D
 
-### [ ] T14 คลังโหนดใน Lab ตามแบบ mockup ด้วยโหนดจริง
+### [x] T14 คลังโหนดใน Lab ตามแบบ mockup ด้วยโหนดจริง
 ปรับหัว Lab และคลัง (Nodes / Templates, เปิดปิดหมวด, ปุ่มสลับคลังปุ่มเดียว) ให้ตรง mockup โดยรายการมาจาก sidebar เดิม
 
 - เกณฑ์รับ
-  - [ ] คลังแสดงโหนดที่เปิดใช้ครบ 22 ชนิดใน 9 หมวด และลากลง canvas ได้ทุกตัว; 9 ชนิดที่ซ่อนยังไม่แสดง
-  - [ ] ปิดคลังแล้วเปิดกลับได้ทั้งเดสก์ท็อปและ 375px โดยคลังไม่ทับหัว Lab
-  - [ ] แผงโจทย์และปุ่มส่งงานไม่แสดง (ยังไม่มีกิจกรรม)
+  - [x] คลังแสดงโหนดที่เปิดใช้ครบ 22 ชนิดใน 9 หมวด และลากลง canvas ได้ทุกตัว; 9 ชนิดที่ซ่อนยังไม่แสดง
+  - [x] ปิดคลังแล้วเปิดกลับได้ทั้งเดสก์ท็อปและ 375px โดยคลังไม่ทับหัว Lab
+  - [x] แผงโจทย์และปุ่มส่งงานไม่แสดง (ยังไม่มีกิจกรรม)
 - ตรวจ: FE, LAB, นับรายการในคลังเทียบกับ `sidebarGroups()` ใน `src/lib/nodeCatalog.ts` (รายการคลังต้องมาจากฟังก์ชันนี้ ไม่เขียนรายการใหม่)
 - ขึ้นกับ: T5, T13
 - ไฟล์: `src/components/sidebar.tsx`, `src/pages/LabPage.tsx`, `src/platform/styles/lab.css`
