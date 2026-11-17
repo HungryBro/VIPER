@@ -9,6 +9,7 @@ import LoginPage from './components/LoginPage';
 import Layout from './platform/Layout';
 import HomeRoute from './platform/pages/HomeRoute';
 import LogsPage from './platform/pages/LogsPage';
+import ProfilePage from './platform/pages/ProfilePage';
 import TemplatesPage from './platform/pages/TemplatesPage';
 import UsersPage from './platform/pages/UsersPage';
 import RequireAuth from './platform/RequireAuth';
@@ -22,7 +23,6 @@ const PLANNED_PATHS = [
   'teach/:courseId',
   'submissions',
   'announcements',
-  'profile',
 ];
 
 export const router = createBrowserRouter([
@@ -51,6 +51,7 @@ export const router = createBrowserRouter([
               { path: 'users', Component: UsersPage },
               { path: 'logs', Component: LogsPage },
               { path: 'templates', Component: TemplatesPage },
+              { path: 'profile', Component: ProfilePage },
               ...PLANNED_PATHS.map((path) => ({ path, Component: NotReadyPage })),
               { path: '*', Component: NotFoundPage },
             ],
