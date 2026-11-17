@@ -63,6 +63,48 @@ export async function listAdminAuditLogs(limit = 200): Promise<AdminAuditLog[]> 
 }
 
 
+export type AdminAuditLogQuery = {
+  limit?: number;
+  offset?: number;
+  action?: string[];
+  actionPrefix?: string[];
+  q?: string;
+};
+
+export type AdminAuditLogPage = {
+  items: AdminAuditLog[];
+  // จำนวนแถวที่ตรงตัวกรองทั้งหมด (header X-Total-Count) ไม่ใช่แค่หน้านี้
+  total: number;
+};
+
+export type AdminAuditActionCount = {
+  action: string;
+  count: number;
+};
+
+
+export async function listAdminAuditLogPage(query: AdminAuditLogQuery = {}): Promise<AdminAuditLogPage> {
+  const params = new URLSearchParams();
+  params.set('limit', String(query.limit ?? 100));
+  params.set('offset', String(query.offset ?? 0));
+  query.action?.forEach((value) => params.append('action', value));
+  query.actionPrefix?.forEach((value) => params.append('action_prefix', value));
+  if (query.q?.trim()) params.set('q', query.q.trim());
+  const response = await apiFetch(`/api/admin/audit-logs?${params.toString()}`);
+  if (!response.ok) throw new Error(await responseDetail(response));
+  const items: AdminAuditLog[] = await response.json();
+  const total = Number(response.headers.get('X-Total-Count'));
+  return { items, total: Number.isFinite(total) ? total : items.length };
+}
+
+
+export async function listAdminAuditActions(): Promise<AdminAuditActionCount[]> {
+  const response = await apiFetch('/api/admin/audit-logs/actions');
+  if (!response.ok) throw new Error(await responseDetail(response));
+  return response.json();
+}
+
+
 export async function updateAdminUser(
   userId: number,
   update: AdminUserUpdate,

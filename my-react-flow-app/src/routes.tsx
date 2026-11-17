@@ -8,6 +8,7 @@ import App from './App';
 import LoginPage from './components/LoginPage';
 import Layout from './platform/Layout';
 import HomeRoute from './platform/pages/HomeRoute';
+import LogsPage from './platform/pages/LogsPage';
 import UsersPage from './platform/pages/UsersPage';
 import RequireAuth from './platform/RequireAuth';
 import { NotFoundPage, NotReadyPage, RootErrorBoundary } from './pages/StatusPages';
@@ -21,7 +22,6 @@ const PLANNED_PATHS = [
   'submissions',
   'announcements',
   'templates',
-  'logs',
   'profile',
 ];
 
@@ -49,6 +49,7 @@ export const router = createBrowserRouter([
             Component: RequireAuth,
             children: [
               { path: 'users', Component: UsersPage },
+              { path: 'logs', Component: LogsPage },
               ...PLANNED_PATHS.map((path) => ({ path, Component: NotReadyPage })),
               { path: '*', Component: NotFoundPage },
             ],
