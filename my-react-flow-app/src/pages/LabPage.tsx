@@ -1,5 +1,5 @@
 // File: src/pages/LabPage.tsx (editor เดิมจาก src/App.tsx ย้ายมาเป็นหน้า /lab ใน T4)
-import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, useSyncExternalStore } from 'react';
 import { ReactFlowProvider } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -11,6 +11,8 @@ import UserMenu from '../components/UserMenu';
 
 import { sanitizeWorkflowDocument, type TemplateDetail } from '../lib/templateApi';
 import { nodeSpec } from '../lib/nodeCatalog';
+import { labBridge } from '../platform/labBridge';
+import SaveTemplateDialog from '../platform/SaveTemplateDialog';
 import type { WorkflowTab, NodeStatus } from '../types'; 
 
 const STORAGE_KEY_APP_TABS = 'n2n_app_tabs';
@@ -21,6 +23,7 @@ const COMPACT_MOBILE_QUERY = '(max-width: 767px), (max-height: 560px) and (point
 // งานที่รัน การแก้ undo/redo, Log panel และ clipboard จึงอยู่ครบเมื่อกลับมา
 export default function LabPage({ active = true }: { active?: boolean }) {
   const [isRunning, setIsRunning] = useState(false);
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [isCompactMobile, setIsCompactMobile] = useState(() => (
     typeof window !== 'undefined' && window.matchMedia(COMPACT_MOBILE_QUERY).matches
   ));
@@ -275,6 +278,22 @@ export default function LabPage({ active = true }: { active?: boolean }) {
     handleLoadTemplate({ name: template.name, nodes: template.workflow.nodes, edges: template.workflow.edges });
   }, [handleLoadTemplate]);
 
+  // template ที่หน้า Templates ส่งมาทาง labBridge (T13): เปิดเป็นแท็บใหม่ผ่าน handleLoadPlatformTemplate เดิม
+  // รอจน editor active และ canvas พร้อม (รอบ mount แรกมี restore ที่ 50ms) take() ล้างค่าทันที จึงไม่เปิดซ้ำใน StrictMode
+  const pendingTemplate = useSyncExternalStore(labBridge.subscribe, labBridge.peek);
+  const loadPlatformTemplateRef = useRef(handleLoadPlatformTemplate);
+  useEffect(() => {
+    loadPlatformTemplateRef.current = handleLoadPlatformTemplate;
+  }, [handleLoadPlatformTemplate]);
+  useEffect(() => {
+    if (!pendingTemplate || !active) return;
+    const timer = setTimeout(() => {
+      const template = labBridge.take();
+      if (template) loadPlatformTemplateRef.current(template);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [pendingTemplate, active]);
+
   const handleAddNodeFromLibrary = useCallback((nodeType: string) => {
     canvasRef.current?.addNode(nodeType);
   }, []);
@@ -302,6 +321,13 @@ export default function LabPage({ active = true }: { active?: boolean }) {
           <span className="hidden lg:inline">VIPER - Image Processing Learning Platform</span>
           <span className="lg:hidden">VIPER</span>
         </h1>
+        <button
+          type="button"
+          onClick={() => setSaveTemplateOpen(true)}
+          className="flex h-9 shrink-0 touch-manipulation items-center justify-center rounded-md border border-teal-500/40 bg-teal-500/10 px-2 text-[10px] font-bold text-teal-300 hover:bg-teal-500/20"
+        >
+          SAVE TEMPLATE
+        </button>
         <UserMenu />
       </div>
       <WorkflowControls isRunning={isRunning} onStart={handleStart} onStop={handleStop} />
@@ -318,6 +344,9 @@ export default function LabPage({ active = true }: { active?: boolean }) {
           </div>
         </ReactFlowProvider>
       </div>
+      {saveTemplateOpen && (
+        <SaveTemplateDialog getCurrentWorkflow={getCurrentWorkflow} onClose={() => setSaveTemplateOpen(false)} />
+      )}
     </div>
   );
 }

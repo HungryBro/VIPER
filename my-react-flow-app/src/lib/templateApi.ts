@@ -56,6 +56,8 @@ type TemplateCreatePayload = {
   description: string;
   visibility: TemplateVisibility;
   workflow: WorkflowDocument;
+  // true เฉพาะ admin/ผู้สอน (server ตรวจซ้ำ) บังคับ visibility = public และ workflow ต้องมีโหนด
+  is_official?: boolean;
 };
 
 type TemplateUpdatePayload = Partial<TemplateCreatePayload>;

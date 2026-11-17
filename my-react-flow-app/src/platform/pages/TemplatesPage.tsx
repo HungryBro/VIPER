@@ -22,6 +22,7 @@ import '../styles/Templates.css';
 import { canManageTemplate, canToggleComments, kindOf } from '../templateAccess';
 import { Avatar, VisibilityBadge } from '../TemplateBadges';
 import TemplateDetail from '../TemplateDetail';
+import { useOpenInLab } from '../useOpenInLab';
 import { useToast } from '../toast';
 import { Button, Empty, Modal, cx, time } from '../ui';
 
@@ -251,6 +252,7 @@ function EditDialog({
 export default function TemplatesPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { openInLab, openingId } = useOpenInLab();
   const [lists, setLists] = useState<Record<Tab, TemplateSummary[]>>({ official: [], public: [], mine: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -389,7 +391,7 @@ export default function TemplatesPage() {
                     <Button kind="secondary" onClick={() => setSelectedId(template.id)}>
                       รายละเอียด
                     </Button>
-                    <Button onClick={() => navigate('/lab')}>
+                    <Button disabled={openingId === template.id} onClick={() => void openInLab(template)}>
                       <Play size={14} />
                       เปิดใน Lab
                     </Button>
@@ -409,6 +411,7 @@ export default function TemplatesPage() {
         <TemplateDetail
           template={selected}
           onClose={() => setSelectedId(null)}
+          onOpenLab={(template) => void openInLab(template)}
           onEdit={(template) => {
             setSelectedId(null);
             setEditingId(template.id);
