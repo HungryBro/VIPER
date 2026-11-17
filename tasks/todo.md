@@ -177,13 +177,13 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `test-driven-development` + `security-and-hardening` + `doubt-driven-development` + `deprecation-and-migration` (คอลัมน์ `deleted_at`)
 - ผู้ทำ: Opus subagent (high) · ชุด B
 
-### [ ] T9 หน้า Users ด้วยผู้ใช้จริง
+### [x] T9 หน้า Users ด้วยผู้ใช้จริง
 ย้ายหน้า `AdminUsers` ของ mockup และรวมความสามารถของ `AdminUserPanel` เดิม
 
 - เกณฑ์รับ
-  - [ ] ตารางแสดงผู้ใช้จริงครบทุกแถวจาก `/api/admin/users` พร้อมค้นหา
-  - [ ] มีสวิตช์สิทธิ์ผู้สอน และยังเปลี่ยน role กับแบนแบบกำหนดวันหมดอายุได้เหมือนเดิม
-  - [ ] ผู้ใช้ธรรมดาเปิด `/users` ไม่ได้
+  - [x] ตารางแสดงผู้ใช้จริงครบทุกแถวจาก `/api/admin/users` พร้อมค้นหา
+  - [x] มีสวิตช์สิทธิ์ผู้สอน และยังเปลี่ยน role กับแบนแบบกำหนดวันหมดอายุได้เหมือนเดิม
+  - [x] ผู้ใช้ธรรมดาเปิด `/users` ไม่ได้
 - ตรวจ: FE, จำนวนแถวบนจอเท่ากับ `select count(*) from users`
 - ขึ้นกับ: T6, T8
 - ไฟล์: `src/platform/pages/UsersPage.tsx`, `src/lib/adminApi.ts`, `src/components/AdminUserPanel.tsx`
