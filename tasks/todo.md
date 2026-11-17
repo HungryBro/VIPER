@@ -142,13 +142,13 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 
 ## ระยะ 2: หน้าที่ใช้ข้อมูลจริง
 
-### [ ] T8 เพิ่ม `users.can_teach`
+### [x] T8 เพิ่ม `users.can_teach`
 เพิ่มคอลัมน์ ส่งค่าใน `/api/auth/me` และ `/api/admin/users` และให้ admin แก้ได้พร้อมบันทึก audit log
 
 - เกณฑ์รับ
-  - [ ] ผู้ใช้เดิมทั้ง 4 แถวได้ `can_teach = false` และข้อมูลอื่นไม่เปลี่ยน
-  - [ ] `PATCH /api/admin/users/{id}` รับ `can_teach` ได้เฉพาะ admin และเกิด log `permission.can_teach_update`
-  - [ ] ผู้ใช้ธรรมดาเรียกแล้วได้ 403
+  - [x] ผู้ใช้เดิมทั้ง 4 แถวได้ `can_teach = false` และข้อมูลอื่นไม่เปลี่ยน
+  - [x] `PATCH /api/admin/users/{id}` รับ `can_teach` ได้เฉพาะ admin และเกิด log `permission.can_teach_update`
+  - [x] ผู้ใช้ธรรมดาเรียกแล้วได้ 403
 - ตรวจ: BE (เพิ่มเทสต์ใน `tests/test_admin_users.py` ทั้งกรณีอนุญาตและไม่อนุญาต), รัน T1 snapshot เทียบว่าแถวเดิมไม่เปลี่ยน
 - ขึ้นกับ: T1
 - ไฟล์: `server/models.py`, `server/main.py`, `server/schemas.py`, `server/routers/admin.py`, `tests/test_admin_users.py`
@@ -156,20 +156,20 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `api-and-interface-design` + `test-driven-development` + `deprecation-and-migration`
 - ผู้ทำ: Opus subagent (high) · ชุด B
 
-### [ ] T8.1 สิทธิ์ Official template ตามบทบาท และการลบ template
+### [x] T8.1 สิทธิ์ Official template ตามบทบาท และการลบ template
 ใช้ตารางสิทธิ์ใน plan.md (การตัดสินใจข้อ 7): admin ทำได้ทุกอย่าง, ผู้สอน (`can_teach`) สร้าง/ตั้งเป็น Official และแก้/ลบ Official ได้ แต่เปิดปิดความคิดเห็นไม่ได้, ผู้เรียนทำไม่ได้
 
 เพิ่ม `DELETE /api/templates/{id}` แบบ soft delete (คอลัมน์ `templates.deleted_at` ค่าเริ่มต้น NULL) ตอนนี้ server ไม่มีทางลบ template เลย (ผู้ใช้ตัดสินใจ 17 พ.ย.)
 
 - เกณฑ์รับ
-  - [ ] ผู้สอนสร้าง template แบบ Official ได้ และแก้ชื่อ คำอธิบาย ปก และ workflow ของ Official ได้
-  - [ ] ผู้สอนเปิดปิดความคิดเห็นของ Official ไม่ได้ (403) ส่วน admin ทำได้เหมือนเดิม
-  - [ ] ผู้เรียนสร้างหรือแก้ Official ไม่ได้ (403) และ template ของตัวเองยังทำงานเหมือนเดิม
-  - [ ] เพิ่มคอลัมน์ `templates.deleted_at` ด้วย ALTER เดิมใน `main.py` (ทดสอบกับ SQLite ก่อน) แถวเดิมทั้ง 13 แถวได้ `deleted_at = NULL` และข้อมูลอื่นไม่เปลี่ยน
-  - [ ] `DELETE /api/templates/{id}` เป็น soft delete: admin และผู้สอนลบ Official ได้, ผู้เรียนลบ Official ไม่ได้ (403), เจ้าของ template ทั่วไป (Private/Public) ลบของตัวเองได้, คนอื่นลบไม่ได้ (403)
-  - [ ] แถวที่ลบไม่แสดงในทุกรายการ (`/api/templates`, `/official`, `/mine`) และเปิด/โหลด/คอมเมนต์ไม่ได้ (404)
-  - [ ] seed (`ensure_official_template_records`) ไม่สร้าง Official ที่ถูกลบกลับมา และไม่เติม workflow ให้แถวที่ลบ
-  - [ ] ทุกการลบถูกบันทึกใน audit log (`template.delete`) พร้อมผู้ลบและ id
+  - [x] ผู้สอนสร้าง template แบบ Official ได้ และแก้ชื่อ คำอธิบาย ปก และ workflow ของ Official ได้
+  - [x] ผู้สอนเปิดปิดความคิดเห็นของ Official ไม่ได้ (403) ส่วน admin ทำได้เหมือนเดิม
+  - [x] ผู้เรียนสร้างหรือแก้ Official ไม่ได้ (403) และ template ของตัวเองยังทำงานเหมือนเดิม
+  - [x] เพิ่มคอลัมน์ `templates.deleted_at` ด้วย ALTER เดิมใน `main.py` (ทดสอบกับ SQLite ก่อน) แถวเดิมทั้ง 13 แถวได้ `deleted_at = NULL` และข้อมูลอื่นไม่เปลี่ยน
+  - [x] `DELETE /api/templates/{id}` เป็น soft delete: admin และผู้สอนลบ Official ได้, ผู้เรียนลบ Official ไม่ได้ (403), เจ้าของ template ทั่วไป (Private/Public) ลบของตัวเองได้, คนอื่นลบไม่ได้ (403)
+  - [x] แถวที่ลบไม่แสดงในทุกรายการ (`/api/templates`, `/official`, `/mine`) และเปิด/โหลด/คอมเมนต์ไม่ได้ (404)
+  - [x] seed (`ensure_official_template_records`) ไม่สร้าง Official ที่ถูกลบกลับมา และไม่เติม workflow ให้แถวที่ลบ
+  - [x] ทุกการลบถูกบันทึกใน audit log (`template.delete`) พร้อมผู้ลบและ id
 - ตรวจ: BE (เพิ่มเทสต์ทั้ง 3 บทบาท รวมกรณีลบและกรณี seed หลังลบ ใน `tests/test_templates_api.py`), รัน T1 snapshot เทียบว่าแถวเดิมไม่เปลี่ยน, FE ปุ่มแก้ไขแสดงตามสิทธิ์
 - ขึ้นกับ: T8
 - ไฟล์: `server/models.py`, `server/main.py`, `server/routers/templates.py`, `server/official_templates.py`, `server/schemas.py`, `tests/test_templates_api.py`, `src/components/TemplatePlatformLibrary.tsx`, `src/lib/templateApi.ts`
