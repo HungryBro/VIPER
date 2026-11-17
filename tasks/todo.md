@@ -74,13 +74,13 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 
 ## ระยะ 1: โครงหน้า
 
-### [ ] T4 เพิ่ม router และย้าย editor เดิมไปที่ `/lab`
+### [x] T4 เพิ่ม router และย้าย editor เดิมไปที่ `/lab`
 ติดตั้ง `react-router-dom` แยก editor ปัจจุบันออกจาก `App.tsx` เป็นหน้า `LabPage` และสร้าง layout กลางที่มีที่ว่างสำหรับ header
 
 - เกณฑ์รับ
-  - [ ] `/lab` แสดง editor เดิมครบ: แท็บ Workflow, sidebar, ปุ่มรัน/หยุด, Log panel
-  - [ ] refresh ที่ `/lab` แล้วแท็บและ workflow เดิมยังอยู่ (`n2n_app_tabs`)
-  - [ ] route ที่ยังไม่ทำแสดงหน้า "ยังไม่พร้อม" ไม่ใช่หน้าขาว
+  - [x] `/lab` แสดง editor เดิมครบ: แท็บ Workflow, sidebar, ปุ่มรัน/หยุด, Log panel
+  - [x] refresh ที่ `/lab` แล้วแท็บและ workflow เดิมยังอยู่ (`n2n_app_tabs`)
+  - [x] route ที่ยังไม่ทำแสดงหน้า "ยังไม่พร้อม" ไม่ใช่หน้าขาว
 - ตรวจ: FE, LAB, ทดสอบ undo/redo และ hotkey ลบโหนด
 - ขึ้นกับ: T3
 - ไฟล์: `package.json`, `src/main.tsx`, `src/App.tsx`, `src/pages/LabPage.tsx`, `src/routes.tsx`
