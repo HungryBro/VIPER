@@ -183,7 +183,8 @@ function LogsTable() {
             <option value="all">ทั้งหมด</option>
             {actions.map((item) => (
               <option value={item.action} key={item.action}>
-                {labelOf(item.action)} ({item.action}) · {item.count}
+                {/* action ที่ยังไม่มีป้ายชื่อแสดงโค้ดครั้งเดียว ไม่ซ้ำในวงเล็บ */}
+                {labelOf(item.action) === item.action ? item.action : `${labelOf(item.action)} (${item.action})`} · {item.count}
               </option>
             ))}
           </select>
