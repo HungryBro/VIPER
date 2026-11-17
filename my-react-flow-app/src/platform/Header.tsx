@@ -1,6 +1,6 @@
 // header ของแพลตฟอร์ม (ย้ายจาก PlatformHeader ใน mockup) เมนูตามสิทธิ์จริงจาก useAuth()
 import { useEffect, useRef, useState } from 'react';
-import { Link, NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Bell, LogOut, Moon, Sun, UserRound, Users, X } from 'lucide-react';
 
 import { useAuth } from '../auth/AuthContext';
@@ -12,6 +12,7 @@ import { Badge, Empty, cx } from './ui';
 export function Header({ theme, onToggleTheme }: { theme: PlatformTheme; onToggleTheme: () => void }) {
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [unreadOnly, setUnreadOnly] = useState(false);
@@ -178,7 +179,8 @@ export function Header({ theme, onToggleTheme }: { theme: PlatformTheme; onToggl
                   type="button"
                   onClick={() => {
                     setAccountOpen(false);
-                    void logout();
+                    // ออกจากระบบแล้วกลับหน้าแรก (ไม่ให้ RequireAuth พาไป /login?next=หน้าเดิม)
+                    void logout().then(() => navigate('/', { replace: true }));
                   }}
                 >
                   <LogOut size={16} />

@@ -5,11 +5,14 @@ import { Outlet } from 'react-router-dom';
 import { CheckCircle2, X } from 'lucide-react';
 
 import './styles/index.css';
+import { useAuth } from '../auth/AuthContext';
+import { GuestHeader } from './GuestHeader';
 import { Header } from './Header';
 import { usePlatformTheme } from './theme';
 import { ToastContext } from './toast';
 
 export default function Layout() {
+  const { user } = useAuth();
   const [theme, toggleTheme] = usePlatformTheme();
   const [toast, setToast] = useState('');
   const notify = useCallback((message: string) => setToast(message), []);
@@ -24,7 +27,11 @@ export default function Layout() {
     <ToastContext.Provider value={notify}>
       <div className="viper-platform" data-theme={theme}>
         <div className="app">
-          <Header theme={theme} onToggleTheme={toggleTheme} />
+          {user ? (
+            <Header theme={theme} onToggleTheme={toggleTheme} />
+          ) : (
+            <GuestHeader theme={theme} onToggleTheme={toggleTheme} />
+          )}
           <main id="main" className="main">
             <Outlet />
           </main>

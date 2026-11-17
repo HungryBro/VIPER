@@ -6,7 +6,10 @@ import { createBrowserRouter } from 'react-router-dom';
 
 import App from './App';
 import LabPage from './pages/LabPage';
+import LoginPage from './components/LoginPage';
 import Layout from './platform/Layout';
+import HomeRoute from './platform/pages/HomeRoute';
+import RequireAuth from './platform/RequireAuth';
 import { NotFoundPage, NotReadyPage, RootErrorBoundary } from './pages/StatusPages';
 
 const PLANNED_PATHS = [
@@ -21,7 +24,6 @@ const PLANNED_PATHS = [
   'users',
   'logs',
   'profile',
-  'login',
 ];
 
 export const router = createBrowserRouter([
@@ -30,14 +32,26 @@ export const router = createBrowserRouter([
     Component: App,
     ErrorBoundary: RootErrorBoundary,
     children: [
-      // /lab ไม่อยู่ใต้ Layout ของแพลตฟอร์ม: มีหัวของ editor เอง (T14 ค่อยรวม header)
-      { path: 'lab', Component: LabPage },
+      // ผู้เยี่ยมชมเห็นหน้าแรก "/" และ /login เท่านั้น ทุก route อื่นอยู่ใต้ RequireAuth (พาไป /login?next=...)
+      { path: 'login', Component: LoginPage },
+      {
+        Component: RequireAuth,
+        children: [
+          // /lab ไม่อยู่ใต้ Layout ของแพลตฟอร์ม: มีหัวของ editor เอง (T14 ค่อยรวม header)
+          { path: 'lab', Component: LabPage },
+        ],
+      },
       {
         Component: Layout,
         children: [
-          { index: true, Component: NotReadyPage },
-          ...PLANNED_PATHS.map((path) => ({ path, Component: NotReadyPage })),
-          { path: '*', Component: NotFoundPage },
+          { index: true, Component: HomeRoute },
+          {
+            Component: RequireAuth,
+            children: [
+              ...PLANNED_PATHS.map((path) => ({ path, Component: NotReadyPage })),
+              { path: '*', Component: NotFoundPage },
+            ],
+          },
         ],
       },
     ],

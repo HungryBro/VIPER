@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
 
 import { useAuth } from '../auth/AuthContext';
-import LoginPage from './LoginPage';
 
 
+// รอผลตรวจ session ครั้งแรกเท่านั้น (ไม่ให้เป็นหน้าขาว) ไม่ได้กันหน้าใดอีกแล้ว:
+// หน้าแรก "/" เปิดได้โดยไม่ login ส่วน route อื่นกันด้วย RequireAuth (src/platform/RequireAuth.tsx)
 export default function AuthGate({ children }: { children: ReactNode }) {
-  const { loading, user } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) {
     return (
@@ -15,6 +16,5 @@ export default function AuthGate({ children }: { children: ReactNode }) {
     );
   }
 
-  if (!user) return <LoginPage />;
   return children;
 }
