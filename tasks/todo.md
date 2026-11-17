@@ -4,6 +4,7 @@
 
 คำสั่งตรวจที่ใช้ซ้ำทุก task (รันจากโฟลเดอร์หลัก VIPER):
 
+- **CHECK** `scripts/check.sh` (สร้างใน T3) รวม BE กับ FE แล้วเทียบเส้นฐาน ตอบผ่านหรือไม่ผ่านอย่างเดียว ผู้ทำทุกคนต้องรันก่อนรายงานว่าเสร็จ และ Opus ตัวหลักรันซ้ำเองทุกครั้ง
 - **BE** `./.venv/bin/python -m pytest --ignore=tests/compare_yolo` ต้องล้มไม่เกิน 15 รายการเดิม (SURF) เส้นฐานหลัง refactor: ผ่าน 259
 - **FE** `cd my-react-flow-app && npm run lint && npm run build` ต้องไม่มี error
 - **LAB** เปิด `/lab` ลากโหนด ORB ต่อกับ Image Input แล้วรัน ได้ผลเหมือนก่อนแก้
@@ -11,6 +12,8 @@
 ขนาด: S = 1–2 ไฟล์, M = 3–5 ไฟล์, L = 5–8 ไฟล์
 
 skill ที่ใช้ทุก task (ไม่เขียนซ้ำในแต่ละข้อ): `incremental-implementation` ตอนทำ, `git-workflow-and-versioning` ทุก commit, `debugging-and-error-recovery` เมื่อเทสต์ล้มหรือผลไม่ตรง รายละเอียดและผลตรวจ skill ภายนอก: plan.md หัวข้อ "Skill และ agent ที่ใช้"
+
+ผู้ทำ: บรรทัด `ผู้ทำ:` ของแต่ละ task บอกว่าใครทำและอยู่ชุดไหน task ในชุดเดียวกันส่งให้ subagent ตัวเดียวทำต่อกันรวด แต่ commit แยกทีละ task วิธีสั่งงานและตรวจรับ: plan.md หัวข้อ "วิธีสั่งงาน subagent"
 
 ---
 
@@ -29,6 +32,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `scripts/migration_snapshot.py`, `tasks/baseline/db-snapshot.json`
 - ขนาด: S
 - skill: `deprecation-and-migration`
+- ผู้ทำ: Opus ตัวหลัก (high) ทำเอง (เป็นฐานของทุก task)
 
 ### [ ] T2 สร้างตารางเทียบและถ่ายภาพ mockup ทุกหน้า
 ไล่ทุกหน้า modal และส่วนร่วมใน source ของ mockup ลงตาราง พร้อมส่วนที่สองสำหรับความสามารถเดิมของของจริง แล้วถ่ายภาพ mockup เก็บเป็นภาพอ้างอิง
@@ -41,19 +45,25 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ขึ้นกับ: ไม่มี
 - ไฟล์: `tasks/parity.md`, `scripts/parity_screenshots.mjs` (ส่วนถ่าย mockup)
 - ขนาด: M
-- skill: `webapp-testing` (สคริปต์ Playwright ถ่ายภาพ mockup) · ติดตั้งก่อนเริ่ม: `./.venv/bin/python -m pip install playwright` แล้ว `./.venv/bin/python -m playwright install chromium`
+- skill: `webapp-testing` (สคริปต์ Playwright ถ่ายภาพ mockup) · ติดตั้งแล้ว 17 พ.ย.: Playwright 1.65.2 ใน `.venv` + Chromium 159 รันด้วย `./.venv/bin/python`
+- ผู้ทำ: Sonnet subagent (medium) · ชุด I1
 
-### [ ] T3 แก้ lint 3 errors และบันทึกเส้นฐานเทสต์
+### [ ] T3 แก้ lint 3 errors และสร้างสคริปต์ตรวจ `scripts/check.sh`
 แก้ `no-constant-binary-expression` ที่ `sidebar.tsx:284` เพื่อให้ lint ใช้เป็นด่านตรวจได้ ต้นเหตุคือรายการ template แบบเก่าที่ซ่อนด้วย `{false && …}` ห้ามลบบล็อกนี้ เพราะเป็นทางเดียวที่เปิดเมนูคลิกขวาและหน้า "About Algorithm" ได้ ให้เปลี่ยนเป็นค่าคงที่ที่มีชื่อแทน เช่น `SHOW_LEGACY_TEMPLATE_LIST`
+
+จากนั้นสร้าง `scripts/check.sh` เป็นด่านตรวจเดียวที่ทุก task และทุกผู้ทำใช้ร่วมกัน เพื่อไม่ให้แต่ละคนตีความคำว่า "ผ่าน" ต่างกัน
 
 - เกณฑ์รับ
   - [ ] `npm run lint` ไม่มี error (warning เดิม 1 รายการคงไว้ได้)
   - [ ] พฤติกรรมของ sidebar ไม่เปลี่ยน และรายการ template แบบเก่ายังเปิดกลับได้ด้วยค่าคงที่ตัวเดียว
-- ตรวจ: FE, LAB
+  - [ ] `scripts/check.sh` รัน BE (pytest), FE (lint + build) และเทสต์ frontend (`node --test tests/yoloModel.test.cjs`) แล้วเทียบกับเส้นฐานใน `tasks/baseline/test-baseline.json` (ผ่าน ≥ 259, ล้ม ≤ 15 และชุดที่ล้มต้องเป็นชุดเดิม, lint 0 error)
+  - [ ] ผลสุดท้ายเป็นบรรทัดเดียว `CHECK PASS` หรือ `CHECK FAIL: <เหตุผล>` และ exit code 0 หรือ 1 ตามผล
+- ตรวจ: รัน `scripts/check.sh` ได้ PASS; ทดลองใส่ error ใน lint ชั่วคราวแล้วต้องได้ FAIL จากนั้นคืนค่า
 - ขึ้นกับ: ไม่มี
-- ไฟล์: `my-react-flow-app/src/components/sidebar.tsx`
+- ไฟล์: `my-react-flow-app/src/components/sidebar.tsx`, `scripts/check.sh`, `tasks/baseline/test-baseline.json`
 - ขนาด: S
 - skill: ใช้แค่ชุดที่ใช้ทุก task (งานเล็ก)
+- ผู้ทำ: Opus ตัวหลัก (high) ทำเอง (งานเล็ก)
 
 ### จุดตรวจ 0
 - [ ] agent: ไม่ใช้ รันเทสต์ตามเส้นฐาน
@@ -75,7 +85,8 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ขึ้นกับ: T3
 - ไฟล์: `package.json`, `src/main.tsx`, `src/App.tsx`, `src/pages/LabPage.tsx`, `src/routes.tsx`
 - ขนาด: M
-- skill: `frontend-ui-engineering` + `react-router` (ภายนอก) + `source-driven-development` ตรวจด้วย `anthropic-skills:built-in-browser` · ติดตั้งก่อนเริ่ม: `npx skills add remix-run/react-router@react-router -g -y`
+- skill: `frontend-ui-engineering` + `react-router` (ภายนอก) + `source-driven-development` ตรวจด้วย `anthropic-skills:built-in-browser` · ติดตั้งแล้ว 16 พ.ย. ที่ `~/.agents/skills/react-router`
+- ผู้ทำ: Opus ตัวหลัก (high) ทำเอง (โครงที่ทุก task ต้องพึ่ง)
 
 ### [ ] T5 ย้าย CSS และ component พื้นฐานของ mockup
 คัดลอก `Theme.css`, `Density.css`, `Platform.css`, `Learning.css` มาครอบ scope `.viper-platform` และแปลง `ui.jsx` เป็น TypeScript
@@ -89,6 +100,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `src/platform/styles/*.css`, `src/platform/ui.tsx`
 - ขนาด: M
 - skill: `frontend-ui-engineering`
+- ผู้ทำ: Sonnet subagent (medium) · ชุด A
 
 ### [ ] T6 Header: เมนูตามสิทธิ์จริง ธีม เมนูบัญชี กระดิ่ง
 ย้าย `PlatformHeader` มาใช้ข้อมูลจาก `useAuth()` เมนูขึ้นตาม `role` และ `can_teach` (ก่อน T8 ให้ถือว่า `can_teach` เป็น false)
@@ -102,6 +114,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `src/platform/Header.tsx`, `src/platform/Layout.tsx`, `src/components/UserMenu.tsx`
 - ขนาด: M
 - skill: `frontend-ui-engineering`
+- ผู้ทำ: Sonnet subagent (medium) · ชุด A
 
 ### [ ] T7 หน้าแรกผู้เยี่ยมชมและหน้า Login
 ย้าย `GuestHome`, `GuestHeader` และหน้า Login โดยเหลือปุ่ม Google ปุ่มเดียว ปรับ `AuthGate` ให้หน้าแรกเปิดได้โดยไม่ต้อง login
@@ -115,6 +128,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `src/platform/pages/GuestHome.tsx`, `src/components/LoginPage.tsx`, `src/components/AuthGate.tsx`
 - ขนาด: M
 - skill: `frontend-ui-engineering` + `security-and-hardening` (รับเฉพาะ path ภายในแอปตอนพากลับหลัง login กัน open redirect)
+- ผู้ทำ: Sonnet subagent (medium) · ชุด A · ตัวหลักตรวจ diff ทันทีหลังจบ (open redirect)
 
 ### จุดตรวจ 1
 - [ ] agent: `agent-skills:code-reviewer` เน้นว่า `/lab` ไม่พัง
@@ -139,6 +153,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `server/models.py`, `server/main.py`, `server/schemas.py`, `server/routers/admin.py`, `tests/test_admin_users.py`
 - ขนาด: M
 - skill: `api-and-interface-design` + `test-driven-development` + `deprecation-and-migration`
+- ผู้ทำ: Opus subagent (high) · ชุด B
 
 ### [ ] T8.1 สิทธิ์ Official template ตามบทบาท
 ใช้ตารางสิทธิ์ใน plan.md (การตัดสินใจข้อ 7): admin ทำได้ทุกอย่าง, ผู้สอน (`can_teach`) สร้าง/ตั้งเป็น Official และแก้/ลบ Official ได้ แต่เปิดปิดความคิดเห็นไม่ได้, ผู้เรียนทำไม่ได้
@@ -153,6 +168,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `server/routers/templates.py`, `server/official_templates.py`, `server/schemas.py`, `tests/test_templates_api.py`, `src/components/TemplatePlatformLibrary.tsx`
 - ขนาด: M
 - skill: `test-driven-development` + `security-and-hardening` + `doubt-driven-development`
+- ผู้ทำ: Opus subagent (high) · ชุด B
 
 ### [ ] T9 หน้า Users ด้วยผู้ใช้จริง
 ย้ายหน้า `AdminUsers` ของ mockup และรวมความสามารถของ `AdminUserPanel` เดิม
@@ -166,6 +182,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `src/platform/pages/UsersPage.tsx`, `src/lib/adminApi.ts`, `src/components/AdminUserPanel.tsx`
 - ขนาด: M
 - skill: `frontend-ui-engineering`
+- ผู้ทำ: Sonnet subagent (medium) · ชุด F
 
 ### [ ] T10 Audit log API: แบ่งหน้า ตัวกรอง และยอดรวม
 ตอนนี้ดึงได้สูงสุด 500 แถวจาก 2,626 แถว (16 พ.ย.) เพิ่ม `offset`, ตัวกรอง `action`, คำค้น และคืนยอดรวม
@@ -179,6 +196,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `server/routers/admin.py`, `server/schemas.py`, `tests/test_admin_audit_logs.py`
 - ขนาด: S
 - skill: `api-and-interface-design` + `test-driven-development`
+- ผู้ทำ: Sonnet subagent (medium) · ชุด C
 
 ### [ ] T11 หน้า Platform Logs ด้วย log จริง
 ย้ายหน้า `PlatformLogs` และ `LogDetail` ใช้ป้ายชื่อ action จาก `AdminAuditLogView` เดิม
@@ -192,6 +210,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `src/platform/pages/LogsPage.tsx`, `src/lib/adminApi.ts`, `src/components/AdminAuditLogView.tsx`
 - ขนาด: M
 - skill: `frontend-ui-engineering`
+- ผู้ทำ: Sonnet subagent (medium) · ชุด C
 
 ### [ ] T12 หน้า Templates ด้วย template และคอมเมนต์จริง
 ย้าย `TemplateLibrary` และ `TemplateDetail` ต่อกับ `templateApi.ts` แยกแท็บ Official / Public / ของฉัน
@@ -205,6 +224,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `src/platform/pages/TemplatesPage.tsx`, `src/platform/TemplateDetail.tsx`, `src/lib/templateApi.ts`
 - ขนาด: L (แยก detail กับ list เป็นสอง commit)
 - skill: `frontend-ui-engineering` + `test-driven-development`
+- ผู้ทำ: Sonnet subagent (medium) · ชุด D · ตัวหลักตรวจ diff ทันทีหลังจบ (ขนาด L)
 
 ### [ ] T13 เปิด template ใน Lab และบันทึก template จาก Lab
 ปุ่ม "เปิดใน Lab" โหลด workflow เข้าแท็บใหม่ของ editor และย้าย `SaveTemplateDialog` มาใช้ใน Lab
@@ -218,6 +238,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `src/platform/SaveTemplateDialog.tsx`, `src/pages/LabPage.tsx`, `src/components/sidebar.tsx`
 - ขนาด: M
 - skill: `frontend-ui-engineering` + `test-driven-development`
+- ผู้ทำ: Sonnet subagent (medium) · ชุด D
 
 ### [ ] T14 คลังโหนดใน Lab ตามแบบ mockup ด้วยโหนดจริง
 ปรับหัว Lab และคลัง (Nodes / Templates, เปิดปิดหมวด, ปุ่มสลับคลังปุ่มเดียว) ให้ตรง mockup โดยรายการมาจาก sidebar เดิม
@@ -231,6 +252,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `src/components/sidebar.tsx`, `src/pages/LabPage.tsx`, `src/platform/styles/lab.css`
 - ขนาด: M
 - skill: `frontend-ui-engineering`
+- ผู้ทำ: Sonnet subagent (medium) · ชุด D
 
 ### [ ] T15 Endpoint ข้อมูลของผู้ใช้เอง
 เพิ่ม `GET /api/me/activity` (audit log ของตัวเอง แบ่งหน้า) และ `GET /api/me/summary` (จำนวน template ของฉัน จำนวนการรัน เวลาใช้งานล่าสุด)
@@ -244,6 +266,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `server/routers/me.py`, `server/main.py`, `server/schemas.py`, `tests/test_me_api.py`
 - ขนาด: M
 - skill: `api-and-interface-design` + `test-driven-development` + `security-and-hardening` (กันผู้ใช้เห็นข้อมูลของคนอื่น)
+- ผู้ทำ: Sonnet subagent (medium) · ชุด E
 
 ### [ ] T16 หน้า Profile
 ย้าย `AccountProfile` แสดงชื่อ อีเมล และรูปจาก Google แบบอ่านอย่างเดียว แท็บผลงานใช้ template ของฉัน แท็บประวัติใช้ `/api/me/activity`
@@ -257,6 +280,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `src/platform/pages/ProfilePage.tsx`, `src/lib/meApi.ts`
 - ขนาด: M
 - skill: `frontend-ui-engineering`
+- ผู้ทำ: Sonnet subagent (medium) · ชุด E
 
 ### [ ] T17 Dashboard 3 แบบ
 ย้าย `Dashboard`, `InstructorDashboard`, `AdminDashboard` ตัวเลขทั้งหมดมาจาก API จริง ส่วนคอร์สแสดงสถานะว่าง
@@ -270,6 +294,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `src/platform/pages/DashboardPage.tsx`, `src/platform/pages/AdminDashboard.tsx`, `src/platform/pages/InstructorDashboard.tsx`
 - ขนาด: M
 - skill: `frontend-ui-engineering`
+- ผู้ทำ: Sonnet subagent (medium) · ชุด E
 
 ### จุดตรวจ 2
 - [ ] agent: `agent-skills:code-reviewer`, `agent-skills:test-engineer`, `agent-skills:security-auditor` (ขอบเขต T8, T8.1, T15)
@@ -293,6 +318,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `src/lib/learningApi.ts`, `src/platform/types.ts`
 - ขนาด: S
 - skill: `api-and-interface-design` (ไฟล์นี้เป็นจุดต่อกับระบบคอร์สรอบหน้า)
+- ผู้ทำ: Sonnet subagent (medium) · ชุด G
 
 ### [ ] T19 หน้า Courses, Course, Lesson, Teach แบบว่าง
 ย้ายโครงหน้า `CourseCatalog`, `CoursePage`, `LessonPage`, `TeachHome` ให้แสดงสถานะว่างที่บอกว่าจะเพิ่มภายหลัง
@@ -306,6 +332,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `src/platform/pages/CoursesPage.tsx`, `src/platform/pages/TeachPage.tsx`, `src/routes.tsx`
 - ขนาด: M
 - skill: `frontend-ui-engineering`
+- ผู้ทำ: Sonnet subagent (medium) · ชุด G
 
 ### [ ] T20 หน้า Submissions, Grades, Announcements และกระดิ่งแบบว่าง
 ย้ายโครง `SubmissionsHub`, `LearningHistory`, `Reviews`, `Gradebook`, `Announcements` และรายการแจ้งเตือน
@@ -318,6 +345,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `src/platform/pages/SubmissionsPage.tsx`, `src/platform/pages/AnnouncementsPage.tsx`, `src/platform/Header.tsx`
 - ขนาด: M
 - skill: `frontend-ui-engineering`
+- ผู้ทำ: Sonnet subagent (medium) · ชุด G
 
 ### จุดตรวจ 3
 - [ ] agent: `agent-skills:code-reviewer`
@@ -340,6 +368,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `scripts/verify_migration.py`
 - ขนาด: M
 - skill: `test-driven-development` (สคริปต์ต้องจับความผิดที่ใส่ไว้ได้)
+- ผู้ทำ: Opus subagent (high) · ชุด H
 
 ### [ ] T22 รายงานภาพเทียบ mockup กับของจริง
 ถ่ายของจริงทุกแถวในตารางเทียบ แล้วสร้างหน้ารายงานวางคู่กับภาพ mockup จาก T2
@@ -353,6 +382,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `scripts/parity_screenshots.mjs`, `scripts/build_parity_report.mjs`
 - ขนาด: M
 - skill: `webapp-testing` (ใช้ `storage_state` เก็บ session ที่ login แล้ว)
+- ผู้ทำ: Sonnet subagent (medium) · ชุด I2 · ตัวหลักเตรียม session ที่ login แล้วให้ก่อน
 
 ### [ ] T23 ตรวจความสามารถเดิมของ editor และระบบ admin
 ไล่ส่วนที่สองของตารางเทียบ (ของจริง → mockup) ทีละข้อ
@@ -367,6 +397,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `tasks/parity.md`
 - ขนาด: S
 - skill: `anthropic-skills:built-in-browser`
+- ผู้ทำ: Opus ตัวหลัก (high) ทำเอง
 
 ### [ ] T24 ตรวจจอ 375px ธีมมืด และการใช้คีย์บอร์ด
 ตรวจทุกหน้าใหม่ตามเกณฑ์ที่ mockup ผ่านมาแล้ว
@@ -380,6 +411,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: แก้เฉพาะจุดที่พบ
 - ขนาด: S–M
 - skill: `impeccable` (โหมด audit อย่างเดียว) + `anthropic-skills:built-in-browser`
+- ผู้ทำ: Opus ตัวหลัก (high) ทำเอง
 
 ### [ ] T25 ปิดตารางเทียบและสรุปผล
 อัปเดตสถานะทุกแถว สร้างรายงานรอบสุดท้าย และเขียนสรุปสิ่งที่ยังไม่ทำ
@@ -393,6 +425,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - ไฟล์: `tasks/parity.md`, `tasks/plan.md`
 - ขนาด: S
 - skill: `documentation-and-adrs`
+- ผู้ทำ: Opus ตัวหลัก (high) ทำเอง
 
 ### จุดตรวจสุดท้าย
 - [ ] agent: `agent-skills:code-reviewer`, `agent-skills:test-engineer`, `agent-skills:security-auditor` + `/code-review` กับ diff ทั้ง branch
