@@ -7,7 +7,7 @@ import Sidebar from '../components/sidebar';
 import FlowCanvas, { type FlowCanvasHandle } from '../FlowCanvas';
 import WorkflowControls from '../components/WorkflowControls';
 import WorkflowTabs from '../components/WorkflowTabs';
-import UserMenu from '../components/UserMenu';
+import LabHelpDialog from '../platform/LabHelpDialog';
 
 import { sanitizeWorkflowDocument, type TemplateDetail } from '../lib/templateApi';
 import { nodeSpec } from '../lib/nodeCatalog';
@@ -24,6 +24,7 @@ const COMPACT_MOBILE_QUERY = '(max-width: 767px), (max-height: 560px) and (point
 export default function LabPage({ active = true }: { active?: boolean }) {
   const [isRunning, setIsRunning] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [isCompactMobile, setIsCompactMobile] = useState(() => (
     typeof window !== 'undefined' && window.matchMedia(COMPACT_MOBILE_QUERY).matches
   ));
@@ -316,11 +317,18 @@ export default function LabPage({ active = true }: { active?: boolean }) {
 
   return (
     <div className={`viper-app w-screen h-[100dvh] flex flex-col overflow-hidden bg-gray-900 text-white ${isCompactMobile ? 'compact-mobile' : ''}`}>
-      <div className="viper-header relative z-30 flex min-h-16 items-center gap-2 border-b-2 border-teal-500 bg-gray-900 px-3 shadow-lg sm:gap-3">
-        <h1 className="min-w-0 flex-1 truncate text-center text-base font-extrabold tracking-wide text-teal-400 drop-shadow-md sm:text-lg md:text-xl xl:text-2xl">
-          <span className="hidden lg:inline">VIPER - Image Processing Learning Platform</span>
-          <span className="lg:hidden">VIPER</span>
-        </h1>
+      {/* หัวของแพลตฟอร์ม (Header) แสดงอยู่เหนือ editor ใน LabHost แล้ว (ชื่อผู้ใช้ แผงจัดการผู้ใช้ของ admin และ Log out อยู่ที่นั่น) */}
+      <div className="viper-header relative z-30 flex min-h-12 items-center gap-2 border-b-2 border-teal-500 bg-gray-900 px-3 shadow-lg sm:gap-3">
+        <h1 className="min-w-0 flex-1 truncate text-base font-extrabold tracking-wide text-teal-400 sm:text-lg">VIPER Lab</h1>
+        <button
+          type="button"
+          onClick={() => setHelpOpen(true)}
+          aria-label="วิธีใช้ VIPER Lab"
+          title="วิธีใช้ VIPER Lab"
+          className="flex h-9 w-9 shrink-0 touch-manipulation items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-sm font-bold text-slate-300 hover:border-teal-500/50 hover:text-teal-300"
+        >
+          ?
+        </button>
         <button
           type="button"
           onClick={() => setSaveTemplateOpen(true)}
@@ -328,7 +336,6 @@ export default function LabPage({ active = true }: { active?: boolean }) {
         >
           SAVE TEMPLATE
         </button>
-        <UserMenu />
       </div>
       <WorkflowControls isRunning={isRunning} onStart={handleStart} onStop={handleStop} />
       <WorkflowTabs tabs={tabs.map(t => ({ id: t.id, name: t.name }))} activeTabId={activeTabId} onSwitch={handleSwitchTab} onAdd={handleAddTab} onClose={handleCloseTab} onRename={handleRenameTab} />
@@ -344,6 +351,7 @@ export default function LabPage({ active = true }: { active?: boolean }) {
           </div>
         </ReactFlowProvider>
       </div>
+      {helpOpen && <LabHelpDialog onClose={() => setHelpOpen(false)} />}
       {saveTemplateOpen && (
         <SaveTemplateDialog getCurrentWorkflow={getCurrentWorkflow} onClose={() => setSaveTemplateOpen(false)} />
       )}
