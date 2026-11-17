@@ -121,6 +121,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 
 - เกณฑ์รับ
   - [ ] เปิด `/` โดยไม่ login เห็นหน้าแรกตาม mockup
+  - [ ] ผู้เยี่ยมชมเห็นหน้าแรกอย่างเดียว (ผู้ใช้ตัดสินใจ 17 พ.ย.) ทุก route อื่นรวม `/profile`, `/templates`, `/courses`, `/lab` พาไป Login ไม่แสดงการ์ด GuestProfile
   - [ ] กดเข้า route ที่ต้อง login แล้วถูกพาไป Login และกลับมาหน้าที่ตั้งใจหลัง login สำเร็จ
   - [ ] บัญชีที่ถูกแบนยังถูกกันเหมือนเดิม
 - ตรวจ: FE, `pytest tests/test_auth.py`, ทดสอบ flow login/logout ในเบราว์เซอร์
@@ -155,19 +156,25 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `api-and-interface-design` + `test-driven-development` + `deprecation-and-migration`
 - ผู้ทำ: Opus subagent (high) · ชุด B
 
-### [ ] T8.1 สิทธิ์ Official template ตามบทบาท
+### [ ] T8.1 สิทธิ์ Official template ตามบทบาท และการลบ template
 ใช้ตารางสิทธิ์ใน plan.md (การตัดสินใจข้อ 7): admin ทำได้ทุกอย่าง, ผู้สอน (`can_teach`) สร้าง/ตั้งเป็น Official และแก้/ลบ Official ได้ แต่เปิดปิดความคิดเห็นไม่ได้, ผู้เรียนทำไม่ได้
+
+เพิ่ม `DELETE /api/templates/{id}` แบบ soft delete (คอลัมน์ `templates.deleted_at` ค่าเริ่มต้น NULL) ตอนนี้ server ไม่มีทางลบ template เลย (ผู้ใช้ตัดสินใจ 17 พ.ย.)
 
 - เกณฑ์รับ
   - [ ] ผู้สอนสร้าง template แบบ Official ได้ และแก้ชื่อ คำอธิบาย ปก และ workflow ของ Official ได้
   - [ ] ผู้สอนเปิดปิดความคิดเห็นของ Official ไม่ได้ (403) ส่วน admin ทำได้เหมือนเดิม
   - [ ] ผู้เรียนสร้างหรือแก้ Official ไม่ได้ (403) และ template ของตัวเองยังทำงานเหมือนเดิม
-  - [ ] การลบ Official ถูกบันทึกใน audit log; Official ที่มาจาก seed ไม่ถูกสร้างกลับมาเองหลังลบ
-- ตรวจ: BE (เพิ่มเทสต์ทั้ง 3 บทบาทใน `tests/test_templates_api.py`), FE ปุ่มแก้ไขแสดงตามสิทธิ์
+  - [ ] เพิ่มคอลัมน์ `templates.deleted_at` ด้วย ALTER เดิมใน `main.py` (ทดสอบกับ SQLite ก่อน) แถวเดิมทั้ง 13 แถวได้ `deleted_at = NULL` และข้อมูลอื่นไม่เปลี่ยน
+  - [ ] `DELETE /api/templates/{id}` เป็น soft delete: admin และผู้สอนลบ Official ได้, ผู้เรียนลบ Official ไม่ได้ (403), เจ้าของ template ทั่วไป (Private/Public) ลบของตัวเองได้, คนอื่นลบไม่ได้ (403)
+  - [ ] แถวที่ลบไม่แสดงในทุกรายการ (`/api/templates`, `/official`, `/mine`) และเปิด/โหลด/คอมเมนต์ไม่ได้ (404)
+  - [ ] seed (`ensure_official_template_records`) ไม่สร้าง Official ที่ถูกลบกลับมา และไม่เติม workflow ให้แถวที่ลบ
+  - [ ] ทุกการลบถูกบันทึกใน audit log (`template.delete`) พร้อมผู้ลบและ id
+- ตรวจ: BE (เพิ่มเทสต์ทั้ง 3 บทบาท รวมกรณีลบและกรณี seed หลังลบ ใน `tests/test_templates_api.py`), รัน T1 snapshot เทียบว่าแถวเดิมไม่เปลี่ยน, FE ปุ่มแก้ไขแสดงตามสิทธิ์
 - ขึ้นกับ: T8
-- ไฟล์: `server/routers/templates.py`, `server/official_templates.py`, `server/schemas.py`, `tests/test_templates_api.py`, `src/components/TemplatePlatformLibrary.tsx`
-- ขนาด: M
-- skill: `test-driven-development` + `security-and-hardening` + `doubt-driven-development`
+- ไฟล์: `server/models.py`, `server/main.py`, `server/routers/templates.py`, `server/official_templates.py`, `server/schemas.py`, `tests/test_templates_api.py`, `src/components/TemplatePlatformLibrary.tsx`, `src/lib/templateApi.ts`
+- ขนาด: L (แยก commit สิทธิ์ Official กับการลบ)
+- skill: `test-driven-development` + `security-and-hardening` + `doubt-driven-development` + `deprecation-and-migration` (คอลัมน์ `deleted_at`)
 - ผู้ทำ: Opus subagent (high) · ชุด B
 
 ### [ ] T9 หน้า Users ด้วยผู้ใช้จริง
@@ -218,8 +225,10 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - เกณฑ์รับ
   - [ ] แสดง Official 9, Public และของฉันตามข้อมูลจริง พร้อมปก เจ้าของ เวลาแก้ไข และรายการโหนดของ workflow
   - [ ] เจ้าของแก้ชื่อ คำอธิบาย การมองเห็น และปกได้; admin เปิดปิดคอมเมนต์ได้; เขียนและลบคอมเมนต์ได้
-  - [ ] template แบบ Private ของคนอื่นไม่ปรากฏ
-- ตรวจ: FE, `pytest tests/test_templates_api.py tests/test_comments_api.py`, เทียบจำนวนแต่ละแท็บกับ SQL
+  - [ ] template แบบ Private ของคนอื่นไม่ปรากฏ (ผู้ใช้ยืนยัน 17 พ.ย.: admin ก็ไม่เห็น Private ของคนอื่น)
+  - [ ] แสดง template จริงของ VIPER จากฐานข้อมูลเท่านั้น: รวมทุกแท็บของทุกผู้ใช้ครอบคลุมแถวที่ไม่ถูกลบครบ (13 แถว ณ 17 พ.ย.) ไม่มี template ตัวอย่างของ mockup หลุดเข้ามา
+  - [ ] ลบ template ผ่าน modal ยืนยัน (แถว C-14) ปุ่มลบแสดงตามสิทธิ์ของ T8.1
+- ตรวจ: FE, `pytest tests/test_templates_api.py tests/test_comments_api.py`, เทียบจำนวนแต่ละแท็บกับ SQL (`deleted_at IS NULL`), ค้นใน `src/` ไม่พบชื่อ template ตัวอย่างของ mockup
 - ขึ้นกับ: T6
 - ไฟล์: `src/platform/pages/TemplatesPage.tsx`, `src/platform/TemplateDetail.tsx`, `src/lib/templateApi.ts`
 - ขนาด: L (แยก detail กับ list เป็นสอง commit)
@@ -361,7 +370,8 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 
 - เกณฑ์รับ
   - [ ] แถวเดิมทุกแถวจาก snapshot ยังอยู่และ hash เท่าเดิม (ไม่นับคอลัมน์ที่เปลี่ยนตามการใช้งานและ `can_teach`)
-  - [ ] จำนวนและชุด id จาก API ของ Users, Templates (3 แท็บ), Comments, Logs (รวมทุกหน้า) เท่ากับฐานข้อมูล
+  - [ ] จำนวนและชุด id จาก API ของ Users, Templates (3 แท็บ, เฉพาะ `deleted_at IS NULL`), Comments, Logs (รวมทุกหน้า) เท่ากับฐานข้อมูล
+  - [ ] แถวที่ถูก soft delete ยังอยู่ในฐานข้อมูลและ hash ตรง snapshot (ไม่นับ `deleted_at`)
   - [ ] โหนดที่เปิดใช้ 22 ชนิดใน `nodeCatalog.ts` อยู่ในคลังครบ และรายการที่เปิดใช้ 9 รายการใน `server/official_templates.json` ตรงกับแถว Official ที่มี workflow; ผลออกเป็น `outputs/parity-report/data.json`
 - ตรวจ: รันสคริปต์แล้วทุกข้อเป็น PASS; ทดลองลบคอมเมนต์ทดสอบหนึ่งรายการแล้วสคริปต์ต้องรายงานผิด
 - ขึ้นกับ: T1, ระยะ 2 ทั้งหมด
