@@ -5,6 +5,7 @@ from fastapi import FastAPI, UploadFile, File, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect, text
+from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
@@ -24,13 +25,33 @@ from . import models
 from .official_templates import ensure_official_template_records
 
 
-def _ensure_template_columns() -> None:
-    """Add Template fields introduced after the first database installation."""
-    inspector = inspect(engine)
+def _ensure_user_columns(bind: Engine | None = None) -> None:
+    """Add User fields introduced after the first database installation.
+
+    `bind` defaults to the application engine; tests pass an SQLite engine.
+    The SQL runs on both SQLite and PostgreSQL.
+    """
+    bind = engine if bind is None else bind
+    inspector = inspect(bind)
+    if "users" not in inspector.get_table_names():
+        return
+    columns = {column["name"] for column in inspector.get_columns("users")}
+    with bind.begin() as connection:
+        if "can_teach" not in columns:
+            connection.execute(text("ALTER TABLE users ADD COLUMN can_teach BOOLEAN NOT NULL DEFAULT FALSE"))
+
+
+def _ensure_template_columns(bind: Engine | None = None) -> None:
+    """Add Template fields introduced after the first database installation.
+
+    `bind` defaults to the application engine; tests pass an SQLite engine.
+    """
+    bind = engine if bind is None else bind
+    inspector = inspect(bind)
     if "templates" not in inspector.get_table_names():
         return
     columns = {column["name"] for column in inspector.get_columns("templates")}
-    with engine.begin() as connection:
+    with bind.begin() as connection:
         if "cover_url" not in columns:
             connection.execute(text("ALTER TABLE templates ADD COLUMN cover_url VARCHAR(500)"))
         if "is_official" not in columns:
@@ -47,6 +68,7 @@ def _ensure_template_columns() -> None:
 async def lifespan(_: FastAPI):
     if settings.auto_create_tables:
         models.Base.metadata.create_all(bind=engine)
+        _ensure_user_columns()
         _ensure_template_columns()
         with SessionLocal() as db:
             ensure_official_template_records(db)

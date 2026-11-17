@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator, model_validator
 
 
 class UserPublic(BaseModel):
@@ -14,6 +14,7 @@ class UserPublic(BaseModel):
     role: str
     status: str
     banned_until: datetime | None
+    can_teach: bool = False
 
 
 class AdminUserPublic(UserPublic):
@@ -28,6 +29,7 @@ class AdminUserUpdate(BaseModel):
     role: Literal["admin", "user"] | None = None
     status: Literal["active", "banned"] | None = None
     banned_until: datetime | None = None
+    can_teach: StrictBool | None = None
 
 
 class AdminAuditActorPublic(BaseModel):

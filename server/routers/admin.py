@@ -122,6 +122,27 @@ def update_user_access(
             request=request,
         )
 
+    if "can_teach" in requested:
+        if payload.can_teach is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="can_teach must be true or false",
+            )
+        # Unlike role, can_teach cannot lock an administrator out, so an admin
+        # may change it on any account, including their own.
+        if payload.can_teach != target.can_teach:
+            previous_can_teach = target.can_teach
+            target.can_teach = payload.can_teach
+            _add_admin_audit(
+                db,
+                admin_id=admin.id,
+                action="permission.can_teach_update",
+                target_type="user",
+                target_id=target.id,
+                details={"can_teach": {"from": previous_can_teach, "to": payload.can_teach}},
+                request=request,
+            )
+
     if payload.status == "banned":
         if payload.banned_until is None:
             raise HTTPException(

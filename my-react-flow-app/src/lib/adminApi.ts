@@ -12,6 +12,7 @@ export type AdminUserUpdate = {
   role?: 'admin' | 'user';
   status?: 'active' | 'banned';
   banned_until?: string | null;
+  can_teach?: boolean;
 };
 
 export type AdminAuditActor = {

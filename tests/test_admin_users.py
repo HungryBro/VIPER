@@ -229,3 +229,141 @@ def test_temporary_ban_requires_future_timezone_aware_expiry():
         assert naive.status_code == 422
     finally:
         app.dependency_overrides.clear()
+
+
+def test_admin_can_grant_and_revoke_can_teach_with_permission_log():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    admin = add_user(engine, "admin-subject", "owner@example.com", role="admin")
+    learner = add_user(engine, "learner-subject", "learner@example.com")
+
+    try:
+        with make_client(engine) as client:
+            authenticate(client, admin.id)
+            listed_before = client.get("/api/admin/users")
+            granted = client.patch(f"/api/admin/users/{learner.id}", json={"can_teach": True})
+            repeated = client.patch(f"/api/admin/users/{learner.id}", json={"can_teach": True})
+            listed_after = client.get("/api/admin/users")
+            revoked = client.patch(f"/api/admin/users/{learner.id}", json={"can_teach": False})
+
+        assert listed_before.status_code == 200
+        assert {item["email"]: item["can_teach"] for item in listed_before.json()} == {
+            "owner@example.com": False,
+            "learner@example.com": False,
+        }
+        assert granted.status_code == 200
+        assert granted.json()["can_teach"] is True
+        assert granted.json()["role"] == "user"
+        assert repeated.status_code == 200
+        assert {item["email"]: item["can_teach"] for item in listed_after.json()}["learner@example.com"] is True
+        assert revoked.status_code == 200
+        assert revoked.json()["can_teach"] is False
+
+        with Session(engine) as db:
+            saved = db.get(User, learner.id)
+            logs = db.scalars(
+                select(AuditLog)
+                .where(
+                    AuditLog.action == "permission.can_teach_update",
+                    AuditLog.target_id == str(learner.id),
+                )
+                .order_by(AuditLog.id)
+            ).all()
+            assert saved.can_teach is False
+            assert saved.role == "user"
+            # The repeated grant changed nothing, so it is not logged.
+            assert [log.details["can_teach"] for log in logs] == [
+                {"from": False, "to": True},
+                {"from": True, "to": False},
+            ]
+            assert all(log.actor_id == admin.id for log in logs)
+            assert all(log.target_type == "user" for log in logs)
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_can_teach_update_requires_admin_and_login():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    learner = add_user(engine, "learner-subject", "learner@example.com")
+    teacher = add_user(engine, "teacher-subject", "teacher@example.com")
+    with Session(engine) as db:
+        db.get(User, teacher.id).can_teach = True
+        db.commit()
+
+    try:
+        with make_client(engine) as client:
+            anonymous = client.patch(f"/api/admin/users/{learner.id}", json={"can_teach": True})
+
+            authenticate(client, learner.id)
+            learner_self = client.patch(f"/api/admin/users/{learner.id}", json={"can_teach": True})
+
+            # Teaching permission does not grant user management.
+            authenticate(client, teacher.id)
+            teacher_other = client.patch(f"/api/admin/users/{learner.id}", json={"can_teach": True})
+            teacher_list = client.get("/api/admin/users")
+
+        assert anonymous.status_code == 401
+        assert learner_self.status_code == 403
+        assert teacher_other.status_code == 403
+        assert teacher_list.status_code == 403
+
+        with Session(engine) as db:
+            assert db.get(User, learner.id).can_teach is False
+            assert db.scalars(
+                select(AuditLog).where(AuditLog.action == "permission.can_teach_update")
+            ).all() == []
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_can_teach_update_rejects_null_and_unknown_user():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    admin = add_user(engine, "admin-subject", "owner@example.com", role="admin")
+    learner = add_user(engine, "learner-subject", "learner@example.com")
+
+    try:
+        with make_client(engine) as client:
+            authenticate(client, admin.id)
+            null_value = client.patch(f"/api/admin/users/{learner.id}", json={"can_teach": None})
+            not_bool = client.patch(f"/api/admin/users/{learner.id}", json={"can_teach": "yes"})
+            missing = client.patch("/api/admin/users/9999", json={"can_teach": True})
+
+        assert null_value.status_code == 422
+        assert not_bool.status_code == 422
+        assert missing.status_code == 404
+        with Session(engine) as db:
+            assert db.get(User, learner.id).can_teach is False
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_admin_can_set_own_can_teach_and_auth_me_returns_it():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    admin = add_user(engine, "admin-subject", "owner@example.com", role="admin")
+    learner = add_user(engine, "learner-subject", "learner@example.com")
+
+    try:
+        with make_client(engine) as client:
+            authenticate(client, learner.id)
+            me_before = client.get("/api/auth/me")
+
+            authenticate(client, admin.id)
+            own = client.patch(f"/api/admin/users/{admin.id}", json={"can_teach": True})
+            client.patch(f"/api/admin/users/{learner.id}", json={"can_teach": True})
+
+            authenticate(client, learner.id)
+            me_after = client.get("/api/auth/me")
+
+        assert me_before.status_code == 200
+        assert me_before.json()["can_teach"] is False
+        # can_teach cannot lock an administrator out, so changing it on oneself is allowed.
+        assert own.status_code == 200
+        assert own.json()["can_teach"] is True
+        assert own.json()["role"] == "admin"
+        assert me_after.status_code == 200
+        assert me_after.json()["can_teach"] is True
+    finally:
+        app.dependency_overrides.clear()

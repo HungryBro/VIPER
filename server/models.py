@@ -60,6 +60,9 @@ class User(Base):
     role = Column(String(16), nullable=False, default="user", server_default="user")
     status = Column(String(16), nullable=False, default="active", server_default="active")
     banned_until = Column(DateTime(timezone=True), nullable=True)
+    # Teaching permission is separate from role: an admin grants it to a user.
+    # Existing databases receive it through _ensure_user_columns in main.py.
+    can_teach = Column(Boolean, nullable=False, default=False, server_default="false")
     last_login_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(

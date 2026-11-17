@@ -1,12 +1,12 @@
-// สิทธิ์ฝั่งหน้าจอ อ่านจาก useAuth() ที่เดียว (ตอนนี้ users.can_teach ยังไม่มีใน API → ถือว่า false จนกว่า T8)
+// สิทธิ์ฝั่งหน้าจอ อ่านจาก useAuth() ที่เดียว (can_teach มาจาก /api/auth/me ตั้งแต่ T8)
 import type { AuthUser } from '../auth/AuthContext';
 
 type MaybeUser = AuthUser | null | undefined;
 
 export const isAdmin = (user: MaybeUser): boolean => user?.role === 'admin';
 
-// จุดเดียวที่อ่าน can_teach: T8 เพิ่มฟิลด์นี้ใน AuthUser แล้วแก้ที่ฟังก์ชันนี้
-export const canTeach = (user: MaybeUser): boolean => Boolean((user as { can_teach?: boolean } | null)?.can_teach);
+// จุดเดียวที่อ่าน can_teach (ฝั่ง server ตรวจสิทธิ์ซ้ำทุกครั้ง ค่านี้ใช้แค่ซ่อน/แสดงเมนู)
+export const canTeach = (user: MaybeUser): boolean => user?.can_teach === true;
 
 export type RoleKey = 'learner' | 'instructor' | 'admin';
 
