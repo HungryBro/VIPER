@@ -15,6 +15,14 @@ export type AdminUserUpdate = {
   can_teach?: boolean;
 };
 
+// ตัวเลือกระยะเวลาแบน ใช้ร่วมกันระหว่าง AdminUserPanel (Lab) และหน้า Users ของแพลตฟอร์ม
+export const banOptions = [
+  { label: 'BAN 1M', durationMs: 60 * 1000 },
+  { label: 'BAN 1H', durationMs: 60 * 60 * 1000 },
+  { label: 'BAN 24H', durationMs: 24 * 60 * 60 * 1000 },
+  { label: 'BAN 7D', durationMs: 7 * 24 * 60 * 60 * 1000 },
+] as const;
+
 export type AdminAuditActor = {
   id: number;
   email: string;
