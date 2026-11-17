@@ -32,9 +32,10 @@
     "build": "npm run build ต้อง exit 0",
     "node_tests": {
       "files": [
-        "tests/yoloModel.test.cjs"
+        "tests/yoloModel.test.cjs",
+        "tests/safeNext.test.cjs"
       ],
-      "min_passed": 4
+      "min_passed": 9
     }
   }
 }

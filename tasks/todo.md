@@ -88,13 +88,13 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `frontend-ui-engineering` + `react-router` (ภายนอก) + `source-driven-development` ตรวจด้วย `anthropic-skills:built-in-browser` · ติดตั้งแล้ว 16 พ.ย. ที่ `~/.agents/skills/react-router`
 - ผู้ทำ: Opus ตัวหลัก (high) ทำเอง (โครงที่ทุก task ต้องพึ่ง)
 
-### [ ] T5 ย้าย CSS และ component พื้นฐานของ mockup
+### [x] T5 ย้าย CSS และ component พื้นฐานของ mockup
 คัดลอก `Theme.css`, `Density.css`, `Platform.css`, `Learning.css` มาครอบ scope `.viper-platform` และแปลง `ui.jsx` เป็น TypeScript
 
 - เกณฑ์รับ
-  - [ ] `Button`, `Badge`, `Empty`, `Modal`, `Markdown` ใช้ได้ใน TSX และ Modal ยังปิดด้วย Escape, กัก focus และคืน focus
-  - [ ] ธีมสว่าง/มืดทำงานด้วย token ชุดเดียว
-  - [ ] หน้า `/lab` ไม่มี style ใดเปลี่ยน (เทียบภาพก่อนและหลัง)
+  - [x] `Button`, `Badge`, `Empty`, `Modal`, `Markdown` ใช้ได้ใน TSX และ Modal ยังปิดด้วย Escape, กัก focus และคืน focus
+  - [x] ธีมสว่าง/มืดทำงานด้วย token ชุดเดียว
+  - [x] หน้า `/lab` ไม่มี style ใดเปลี่ยน (เทียบภาพก่อนและหลัง)
 - ตรวจ: FE, LAB, เทียบภาพ `/lab` ก่อนและหลังที่ 1440 และ 375
 - ขึ้นกับ: T4
 - ไฟล์: `src/platform/styles/*.css`, `src/platform/ui.tsx`
@@ -102,13 +102,13 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `frontend-ui-engineering`
 - ผู้ทำ: Sonnet subagent (medium) · ชุด A
 
-### [ ] T6 Header: เมนูตามสิทธิ์จริง ธีม เมนูบัญชี กระดิ่ง
+### [x] T6 Header: เมนูตามสิทธิ์จริง ธีม เมนูบัญชี กระดิ่ง
 ย้าย `PlatformHeader` มาใช้ข้อมูลจาก `useAuth()` เมนูขึ้นตาม `role` และ `can_teach` (ก่อน T8 ให้ถือว่า `can_teach` เป็น false)
 
 - เกณฑ์รับ
-  - [ ] ผู้ใช้ธรรมดาเห็น Dashboard, Courses, Templates, My Submissions, Lab; admin เห็น Users และ Platform Logs เพิ่ม
-  - [ ] ไม่มีปุ่มสลับบัญชีสาธิต; Logout เรียก `/api/auth/logout` จริง
-  - [ ] กระดิ่งเปิดได้และแสดงสถานะว่าง ไม่มีตัวเลขค้าง
+  - [x] ผู้ใช้ธรรมดาเห็น Dashboard, Courses, Templates, My Submissions, Lab; admin เห็น Users และ Platform Logs เพิ่ม
+  - [x] ไม่มีปุ่มสลับบัญชีสาธิต; Logout เรียก `/api/auth/logout` จริง
+  - [x] กระดิ่งเปิดได้และแสดงสถานะว่าง ไม่มีตัวเลขค้าง
 - ตรวจ: FE, login ด้วยบัญชี admin และบัญชีธรรมดาแล้วเทียบเมนูกับแถว header ในตารางเทียบ
 - ขึ้นกับ: T5
 - ไฟล์: `src/platform/Header.tsx`, `src/platform/Layout.tsx`, `src/components/UserMenu.tsx`
@@ -116,14 +116,14 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `frontend-ui-engineering`
 - ผู้ทำ: Sonnet subagent (medium) · ชุด A
 
-### [ ] T7 หน้าแรกผู้เยี่ยมชมและหน้า Login
+### [x] T7 หน้าแรกผู้เยี่ยมชมและหน้า Login
 ย้าย `GuestHome`, `GuestHeader` และหน้า Login โดยเหลือปุ่ม Google ปุ่มเดียว ปรับ `AuthGate` ให้หน้าแรกเปิดได้โดยไม่ต้อง login
 
 - เกณฑ์รับ
-  - [ ] เปิด `/` โดยไม่ login เห็นหน้าแรกตาม mockup
-  - [ ] ผู้เยี่ยมชมเห็นหน้าแรกอย่างเดียว (ผู้ใช้ตัดสินใจ 17 พ.ย.) ทุก route อื่นรวม `/profile`, `/templates`, `/courses`, `/lab` พาไป Login ไม่แสดงการ์ด GuestProfile
-  - [ ] กดเข้า route ที่ต้อง login แล้วถูกพาไป Login และกลับมาหน้าที่ตั้งใจหลัง login สำเร็จ
-  - [ ] บัญชีที่ถูกแบนยังถูกกันเหมือนเดิม
+  - [x] เปิด `/` โดยไม่ login เห็นหน้าแรกตาม mockup
+  - [x] ผู้เยี่ยมชมเห็นหน้าแรกอย่างเดียว (ผู้ใช้ตัดสินใจ 17 พ.ย.) ทุก route อื่นรวม `/profile`, `/templates`, `/courses`, `/lab` พาไป Login ไม่แสดงการ์ด GuestProfile
+  - [x] กดเข้า route ที่ต้อง login แล้วถูกพาไป Login และกลับมาหน้าที่ตั้งใจหลัง login สำเร็จ
+  - [x] บัญชีที่ถูกแบนยังถูกกันเหมือนเดิม
 - ตรวจ: FE, `pytest tests/test_auth.py`, ทดสอบ flow login/logout ในเบราว์เซอร์
 - ขึ้นกับ: T6
 - ไฟล์: `src/platform/pages/GuestHome.tsx`, `src/components/LoginPage.tsx`, `src/components/AuthGate.tsx`
