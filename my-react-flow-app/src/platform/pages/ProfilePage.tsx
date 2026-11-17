@@ -12,6 +12,7 @@ import { listMyTemplates, type TemplateSummary } from '../../lib/templateApi';
 import { roleLabel } from '../permissions';
 import { kindOf } from '../templateAccess';
 import { VisibilityBadge } from '../TemplateBadges';
+import { errorText, num, useLoaded } from '../useLoaded';
 import { useOpenInLab } from '../useOpenInLab';
 import { Badge, Button, Empty, cx, time } from '../ui';
 
@@ -23,30 +24,6 @@ const TABS: Array<[Tab, string, typeof UserRound]> = [
 ];
 
 const ACTIVITY_PAGE_SIZE = 30;
-
-const errorText = (error: unknown, fallback: string): string => (error instanceof Error ? error.message : fallback);
-
-function useLoaded<T>(load: () => Promise<T>, fallback: string) {
-  const [data, setData] = useState<T | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const loadRef = useRef(load);
-  useEffect(() => {
-    loadRef.current = load;
-  });
-  useEffect(() => {
-    let active = true;
-    loadRef
-      .current()
-      .then((value) => active && setData(value))
-      .catch((failure) => active && setError(errorText(failure, fallback)))
-      .finally(() => active && setLoading(false));
-    return () => {
-      active = false;
-    };
-  }, [fallback]);
-  return { data, error, loading };
-}
 
 function ActivityList() {
   const [items, setItems] = useState<MeActivity[]>([]);
@@ -161,7 +138,6 @@ export default function ProfilePage() {
   const initials = user.display_name.slice(0, 2).toUpperCase();
   const stats = summary.data;
   const templates = works.data ?? [];
-  const num = (value: number | undefined) => (value === undefined ? '–' : value);
 
   return (
     <div className="page account-profile">
