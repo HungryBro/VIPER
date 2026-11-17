@@ -351,3 +351,439 @@ def test_official_templates_support_comments_and_admin_managed_cover():
         templates_router.TEMPLATE_COVERS_DIR = original_cover_dir
         shutil.rmtree(cover_dir, ignore_errors=True)
         app.dependency_overrides.clear()
+
+
+# ---------------------------------------------------------------------------
+# T8.1: Official template permissions by role (plan.md decision 7)
+#
+# | role        | create / mark Official | edit / delete Official | comments on/off |
+# | admin       | yes                    | yes                    | yes             |
+# | can_teach   | yes                    | yes                    | no              |
+# | learner     | no                     | no                     | no              |
+# ---------------------------------------------------------------------------
+
+
+def set_can_teach(engine, user_id: int, value: bool = True) -> None:
+    with Session(engine) as db:
+        db.get(User, user_id).can_teach = value
+        db.commit()
+
+
+def seeded_official_id(client: TestClient) -> int:
+    official = client.get("/api/templates/official")
+    assert official.status_code == 200
+    seeded = [item for item in official.json() if item["official_key"]]
+    return seeded[0]["id"]
+
+
+def template_count(engine) -> int:
+    with Session(engine) as db:
+        return len(db.scalars(select(Template)).all())
+
+
+def test_instructor_can_create_official_and_edit_official_details_workflow_and_cover():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    teacher = add_user(engine, "teacher", "teacher@example.com")
+    learner = add_user(engine, "learner", "learner@example.com")
+    set_can_teach(engine, teacher.id)
+    cover_dir = os.path.join(OUT, "test-instructor-official-covers")
+    original_cover_dir = templates_router.TEMPLATE_COVERS_DIR
+    templates_router.TEMPLATE_COVERS_DIR = cover_dir
+
+    try:
+        with make_client(engine) as client:
+            authenticate(client, teacher.id)
+            created = client.post(
+                "/api/templates",
+                json={"name": "Lesson 1 official", "is_official": True, "workflow": workflow()},
+            )
+            seeded_id = seeded_official_id(client)
+            edited = client.patch(
+                f"/api/templates/{seeded_id}",
+                json={
+                    "name": "Instructor renamed",
+                    "description": "Instructor description",
+                    "workflow": workflow("Instructor SIFT"),
+                },
+            )
+            cover = client.post(
+                f"/api/templates/{seeded_id}/cover",
+                files={"file": ("cover.png", b"teacher-cover", "image/png")},
+            )
+            edited_own_official = client.patch(
+                f"/api/templates/{created.json()['id']}",
+                json={"workflow": workflow("Edited lesson")},
+            )
+
+            authenticate(client, learner.id)
+            official_list = client.get("/api/templates/official")
+            public_list = client.get("/api/templates")
+            learner_view = client.post(f"/api/templates/{seeded_id}/load")
+            learner_view_created = client.get(f"/api/templates/{created.json()['id']}")
+
+        assert created.status_code == 201
+        assert created.json()["is_official"] is True
+        # An Official template is always public, even though create defaults to private.
+        assert created.json()["visibility"] == "public"
+        assert created.json()["official_key"] is None
+        assert created.json()["owner_id"] == teacher.id
+        assert edited.status_code == 200
+        assert edited.json()["name"] == "Instructor renamed"
+        assert edited.json()["description"] == "Instructor description"
+        assert edited.json()["workflow"]["nodes"][0]["data"]["label"] == "Instructor SIFT"
+        assert edited.json()["visibility"] == "public"
+        assert edited.json()["is_official"] is True
+        assert cover.status_code == 200
+        assert cover.json()["cover_url"].startswith("/static/test-instructor-official-covers/")
+        assert edited_own_official.status_code == 200
+        assert edited_own_official.json()["workflow"]["nodes"][0]["data"]["label"] == "Edited lesson"
+        official_ids = [item["id"] for item in official_list.json()]
+        assert created.json()["id"] in official_ids
+        assert seeded_id in official_ids
+        assert created.json()["id"] not in [item["id"] for item in public_list.json()]
+        # The seed does not replace a workflow an instructor edited.
+        assert learner_view.status_code == 200
+        assert learner_view.json()["workflow"]["nodes"][0]["data"]["label"] == "Instructor SIFT"
+        assert learner_view_created.status_code == 200
+
+        with Session(engine) as db:
+            create_log = db.scalar(select(AuditLog).where(
+                AuditLog.action == "template.create",
+                AuditLog.target_id == str(created.json()["id"]),
+            ))
+            update_log = db.scalar(select(AuditLog).where(
+                AuditLog.action == "template.update",
+                AuditLog.target_id == str(seeded_id),
+            ))
+            assert create_log.actor_id == teacher.id
+            assert create_log.details == {"visibility": "public", "is_official": True}
+            assert update_log.actor_id == teacher.id
+            assert set(update_log.details["changes"]) == {"name", "description", "workflow"}
+    finally:
+        templates_router.TEMPLATE_COVERS_DIR = original_cover_dir
+        shutil.rmtree(cover_dir, ignore_errors=True)
+        app.dependency_overrides.clear()
+
+
+def test_instructor_cannot_toggle_comments_but_admin_still_can():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    teacher = add_user(engine, "teacher", "teacher@example.com")
+    admin = add_user(engine, "admin", "admin@example.com", role="admin")
+    set_can_teach(engine, teacher.id)
+
+    try:
+        with make_client(engine) as client:
+            authenticate(client, teacher.id)
+            seeded_id = seeded_official_id(client)
+            own_official = client.post(
+                "/api/templates",
+                json={"name": "Teacher official", "is_official": True, "workflow": workflow()},
+            ).json()["id"]
+            own_public = client.post(
+                "/api/templates",
+                json={"name": "Teacher public", "visibility": "public", "workflow": workflow()},
+            ).json()["id"]
+            teacher_seeded = client.patch(
+                f"/api/admin/templates/{seeded_id}/comments",
+                json={"comments_enabled": False},
+            )
+            teacher_own_official = client.patch(
+                f"/api/admin/templates/{own_official}/comments",
+                json={"comments_enabled": False},
+            )
+            teacher_own_public = client.patch(
+                f"/api/admin/templates/{own_public}/comments",
+                json={"comments_enabled": False},
+            )
+
+            authenticate(client, admin.id)
+            admin_seeded = client.patch(
+                f"/api/admin/templates/{seeded_id}/comments",
+                json={"comments_enabled": False},
+            )
+            admin_teacher_public = client.patch(
+                f"/api/admin/templates/{own_public}/comments",
+                json={"comments_enabled": False},
+            )
+
+        assert teacher_seeded.status_code == 403
+        assert teacher_own_official.status_code == 403
+        # General templates keep the old rule: only an admin toggles comments.
+        assert teacher_own_public.status_code == 403
+        assert admin_seeded.status_code == 200
+        assert admin_seeded.json()["comments_enabled"] is False
+        assert admin_teacher_public.status_code == 200
+        with Session(engine) as db:
+            assert db.get(Template, own_official).comments_enabled is True
+            logs = db.scalars(select(AuditLog).where(AuditLog.action == "permission.comments_update")).all()
+            assert {log.actor_id for log in logs} == {admin.id}
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_learner_cannot_create_or_edit_official_and_own_templates_still_work():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    learner = add_user(engine, "learner", "learner@example.com")
+    cover_dir = os.path.join(OUT, "test-learner-official-covers")
+    original_cover_dir = templates_router.TEMPLATE_COVERS_DIR
+    templates_router.TEMPLATE_COVERS_DIR = cover_dir
+
+    try:
+        with make_client(engine) as client:
+            authenticate(client, learner.id)
+            seeded_id = seeded_official_id(client)
+            count_before = template_count(engine)
+            create_official = client.post(
+                "/api/templates",
+                json={"name": "Sneaky", "is_official": True, "visibility": "public", "workflow": workflow()},
+            )
+            count_after = template_count(engine)
+            rename = client.patch(f"/api/templates/{seeded_id}", json={"name": "Hijacked"})
+            change_workflow = client.patch(f"/api/templates/{seeded_id}", json={"workflow": workflow("Bad")})
+            unmark = client.patch(f"/api/templates/{seeded_id}", json={"is_official": False})
+            cover = client.post(
+                f"/api/templates/{seeded_id}/cover",
+                files={"file": ("cover.png", b"learner-cover", "image/png")},
+            )
+            comments = client.patch(
+                f"/api/admin/templates/{seeded_id}/comments",
+                json={"comments_enabled": False},
+            )
+
+            # The learner's own templates keep working as before.
+            created = client.post(
+                "/api/templates",
+                json={"name": "Mine", "is_official": False, "workflow": workflow()},
+            )
+            own_id = created.json()["id"]
+            promote_own = client.patch(f"/api/templates/{own_id}", json={"is_official": True})
+            promote_own_with_name = client.patch(
+                f"/api/templates/{own_id}",
+                json={"name": "Renamed while promoting", "is_official": True},
+            )
+            edit_own = client.patch(
+                f"/api/templates/{own_id}",
+                json={"name": "Mine edited", "visibility": "public", "workflow": workflow("Mine v2")},
+            )
+            own_cover = client.post(
+                f"/api/templates/{own_id}/cover",
+                files={"file": ("cover.png", b"own-cover", "image/png")},
+            )
+
+        assert create_official.status_code == 403
+        assert count_after == count_before
+        assert rename.status_code == 403
+        assert change_workflow.status_code == 403
+        assert unmark.status_code == 403
+        assert cover.status_code == 403
+        assert comments.status_code == 403
+        assert created.status_code == 201
+        assert created.json()["is_official"] is False
+        assert created.json()["visibility"] == "private"
+        assert promote_own.status_code == 403
+        assert promote_own_with_name.status_code == 403
+        assert edit_own.status_code == 200
+        assert edit_own.json()["name"] == "Mine edited"
+        assert edit_own.json()["visibility"] == "public"
+        assert edit_own.json()["is_official"] is False
+        assert own_cover.status_code == 200
+
+        with Session(engine) as db:
+            seeded = db.get(Template, seeded_id)
+            assert seeded.is_official is True
+            assert seeded.name != "Hijacked"
+            assert seeded.cover_url is None
+            assert seeded.comments_enabled is True
+            assert db.scalar(select(Template).where(Template.name == "Sneaky")) is None
+            # The rejected promotions changed nothing, so nothing was logged for them.
+            assert db.scalars(select(AuditLog).where(
+                AuditLog.action == "permission.template_official_update"
+            )).all() == []
+            update_logs = db.scalars(select(AuditLog).where(
+                AuditLog.action == "template.update",
+                AuditLog.target_id == str(own_id),
+            )).all()
+            assert [set(log.details["changes"]) for log in update_logs] == [{"name", "workflow"}]
+    finally:
+        templates_router.TEMPLATE_COVERS_DIR = original_cover_dir
+        shutil.rmtree(cover_dir, ignore_errors=True)
+        app.dependency_overrides.clear()
+
+
+def test_official_flag_rules_for_visibility_unmarking_and_payload_types():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    admin = add_user(engine, "admin", "admin@example.com", role="admin")
+    teacher = add_user(engine, "teacher", "teacher@example.com")
+    set_can_teach(engine, teacher.id)
+
+    try:
+        with make_client(engine) as client:
+            authenticate(client, admin.id)
+            seeded_id = seeded_official_id(client)
+            make_private = client.patch(f"/api/templates/{seeded_id}", json={"visibility": "private"})
+            keep_public = client.patch(f"/api/templates/{seeded_id}", json={"visibility": "public"})
+            unmark = client.patch(f"/api/templates/{seeded_id}", json={"is_official": False})
+            already_official = client.patch(f"/api/templates/{seeded_id}", json={"is_official": True})
+            empty_workflow = client.patch(
+                f"/api/templates/{seeded_id}",
+                json={"workflow": {"version": 1, "nodes": [], "edges": []}},
+            )
+
+            authenticate(client, teacher.id)
+            private_official = client.post(
+                "/api/templates",
+                json={"name": "Private official", "is_official": True, "visibility": "private", "workflow": workflow()},
+            )
+            empty_official = client.post(
+                "/api/templates",
+                json={"name": "Empty official", "is_official": True,
+                      "workflow": {"version": 1, "nodes": [], "edges": []}},
+            )
+            string_flag = client.post(
+                "/api/templates",
+                json={"name": "String flag", "is_official": "true", "workflow": workflow()},
+            )
+            null_flag = client.patch(f"/api/templates/{seeded_id}", json={"is_official": None})
+            teacher_unmark = client.patch(f"/api/templates/{seeded_id}", json={"is_official": False})
+
+        assert make_private.status_code == 403
+        assert keep_public.status_code == 403
+        assert unmark.status_code == 422
+        assert already_official.status_code == 200
+        assert already_official.json()["is_official"] is True
+        # An emptied Official workflow would be silently refilled by the seed.
+        assert empty_workflow.status_code == 422
+        assert private_official.status_code == 422
+        assert empty_official.status_code == 422
+        assert string_flag.status_code == 422
+        assert null_flag.status_code == 422
+        assert teacher_unmark.status_code == 422
+
+        with Session(engine) as db:
+            seeded = db.get(Template, seeded_id)
+            assert seeded.is_official is True
+            assert seeded.visibility == "public"
+            assert seeded.workflow["nodes"]
+            assert db.scalar(select(Template).where(Template.name.in_(
+                ["Private official", "Empty official", "String flag"]
+            ))) is None
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_marking_existing_template_official_is_limited_to_its_owner():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    admin = add_user(engine, "admin", "admin@example.com", role="admin")
+    teacher = add_user(engine, "teacher", "teacher@example.com")
+    learner = add_user(engine, "learner", "learner@example.com")
+    set_can_teach(engine, teacher.id)
+
+    try:
+        with make_client(engine) as client:
+            authenticate(client, learner.id)
+            learner_public = client.post(
+                "/api/templates",
+                json={"name": "Learner public", "visibility": "public", "workflow": workflow()},
+            ).json()["id"]
+
+            authenticate(client, teacher.id)
+            teacher_private = client.post(
+                "/api/templates",
+                json={"name": "Teacher draft", "visibility": "private", "workflow": workflow()},
+            ).json()["id"]
+            teacher_marks_other = client.patch(f"/api/templates/{learner_public}", json={"is_official": True})
+            promoted = client.patch(f"/api/templates/{teacher_private}", json={"is_official": True})
+            private_promotion = client.post(
+                "/api/templates",
+                json={"name": "Teacher draft 2", "visibility": "private", "workflow": workflow()},
+            ).json()["id"]
+            promote_but_private = client.patch(
+                f"/api/templates/{private_promotion}",
+                json={"is_official": True, "visibility": "private"},
+            )
+
+            authenticate(client, admin.id)
+            admin_marks_other = client.patch(f"/api/templates/{learner_public}", json={"is_official": True})
+            admin_own = client.post(
+                "/api/templates",
+                json={"name": "Admin public", "visibility": "public", "workflow": workflow()},
+            ).json()["id"]
+            admin_promoted = client.patch(f"/api/templates/{admin_own}", json={"is_official": True})
+
+        assert teacher_marks_other.status_code == 403
+        assert admin_marks_other.status_code == 403
+        assert promoted.status_code == 200
+        assert promoted.json()["is_official"] is True
+        assert promoted.json()["visibility"] == "public"
+        assert promoted.json()["official_key"] is None
+        assert promote_but_private.status_code == 422
+        assert admin_promoted.status_code == 200
+        assert admin_promoted.json()["is_official"] is True
+
+        with Session(engine) as db:
+            assert db.get(Template, learner_public).is_official is False
+            assert db.get(Template, private_promotion).is_official is False
+            assert db.get(Template, private_promotion).visibility == "private"
+            official_log = db.scalar(select(AuditLog).where(
+                AuditLog.action == "permission.template_official_update",
+                AuditLog.target_id == str(teacher_private),
+            ))
+            visibility_log = db.scalar(select(AuditLog).where(
+                AuditLog.action == "permission.template_visibility_update",
+                AuditLog.target_id == str(teacher_private),
+            ))
+            assert official_log.actor_id == teacher.id
+            assert official_log.details == {"is_official": {"from": False, "to": True}}
+            assert visibility_log.details == {"visibility": {"from": "private", "to": "public"}}
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_revoked_or_banned_instructor_loses_official_rights_immediately():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    admin = add_user(engine, "admin", "admin@example.com", role="admin")
+    teacher = add_user(engine, "teacher", "teacher@example.com")
+    set_can_teach(engine, teacher.id)
+
+    try:
+        with make_client(engine) as client:
+            authenticate(client, teacher.id)
+            seeded_id = seeded_official_id(client)
+            before = client.patch(f"/api/templates/{seeded_id}", json={"name": "While teaching"})
+
+            authenticate(client, admin.id)
+            client.patch(f"/api/admin/users/{teacher.id}", json={"can_teach": False})
+
+            # Same session cookie: permissions are read from the database on every request.
+            authenticate(client, teacher.id)
+            after_revoke = client.patch(f"/api/templates/{seeded_id}", json={"name": "After revoke"})
+            create_after_revoke = client.post(
+                "/api/templates",
+                json={"name": "Late official", "is_official": True, "workflow": workflow()},
+            )
+
+            authenticate(client, admin.id)
+            client.patch(f"/api/admin/users/{teacher.id}", json={"can_teach": True})
+            client.patch(
+                f"/api/admin/users/{teacher.id}",
+                json={"status": "banned", "banned_until": "2099-01-01T00:00:00+00:00"},
+            )
+
+            authenticate(client, teacher.id)
+            while_banned = client.patch(f"/api/templates/{seeded_id}", json={"name": "While banned"})
+
+        assert before.status_code == 200
+        assert after_revoke.status_code == 403
+        assert create_after_revoke.status_code == 403
+        assert while_banned.status_code == 403
+        assert while_banned.json()["detail"] == "Account is banned"
+        with Session(engine) as db:
+            assert db.get(Template, seeded_id).name == "While teaching"
+    finally:
+        app.dependency_overrides.clear()

@@ -78,6 +78,8 @@ class TemplateCreate(BaseModel):
     description: str = Field(default="", max_length=2000)
     visibility: Literal["private", "public"] = "private"
     workflow: WorkflowDocument
+    # Only an admin or a user with can_teach may send true (403 otherwise).
+    is_official: StrictBool = False
 
     @field_validator("name")
     @classmethod
@@ -100,6 +102,8 @@ class TemplateUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=2000)
     visibility: Literal["private", "public"] | None = None
     workflow: WorkflowDocument | None = None
+    # true marks an owned template as Official; false on an Official is rejected.
+    is_official: StrictBool | None = None
 
     @field_validator("name")
     @classmethod

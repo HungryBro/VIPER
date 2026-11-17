@@ -20,6 +20,7 @@ import {
   type TemplateVisibility,
 } from '../lib/templateApi';
 import { apiUrl } from '../lib/http';
+import { canTeach } from '../platform/permissions';
 
 
 export type PlatformTemplateView = 'official' | 'public' | 'private';
@@ -540,7 +541,9 @@ export default function TemplatePlatformLibrary({
           const busy = busyId === template.id;
           const isOwner = user?.id === template.owner_id;
           const isAdmin = user?.role === 'admin';
-          const canManageSettings = template.is_official ? isAdmin : isOwner || isAdmin;
+          // ตาราง plan.md ข้อ 7: admin และผู้สอนแก้ Official ได้ ส่วนเปิดปิดความคิดเห็นเป็นของ admin เท่านั้น (server ตรวจซ้ำ)
+          const canManageOfficial = isAdmin || canTeach(user);
+          const canManageSettings = template.is_official ? canManageOfficial : isOwner || isAdmin;
           const commentsOpen = openCommentsId === template.id;
           const comments = commentsByTemplate[template.id];
           const commentsLoading = commentsLoadingId === template.id;
@@ -596,15 +599,28 @@ export default function TemplatePlatformLibrary({
 
                   {canManageSettings && openSettingsId === template.id && (
                     <div className="absolute right-0 top-full z-20 mt-1 w-32 rounded-md border border-gray-700 bg-gray-900 p-1 shadow-xl">
-                      {template.is_official && isAdmin && (
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => beginEdit(template)}
-                          className="w-full rounded px-2 py-1.5 text-left text-[8px] font-bold text-teal-300 transition-colors hover:bg-teal-500/10 disabled:opacity-50"
-                        >
-                          EDIT COVER
-                        </button>
+                      {template.is_official && canManageOfficial && (
+                        <>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => beginEdit(template)}
+                            className="w-full rounded px-2 py-1.5 text-left text-[8px] font-bold text-teal-300 transition-colors hover:bg-teal-500/10 disabled:opacity-50"
+                          >
+                            EDIT COVER
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => {
+                              setOpenSettingsId(null);
+                              void updateFromCanvas(template.id);
+                            }}
+                            className="w-full rounded px-2 py-1.5 text-left text-[8px] font-bold text-gray-300 transition-colors hover:bg-gray-800 disabled:opacity-50"
+                          >
+                            UPDATE CANVAS
+                          </button>
+                        </>
                       )}
                       {isOwner && !template.is_official && (
                         <>

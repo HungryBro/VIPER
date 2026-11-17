@@ -50,6 +50,26 @@ def _get_visible_template(db: Session, template_id: int, user: User) -> Template
     return template
 
 
+def _can_manage_official(user: User) -> bool:
+    """Admins and instructors (can_teach) create, edit and delete Official templates.
+
+    Turning comments on or off stays admin-only (require_admin on the admin route).
+    `user` is loaded from the database on every request, so a revoked can_teach
+    takes effect immediately.
+    """
+    return user.role == "admin" or bool(user.can_teach)
+
+
+def _require_official_workflow_nodes(workflow: dict) -> None:
+    # The seed refills an Official workflow that has no nodes, so an empty one
+    # would silently turn back into the seeded workflow.
+    if not workflow.get("nodes"):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail="An Official template workflow must contain at least one node",
+        )
+
+
 def _add_audit(
     db: Session,
     *,
@@ -117,12 +137,29 @@ def create_template(
     user: User = Depends(require_active_user),
     db: Session = Depends(get_db),
 ):
+    visibility = payload.visibility
+    workflow = payload.workflow.model_dump(mode="json")
+    if payload.is_official:
+        if not _can_manage_official(user):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only an admin or instructor can create an Official template",
+            )
+        if "visibility" in payload.model_fields_set and payload.visibility != "public":
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="An Official template is always public",
+            )
+        _require_official_workflow_nodes(workflow)
+        visibility = "public"
+
     template = Template(
         owner_id=user.id,
         name=payload.name,
         description=payload.description,
-        visibility=payload.visibility,
-        workflow=payload.workflow.model_dump(mode="json"),
+        visibility=visibility,
+        workflow=workflow,
+        is_official=payload.is_official,
     )
     db.add(template)
     db.flush()
@@ -132,7 +169,7 @@ def create_template(
         action="template.create",
         template_id=template.id,
         request=request,
-        details={"visibility": template.visibility},
+        details={"visibility": template.visibility, "is_official": template.is_official},
         status_code=status.HTTP_201_CREATED,
     )
     db.commit()
@@ -278,21 +315,50 @@ def update_template(
     if template is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
     values = payload.model_dump(exclude_unset=True)
-    if template.is_official and user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only an admin can update an Official template",
-        )
-    if template.is_official and ("visibility" in values or payload.workflow is not None):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Official template visibility and workflow cannot be changed",
-        )
-    if not template.is_official and template.owner_id != user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only the template owner can update it",
-        )
+    becomes_official = False
+    if template.is_official:
+        if not _can_manage_official(user):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only an admin or instructor can update an Official template",
+            )
+        if "visibility" in values:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Official template visibility cannot be changed",
+            )
+        if values.get("is_official") is False:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail="An Official template cannot be changed back to a regular template",
+            )
+        if payload.workflow is not None:
+            _require_official_workflow_nodes(payload.workflow.model_dump(mode="json"))
+    else:
+        if template.owner_id != user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only the template owner can update it",
+            )
+        if values.get("is_official") is True:
+            # Only the owner may mark their own template Official, so nobody's
+            # template is taken over or published without their action.
+            if not _can_manage_official(user):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Only an admin or instructor can mark a template as Official",
+                )
+            if values.get("visibility", "public") != "public":
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                    detail="An Official template is always public",
+                )
+            next_workflow = (
+                payload.workflow.model_dump(mode="json") if payload.workflow is not None else template.workflow
+            )
+            _require_official_workflow_nodes(next_workflow)
+            becomes_official = True
+            values["visibility"] = "public"
 
     changes: dict[str, dict[str, object]] = {}
     editable_fields = ("name", "description") if template.is_official else ("name", "description", "visibility")
@@ -301,9 +367,12 @@ def update_template(
             changes[field] = {"from": getattr(template, field), "to": values[field]}
             setattr(template, field, values[field])
 
-    if not template.is_official and payload.workflow is not None:
+    if payload.workflow is not None:
         template.workflow = payload.workflow.model_dump(mode="json")
         changes["workflow"] = {"from": "previous", "to": "updated"}
+
+    if becomes_official:
+        template.is_official = True
 
     visibility_change = changes.pop("visibility", None)
     if changes:
@@ -326,7 +395,17 @@ def update_template(
             details={"visibility": visibility_change},
         )
 
-    if changes or visibility_change is not None:
+    if becomes_official:
+        _add_audit(
+            db,
+            actor_id=user.id,
+            action="permission.template_official_update",
+            template_id=template.id,
+            request=request,
+            details={"is_official": {"from": False, "to": True}},
+        )
+
+    if changes or visibility_change is not None or becomes_official:
         db.commit()
 
     return db.scalar(_template_query().where(Template.id == template.id))
@@ -343,10 +422,10 @@ async def upload_template_cover(
     template = db.scalar(_template_query().where(Template.id == template_id))
     if template is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
-    if template.is_official and user.role != "admin":
+    if template.is_official and not _can_manage_official(user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only an admin can update an Official template cover",
+            detail="Only an admin or instructor can update an Official template cover",
         )
     if not template.is_official and template.owner_id != user.id:
         raise HTTPException(
