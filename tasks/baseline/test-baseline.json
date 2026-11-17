@@ -1,0 +1,40 @@
+{
+  "recorded_at": "2026-11-17",
+  "recorded_on_commit": "e8aae3cf (หลัง T1) + แก้ lint ใน T3",
+  "note": "เส้นฐานของ scripts/check.sh ห้ามแก้ค่าในไฟล์นี้ให้หลวมลงโดยไม่ได้รับอนุมัติจากผู้ใช้ ค่า min_passed ปรับขึ้นได้เมื่อเพิ่มเทสต์",
+  "backend": {
+    "command": "./.venv/bin/python -m pytest --ignore=tests/compare_yolo",
+    "min_passed": 259,
+    "max_failed": 15,
+    "allowed_failures_reason": "SURF ใช้ไม่ได้ใน OpenCV build นี้ (cv2.error) ล้มมาก่อนแผนนี้ ไม่แก้ในแผนนี้",
+    "allowed_failures": [
+      "tests.test_bfmatcher::test_surf_pair_runs_when_available",
+      "tests.test_surf::test_bgra_input",
+      "tests.test_surf::test_caching_same_input_same_output",
+      "tests.test_surf::test_descriptor_dim_and_dtype_default",
+      "tests.test_surf::test_extended_descriptor_dim",
+      "tests.test_surf::test_grayscale_input",
+      "tests.test_surf::test_hessian_threshold_monotonicity",
+      "tests.test_surf::test_large_image_runtime_and_output",
+      "tests.test_surf::test_param_change_creates_new_file",
+      "tests.test_surf::test_parameter_echo_in_schema",
+      "tests.test_surf::test_rotation_invariance",
+      "tests.test_surf::test_runtime_under_budget",
+      "tests.test_surf::test_scale_invariance",
+      "tests.test_surf::test_schema_fields_present",
+      "tests.test_surf::test_upright_affects_angles"
+    ]
+  },
+  "frontend": {
+    "lint_max_errors": 0,
+    "lint_warnings_at_baseline": 1,
+    "lint_warning_note": "FlowCanvas.tsx:509 react-hooks/exhaustive-deps คงไว้ได้",
+    "build": "npm run build ต้อง exit 0",
+    "node_tests": {
+      "files": [
+        "tests/yoloModel.test.cjs"
+      ],
+      "min_passed": 4
+    }
+  }
+}

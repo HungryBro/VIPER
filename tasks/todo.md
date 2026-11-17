@@ -48,16 +48,16 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `webapp-testing` (สคริปต์ Playwright ถ่ายภาพ mockup) · ติดตั้งแล้ว 17 พ.ย.: Playwright 1.65.2 ใน `.venv` + Chromium 159 รันด้วย `./.venv/bin/python`
 - ผู้ทำ: Sonnet subagent (medium) · ชุด I1
 
-### [ ] T3 แก้ lint 3 errors และสร้างสคริปต์ตรวจ `scripts/check.sh`
+### [x] T3 แก้ lint 3 errors และสร้างสคริปต์ตรวจ `scripts/check.sh`
 แก้ `no-constant-binary-expression` ที่ `sidebar.tsx:284` เพื่อให้ lint ใช้เป็นด่านตรวจได้ ต้นเหตุคือรายการ template แบบเก่าที่ซ่อนด้วย `{false && …}` ห้ามลบบล็อกนี้ เพราะเป็นทางเดียวที่เปิดเมนูคลิกขวาและหน้า "About Algorithm" ได้ ให้เปลี่ยนเป็นค่าคงที่ที่มีชื่อแทน เช่น `SHOW_LEGACY_TEMPLATE_LIST`
 
 จากนั้นสร้าง `scripts/check.sh` เป็นด่านตรวจเดียวที่ทุก task และทุกผู้ทำใช้ร่วมกัน เพื่อไม่ให้แต่ละคนตีความคำว่า "ผ่าน" ต่างกัน
 
 - เกณฑ์รับ
-  - [ ] `npm run lint` ไม่มี error (warning เดิม 1 รายการคงไว้ได้)
-  - [ ] พฤติกรรมของ sidebar ไม่เปลี่ยน และรายการ template แบบเก่ายังเปิดกลับได้ด้วยค่าคงที่ตัวเดียว
-  - [ ] `scripts/check.sh` รัน BE (pytest), FE (lint + build) และเทสต์ frontend (`node --test tests/yoloModel.test.cjs`) แล้วเทียบกับเส้นฐานใน `tasks/baseline/test-baseline.json` (ผ่าน ≥ 259, ล้ม ≤ 15 และชุดที่ล้มต้องเป็นชุดเดิม, lint 0 error)
-  - [ ] ผลสุดท้ายเป็นบรรทัดเดียว `CHECK PASS` หรือ `CHECK FAIL: <เหตุผล>` และ exit code 0 หรือ 1 ตามผล
+  - [x] `npm run lint` ไม่มี error (warning เดิม 1 รายการคงไว้ได้)
+  - [x] พฤติกรรมของ sidebar ไม่เปลี่ยน และรายการ template แบบเก่ายังเปิดกลับได้ด้วยค่าคงที่ตัวเดียว
+  - [x] `scripts/check.sh` รัน BE (pytest), FE (lint + build) และเทสต์ frontend (`node --test tests/yoloModel.test.cjs`) แล้วเทียบกับเส้นฐานใน `tasks/baseline/test-baseline.json` (ผ่าน ≥ 259, ล้ม ≤ 15 และชุดที่ล้มต้องเป็นชุดเดิม, lint 0 error)
+  - [x] ผลสุดท้ายเป็นบรรทัดเดียว `CHECK PASS` หรือ `CHECK FAIL: <เหตุผล>` และ exit code 0 หรือ 1 ตามผล
 - ตรวจ: รัน `scripts/check.sh` ได้ PASS; ทดลองใส่ error ใน lint ชั่วคราวแล้วต้องได้ FAIL จากนั้นคืนค่า
 - ขึ้นกับ: ไม่มี
 - ไฟล์: `my-react-flow-app/src/components/sidebar.tsx`, `scripts/check.sh`, `tasks/baseline/test-baseline.json`

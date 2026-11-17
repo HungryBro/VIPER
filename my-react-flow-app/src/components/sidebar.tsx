@@ -21,6 +21,11 @@ interface SidebarProps {
 
 const COMPACT_MOBILE_QUERY = '(max-width: 767px), (max-height: 560px) and (pointer: coarse)';
 
+// รายการ template แบบเก่าในแท็บ Official ถูกซ่อนไว้ ห้ามลบบล็อกนี้ เพราะเป็นทางเดียว
+// ที่เปิดเมนูคลิกขวาและหน้า "About Algorithm" ได้ ตั้งเป็น true เพื่อเปิดกลับ
+// ใส่ type เป็น boolean เพื่อให้ TypeScript ยังตรวจโค้ดในบล็อกนี้เหมือนโค้ดที่ทำงานจริง
+const SHOW_LEGACY_TEMPLATE_LIST: boolean = false;
+
 // --- Icons ---
 const Icons: Record<string, React.FC<{ className?: string }>> = {
   Input: (p) => (
@@ -281,7 +286,7 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode }: Side
                 );
               })}
 
-            {false && activeTab === 'templates' && templateView === 'official' && templateJobs.map(job => {
+            {SHOW_LEGACY_TEMPLATE_LIST && activeTab === 'templates' && templateView === 'official' && templateJobs.map(job => {
                   const isOpen = openTemplateGroups[job.name];
                   return (
                     <div key={job.name} className="rounded-lg overflow-hidden border border-gray-800/50 bg-gray-800/30 mb-2">
