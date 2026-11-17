@@ -19,14 +19,14 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 
 ## ระยะ 0: เส้นฐานและความปลอดภัย
 
-### [ ] T1 สำรองฐานข้อมูลและเก็บ snapshot ข้อมูล
+### [x] T1 สำรองฐานข้อมูลและเก็บ snapshot ข้อมูล
 สำรอง PostgreSQL ทั้งก้อน และเขียนสคริปต์เก็บจำนวนแถวกับ hash รายแถวของตารางที่มีข้อมูลจริง เพื่อใช้เทียบตอนจบ
 
 - เกณฑ์รับ
-  - [ ] มีไฟล์ `pg_dump` ที่ `outputs/backups/before-mockup-integration/` และกู้คืนลงฐานข้อมูลชั่วคราวได้
-  - [ ] `tasks/baseline/db-snapshot.json` มีจำนวนแถว, id สูงสุด และ hash รายแถวของ `users`, `templates`, `comments`, `audit_logs`, `results`
-  - [ ] จำนวนใน snapshot ตรงกับเส้นฐานใน plan.md (4 / 13 / 1 / 2,626 / 31 ณ 16 พ.ย.) หรือบันทึกค่าใหม่พร้อมเวลาที่เก็บ
-  - [ ] บันทึกใน snapshot ว่า Official template 9 แถวมี workflow แล้ว (เติมโดยโค้ดหลัง refactor ก่อนสำรอง)
+  - [x] มีไฟล์ `pg_dump` ที่ `outputs/backups/before-mockup-integration/` และกู้คืนลงฐานข้อมูลชั่วคราวได้
+  - [x] `tasks/baseline/db-snapshot.json` มีจำนวนแถว, id สูงสุด และ hash รายแถวของ `users`, `templates`, `comments`, `audit_logs`, `results`
+  - [x] จำนวนใน snapshot ตรงกับเส้นฐานใน plan.md (4 / 13 / 1 / 2,626 / 31 ณ 16 พ.ย.) หรือบันทึกค่าใหม่พร้อมเวลาที่เก็บ
+  - [x] บันทึกใน snapshot ว่า Official template 9 แถวมี workflow แล้ว (เติมโดยโค้ดหลัง refactor ก่อนสำรอง)
 - ตรวจ: รัน `scripts/migration_snapshot.py` สองครั้งติดกัน ได้ hash เท่ากัน
 - ขึ้นกับ: ไม่มี
 - ไฟล์: `scripts/migration_snapshot.py`, `tasks/baseline/db-snapshot.json`
