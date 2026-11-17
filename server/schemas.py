@@ -193,3 +193,42 @@ class YOLOAnnotation(BaseModel):
     y: float = Field(ge=0.0, le=1.0)
     width: float = Field(gt=0.0, le=1.0)
     height: float = Field(gt=0.0, le=1.0)
+
+
+# ---- ข้อมูลของผู้ใช้เอง (/api/me/*) ----
+# คีย์ใน metadata ของ audit log ที่ผู้ใช้เห็นได้ในประวัติของตัวเอง
+# (ไม่รวม owner_id, deleted_by, ชื่อผู้ใช้อื่น หรือ from/to ของการเปลี่ยนสิทธิ์)
+ME_ACTIVITY_DETAIL_KEYS = frozenset(
+    {"category", "operation", "method", "duration_ms", "success", "visibility", "is_official", "template_id", "provider"}
+)
+
+
+class MeActivityPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    action: str
+    target_type: str | None
+    target_id: str | None
+    details: dict[str, Any]
+    request_path: str | None
+    status_code: int | None
+    created_at: datetime
+
+    @field_validator("details", mode="before")
+    @classmethod
+    def _only_safe_details(cls, value: Any) -> dict[str, Any]:
+        if not isinstance(value, dict):
+            return {}
+        return {k: v for k, v in value.items() if k in ME_ACTIVITY_DETAIL_KEYS}
+
+
+class MeSummary(BaseModel):
+    template_count: int
+    public_template_count: int
+    run_count: int
+    activity_count: int
+    last_run_at: datetime | None
+    last_activity_at: datetime | None
+    last_login_at: datetime | None
+    member_since: datetime

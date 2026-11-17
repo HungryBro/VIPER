@@ -14,7 +14,7 @@ from .audit import audit_processing_activity
 from .config import settings
 from .utils_io import save_upload, static_url, ensure_dirs, OUT, UPLOAD_DIR
 from .routers import (
-    admin, auth, templates,
+    admin, auth, me, templates,
     features, matching, alignment, quality, 
     classification, detection, evaluation,
     # enhancement, restoration, segmentation
@@ -100,6 +100,7 @@ ensure_dirs(UPLOAD_DIR)
 app.mount("/static", StaticFiles(directory=OUT), name="static")
 app.include_router(auth.router)
 app.include_router(admin.router)
+app.include_router(me.router)
 app.include_router(templates.router)
 processing_audit_required = [Depends(audit_processing_activity)]
 app.include_router(features.router,       prefix="/api/feature", dependencies=processing_audit_required)
