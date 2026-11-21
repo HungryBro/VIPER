@@ -529,7 +529,7 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `test-driven-development` (สคริปต์ต้องจับความผิดที่ใส่ไว้ได้)
 - ผู้ทำ: Opus subagent (high) · ชุด H
 - ผลตรวจรับ (22 พ.ย. 2569, Opus ตัวหลัก): commit `70eb4e9d` ; รันกับฐานข้อมูลจริงเอง: identity admin id 2, `RESULT: PASS (14/14)` exit 0 ; จำนวนแถว users|templates|comments|audit_logs ก่อน=หลัง `4|16|1|2677` ; สคริปต์อ่านอย่างเดียว (transaction REPEATABLE READ READ ONLY, API ผ่าน TestClient ใช้ GET เท่านั้น ไม่เปิด lifespan) ; ทดลองใส่ความผิดบนฐานข้อมูลชั่วคราว `viper_verify_tmp` จาก pg_dump: ลบคอมเมนต์ id 6 → `FAIL snapshot.comments ... missing ids [6]` exit 1 แล้ว dropdb (ตรวจ `pg_database` ไม่มีแล้ว) ; `tests/test_verify_migration.py` 23 เทสต์ ; `check.sh` CHECK PASS pytest 347 เส้นฐานปรับเป็น >= 347
-- รอผู้ใช้ยืนยัน: แถว Official ที่ `official_key` ไม่อยู่ใน 9 รายการที่เปิดใช้ของ seed ถือเป็น FAIL ; แถว Official ที่ไม่มี key (ผู้สอน/admin สร้างเอง) แค่แสดงรายการ แต่ต้องมี workflow (ตอนนี้ไม่มีทั้งสองแบบ)
+- ผู้ใช้ยืนยัน 22 พ.ย.: แถว Official ที่ `official_key` ไม่อยู่ใน 9 รายการที่เปิดใช้ของ seed ถือเป็น FAIL ; แถว Official ที่ไม่มี key (ผู้สอน/admin สร้างเอง) แค่แสดงรายการ แต่ต้องมี workflow (ตอนนี้ไม่มีทั้งสองแบบ) ; T22: ผู้ใช้เลือกเตรียม session ด้วย cookie ที่เซ็นจาก `SESSION_SECRET` (admin id 2, บัญชีธรรมดา id 1) เก็บใน `outputs/parity-report/sessions/` (git ignore) ลบหลังตรวจรับ T22 ; ผู้สอนจำลองด้วยการดัก `/api/auth/me` ไม่แก้บัญชีจริง
 
 ### [ ] T22 รายงานภาพเทียบ mockup กับของจริง
 ถ่ายของจริงทุกแถวในตารางเทียบ แล้วสร้างหน้ารายงานวางคู่กับภาพ mockup จาก T2
