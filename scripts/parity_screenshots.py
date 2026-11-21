@@ -37,7 +37,7 @@ OUT_ROOT = REPO / 'outputs' / 'parity-report'
 
 TARGETS = {
     'mockup': {'port': 8765, 'path': '/index.html'},
-    # T22: 'real': {'port': 5173, 'path': '/'}  (ต้องมี session login จริงของ admin และบัญชีธรรมดา)
+    'real': {'port': 5173, 'path': '/'},  # T22: ต้องมี session login จริงใน outputs/parity-report/sessions/
 }
 
 SIZES = {1440: 900, 375: 812}
@@ -130,6 +130,7 @@ class Row:
     note: str = ''
     after_login: Optional[Callable] = None            # ทำก่อน nav (ใช้กับหน้าที่ต้องเตรียมสถานะ)
     extra: dict = field(default_factory=dict)
+    theme: str = 'light'                              # ธีมของภาพ mockup แถวนี้ (ใช้ตั้งธีมของจริงให้ตรง ตอน --target real)
 
 
 def _bell(page):
@@ -297,7 +298,7 @@ ROWS: list[Row] = [
     Row('C-05', 'กระดิ่ง · สถานะว่าง (ยังไม่อ่าน หลังอ่านทั้งหมด)', ALL3, ('home',), _bell_empty, shot='view'),
     Row('C-06', 'เมนูบัญชี (รวมปุ่มสลับบัญชีสาธิต)', ALL3, ('home',), _account_menu, shot='view'),
     Row('C-25', 'บล็อกสลับบัญชีสาธิต (demo-switch)', ALL3, ('home',), _account_menu, shot='el:.demo-switch'),
-    Row('C-07', 'ธีมมืด', ALL4, ('home',), _theme_dark),
+    Row('C-07', 'ธีมมืด', ALL4, ('home',), _theme_dark, theme='dark'),
     Row('C-08', 'footer', ALL4, ('home',), shot='el:footer.site-footer'),
     Row('C-09', 'toast', ALL3, ('profile',), _profile_save_toast, shot='view',
         note='toast แสดงหลังบันทึกโปรไฟล์ (ถ่ายทันที ก่อนหายใน 5.5 วินาที)',
@@ -524,6 +525,343 @@ def run_mockup(args) -> int:
     return 0 if not data['failed'] else 2
 
 
+# ================================================================ --target real (T22)
+# ถ่ายของจริงที่ http://localhost:5173 ด้วย session ที่ login ไว้แล้ว (ไม่ login Google เอง)
+# ความปลอดภัย: ทุก context บล็อกคำขอที่ไม่ใช่ GET ไปที่ /api/** (abort + บันทึก) และไม่คลิกปุ่มที่เขียนข้อมูล
+SESSION_DIR = OUT_ROOT / 'sessions'
+REAL_SESSION = {  # บทบาท -> (ไฟล์ storage_state, id ที่ต้องเป็น, role ที่ต้องเป็น)
+    'admin': ('admin.json', 2, 'admin'),
+    'learner': ('learner.json', 1, None),
+    'instructor': ('learner.json', 1, None),  # ผู้สอนจำลอง: session ผู้เรียน + จำลอง can_teach ที่ /api/auth/me
+}
+SIM_NOTE = 'ผู้สอนจำลอง (can_teach จำลองที่ /api/auth/me)'
+
+
+def _try_click(page, pattern, notes: list, kind: str = 'button', wait: int = 400) -> bool:
+    """คลิกเพื่อแสดงผลเท่านั้น: ไม่พบหรือปิดใช้ ก็ข้ามแล้วบันทึกหมายเหตุ"""
+    loc = page.get_by_role(kind, name=re.compile(pattern, re.I)).first
+    try:
+        if loc.count() == 0 or not loc.is_visible():
+            notes.append(f'ไม่พบ "{pattern}" ในของจริง')
+            return False
+        if not loc.is_enabled():
+            notes.append(f'"{pattern}" ปิดใช้')
+            return False
+        loc.click(timeout=3000)
+        settle(page, wait)
+        return True
+    except Exception as exc:  # noqa: BLE001
+        notes.append(f'คลิก "{pattern}" ไม่ได้: {type(exc).__name__}')
+        return False
+
+
+def _real_bell(page, notes):
+    _try_click(page, '^การแจ้งเตือน', notes)
+
+
+def _real_bell_empty(page, notes):
+    if _try_click(page, '^การแจ้งเตือน', notes):
+        _try_click(page, '^อ่านทั้งหมด', notes, wait=200)
+        _try_click(page, '^ยังไม่อ่าน', notes, wait=200)
+
+
+def _real_account(page, notes):
+    _try_click(page, '^เมนูบัญชี', notes)
+
+
+def _real_guest_menu(page, notes):
+    _try_click(page, '(เมนูโปรไฟล์|โปรไฟล์)', notes)
+
+
+def _real_profile_tab(label):
+    def run(page, notes):
+        if not (_try_click(page, label, notes, kind='tab') or _try_click(page, label, notes)):
+            pass
+    return run
+
+
+def _real_click(pattern, kind='button'):
+    def run(page, notes):
+        _try_click(page, pattern, notes, kind=kind)
+    return run
+
+
+def _real_lab_help(page, notes):
+    _try_click(page, '(วิธีใช้|Help)', notes)
+
+
+def _real_lab_library(page, notes):
+    _try_click(page, '^Open all', notes)
+
+
+def _real_tpl_edit(page, notes):
+    _try_click(page, '^ของฉัน', notes, wait=300)  # แท็บของฉัน (ผู้เรียนแก้ได้เฉพาะของตัวเอง; admin แก้ได้ทุกแท็บ)
+    _try_click(page, '^แก้ไข ', notes)
+
+
+def _real_tpl_delete(page, notes):
+    _try_click(page, '^ของฉัน', notes, wait=300)
+    if _try_click(page, '^แก้ไข ', notes):
+        _try_click(page, 'ลบ', notes)  # เปิดกล่องยืนยันเท่านั้น ไม่กดยืนยัน (และ DELETE ถูกบล็อกอยู่แล้ว)
+
+
+def _real_log_detail(page, notes):
+    _try_click(page, '(ดูรายละเอียด|รายละเอียด)', notes)
+
+
+# id -> (path, steps, shot, note)  ใช้กับแถว P/C; shot: full | view | el:<selector>
+REAL_SPEC: dict[str, tuple] = {
+    'P-01': ('/', None, 'full', ''), 'P-02': ('/', None, 'full', ''), 'P-03': ('/', None, 'full', ''),
+    'P-04': ('/', None, 'full', ''),
+    'P-05': ('/courses', None, 'full', ''), 'P-06': ('/courses/course-image-processing', None, 'full', 'route (เสนอ)'),
+    'P-07': ('/lessons/detection', None, 'full', 'route (เสนอ)'), 'P-08': ('/lessons/detection', None, 'full', 'เหมือน P-07'),
+    'P-09': ('/teach', None, 'full', ''), 'P-10': ('/teach', None, 'full', ''),
+    'P-11': ('/teach/course-image-processing', None, 'full', ''),
+    'P-12': ('/lab', None, 'view', 'ไม่มี route ตัวออกแบบ: ถ่าย /lab'),
+    'P-13': ('/lab', None, 'view', ''),
+    'P-14': ('/lab', None, 'view', 'ไม่มีโหมดเรียน: ถ่าย /lab'),
+    'P-15': ('/lab', None, 'view', 'ไม่มีพรีวิวแบบผู้เรียน: ถ่าย /lab'),
+    'P-16': ('/lab', None, 'view', 'ไม่มีการกันตามลงทะเบียน: ถ่าย /lab'),
+    'P-17': ('/submissions?side=mine', None, 'full', ''), 'P-18': ('/submissions', None, 'full', ''),
+    'P-19': ('/submissions?tab=grades', None, 'full', ''), 'P-20': ('/submissions?tab=grades', None, 'full', ''),
+    'P-21': ('/announcements', None, 'full', ''), 'P-22': ('/templates', None, 'full', ''),
+    'P-23': ('/users', None, 'full', ''), 'P-24': ('/logs', None, 'full', ''),
+    'P-25': ('/profile', None, 'full', ''),
+    'P-26': ('/profile', _real_profile_tab('ประวัติ'), 'full', ''),
+    'P-27': ('/profile', _real_profile_tab('ผลงาน'), 'full', ''),
+    'P-28': ('/profile', None, 'full', 'ไม่มีแท็บแก้ไข (ตัดออก): ถ่าย /profile'),
+    'P-29': ('/profile', None, 'full', 'ผู้เยี่ยมชมถูกพาไป Login'),
+    'P-30': ('/login', None, 'full', ''),
+    'P-31': ('/login', None, 'full', 'ไม่คลิกปุ่ม Google (ไปหน้า OAuth จริง): ถ่ายหน้า /login'),
+    'C-01': ('/', None, 'el:header.global-header', ''), 'C-02': ('/', None, 'el:header.global-header', ''),
+    'C-03': ('/', _real_guest_menu, 'view', ''),
+    'C-04': ('/', _real_bell, 'view', ''), 'C-05': ('/', _real_bell_empty, 'view', ''),
+    'C-06': ('/', _real_account, 'view', ''),
+    'C-25': ('/', _real_account, 'view', 'ไม่มีบล็อกสลับบัญชีสาธิต: ถ่ายเมนูบัญชี'),
+    'C-07': ('/', None, 'full', ''), 'C-08': ('/', None, 'el:footer.site-footer', ''),
+    'C-09': ('/profile', None, 'view', 'โปรไฟล์อ่านอย่างเดียว ไม่มี toast ให้ถ่ายโดยไม่เขียนข้อมูล: ถ่าย /profile'),
+    'C-10': ('/users', None, 'view', 'ไม่คลิกสวิตช์สิทธิ์ (เขียนข้อมูล): ถ่าย /users'),
+    'C-11': ('/lab', _real_lab_help, 'view', ''),
+    'C-12': ('/lab', _real_click('^SAVE TEMPLATE'), 'view', 'ปุ่มบันทึก Template อยู่ใน Lab (เปิดกล่องดูเท่านั้น ไม่บันทึก)'),
+    'C-13': ('/templates', _real_tpl_edit, 'view', ''),
+    'C-14': ('/templates', _real_tpl_delete, 'view', ''),
+    'C-15': ('/templates', _real_click('^ดูรายละเอียด '), 'view', ''),
+    'C-16': ('/logs', _real_log_detail, 'view', ''),
+    'C-17': ('/submissions', None, 'full', ''),
+    'C-18': ('/teach', _real_click('สร้างคอร์ส'), 'view', ''),
+    'C-19': ('/teach/course-image-processing', None, 'view', ''),
+    'C-20': ('/lab', _real_lab_library, 'view', ''),
+    'C-21': ('/lab', None, 'view', 'ไม่เปิด template (ต้อง POST /load): ถ่าย /lab ว่าง'),
+    'C-22': ('/lab', None, 'view', 'ไม่รัน pipeline (เขียนข้อมูล): ถ่าย /lab'),
+    'C-23': ('/lab', None, 'view', 'ตัดออก: ถ่าย /lab'),
+    'C-24': ('/lab', None, 'view', 'ตัดออก: ถ่าย /lab (375)'),
+}
+
+# แถว R-xx (ความสามารถของจริง) -> (กุญแจภาพ, บทบาท) กุญแจเดียวกันใช้ภาพเดียวกัน
+R_SHOTS: dict[str, tuple] = {
+    'lab': ('/lab', None, 'view'),
+    'lab_lib': ('/lab', _real_lab_library, 'view'),
+    'templates': ('/templates', None, 'full'),
+    'users': ('/users', None, 'full'),
+    'account': ('/users', _real_account, 'view'),
+    'logs': ('/logs', None, 'full'),
+    'login': ('/login', None, 'full'),
+}
+R_MAP: dict[str, tuple] = {}
+for _i in range(1, 44):
+    R_MAP[f'R-{_i:02d}'] = ('lab', 'learner')
+for _i in (15, 16):
+    R_MAP[f'R-{_i:02d}'] = ('lab_lib', 'learner')
+for _i in (17, 18, 19, 20, 26, 27, 28, 29, 30, 32, 42):
+    R_MAP[f'R-{_i:02d}'] = ('templates', 'learner')
+R_MAP['R-31'] = ('templates', 'admin')
+for _i in (33, 34):
+    R_MAP[f'R-{_i:02d}'] = ('users', 'admin')
+R_MAP['R-39'] = ('account', 'admin')
+for _i in (36, 37):
+    R_MAP[f'R-{_i:02d}'] = ('logs', 'admin')
+for _i in (35, 38):
+    R_MAP[f'R-{_i:02d}'] = ('login', 'guest')
+R_WIDTHS = (1440, 375)
+
+
+def real_jobs(args):
+    """รายการ (row_id, role, width, spec_key) ทั้ง P/C และ R"""
+    wanted = set(args.rows.split(',')) if args.rows else None
+    roles_filter = set(args.roles.split(',')) if args.roles else None
+    widths_filter = {int(w) for w in args.widths.split(',')} if args.widths else None
+    jobs = []
+    for r in ROWS:
+        for role in r.roles:
+            for w in r.widths:
+                jobs.append((r.id, role, w, r.id))
+    for rid in parity_ids('R'):
+        key, role = R_MAP[rid]
+        for w in R_WIDTHS:
+            jobs.append((rid, role, w, key))
+    if wanted:
+        known = {j[0] for j in jobs}
+        if wanted - known:
+            raise SystemExit(f'ไม่รู้จักแถว: {sorted(wanted - known)}')
+    return [j for j in jobs if (not wanted or j[0] in wanted) and (not roles_filter or j[1] in roles_filter)
+            and (not widths_filter or j[2] in widths_filter)]
+
+
+def real_context(browser, role: str, width: int, theme: str, blocked: list, tag: str):
+    kw = {}
+    if role != 'guest':
+        fname, _, _ = REAL_SESSION[role]
+        kw['storage_state'] = str(SESSION_DIR / fname)
+    ctx = browser.new_context(viewport={'width': width, 'height': SIZES[width]}, locale='th-TH',
+                              timezone_id='Asia/Bangkok', reduced_motion='reduce', color_scheme=theme, **kw)
+    ctx.add_init_script(f"try{{localStorage.setItem('viper.platform.theme','{theme}')}}catch(e){{}}")
+
+    def guard(route):
+        req = route.request
+        if req.method != 'GET':
+            blocked.append({'shot': tag, 'method': req.method, 'url': req.url})
+            return route.abort()
+        if role == 'instructor' and req.url.split('?')[0].endswith('/api/auth/me'):
+            resp = route.fetch()
+            try:
+                body = resp.json()
+                body['can_teach'] = True
+                return route.fulfill(response=resp, json=body)
+            except Exception:  # noqa: BLE001
+                return route.fulfill(response=resp)
+        return route.continue_()
+
+    ctx.route('**/api/**', guard)
+    return ctx
+
+
+def real_identity(ctx, base: str, role: str) -> dict:
+    """ยืนยันตัวตนจริงจาก GET /api/auth/me ก่อนถ่าย (ผ่าน request ของ context ไม่ผ่าน route จำลอง)"""
+    resp = ctx.request.get(base + '/api/auth/me')
+    if role == 'guest':
+        if resp.status != 401:
+            raise RuntimeError(f'guest ควรได้ 401 แต่ได้ {resp.status}')
+        return {'status': 401}
+    if not resp.ok:
+        raise RuntimeError(f'/api/auth/me ตอบ {resp.status} (session หมดอายุ?)')
+    me = resp.json()
+    _, want_id, want_role = REAL_SESSION[role]
+    if me.get('id') != want_id or (want_role and me.get('role') != want_role):
+        raise RuntimeError(f'ตัวตนไม่ตรง: ได้ id={me.get("id")} role={me.get("role")} ต้องการ id={want_id} role={want_role}')
+    if role != 'admin' and me.get('role') == 'admin':
+        raise RuntimeError('บทบาท ' + role + ' ต้องไม่ใช่ admin')
+    return {'id': me.get('id'), 'role': me.get('role')}
+
+
+def real_shot(browser, base: str, jid: tuple, out: Path, blocked: list, ident_seen: dict, spec_of) -> dict:
+    rid, role, width, key = jid
+    height = SIZES[width]
+    fname = f'{rid}__{role}__{width}.png'
+    row = ROW_BY_ID.get(rid)
+    theme = row.theme if row else 'light'
+    path, steps, shot, note = spec_of(rid, key)
+    notes: list[str] = [note] if note else []
+    if role == 'instructor':
+        notes.append(SIM_NOTE)
+    entry = {'row': rid, 'role': role, 'width': width, 'height': height, 'file': fname, 'ok': False,
+             'theme': theme, 'path': path, 'simulated': role == 'instructor'}
+    ctx = real_context(browser, role, width, theme, blocked, fname)
+    try:
+        ident = real_identity(ctx, base, role)
+        entry['identity'] = ident
+        if role not in ident_seen:
+            ident_seen[role] = ident
+            print(f'  identity {role}: GET /api/auth/me -> {ident}' + (f' ({SIM_NOTE})' if role == 'instructor' else ''))
+        page = ctx.new_page()
+        page.set_default_timeout(6000)
+        errors: list[str] = []
+        page.on('pageerror', lambda e: errors.append(str(e)[:160]))
+        page.goto(base + path, wait_until='load')
+        try:
+            page.wait_for_load_state('networkidle', timeout=8000)
+        except Exception:  # noqa: BLE001
+            pass
+        page.add_style_tag(content=FREEZE_CSS)
+        settle(page, 1500 if path.startswith('/lab') else 700)
+        entry['final_url'] = page.url.replace(base, '')
+        if steps:
+            steps(page, notes)
+        settle(page, 300)
+        dest = out / fname
+        if shot.startswith('el:'):
+            loc = page.locator(shot[3:]).first
+            if loc.count():
+                loc.screenshot(path=str(dest))
+            else:
+                notes.append(f'ไม่พบ {shot[3:]}: ถ่ายทั้งหน้าแทน')
+                page.screenshot(path=str(dest), full_page=True)
+        else:
+            page.screenshot(path=str(dest), full_page=(shot == 'full'))
+        entry['ok'] = True
+        if errors:
+            notes.append('pageerror: ' + '; '.join(errors[:2]))
+    except Exception as exc:  # noqa: BLE001
+        entry['error'] = f'{type(exc).__name__}: {str(exc).splitlines()[0][:200]}'
+    finally:
+        entry['note'] = ' · '.join(n for n in notes if n)
+        ctx.close()
+    return entry
+
+
+def run_real(args) -> int:
+    from playwright.sync_api import sync_playwright
+
+    cfg = TARGETS['real']
+    base = f'http://localhost:{cfg["port"]}'
+    try:
+        socket.create_connection(('localhost', cfg['port']), timeout=1).close()
+    except OSError:
+        raise SystemExit(f'ไม่พบเซิร์ฟเวอร์ที่พอร์ต {cfg["port"]} (สคริปต์นี้ไม่เปิด/ปิดเซิร์ฟเวอร์ของจริง)')
+    out = Path(args.out) if args.out else OUT_ROOT / 'real'
+    out.mkdir(parents=True, exist_ok=True)
+    jobs = real_jobs(args)
+    print(f'จะถ่าย {len(jobs)} ภาพ -> {out}')
+    blocked: list[dict] = []
+    ident_seen: dict = {}
+
+    def spec_of(rid, key):
+        if rid in ROW_BY_ID:
+            return REAL_SPEC[rid]
+        p, st, sh = R_SHOTS[key]
+        return p, st, sh, 'แถวความสามารถของจริง (R) ถ่ายหน้าที่เกี่ยวข้อง ไม่ได้ทดสอบการทำงาน'
+
+    manifest = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        for i, jid in enumerate(jobs, 1):
+            entry = real_shot(browser, base, jid, out, blocked, ident_seen, spec_of)
+            manifest.append(entry)
+            print(f'[{i}/{len(jobs)}] {"OK  " if entry["ok"] else "FAIL"} {entry["file"]}'
+                  + ('' if entry['ok'] else f'  {entry.get("error")}'), flush=True)
+        browser.close()
+    mpath = out / 'manifest.json'
+    key = lambda e: (e['row'], e['role'], e['width'])  # noqa: E731
+    old_blocked: list = []
+    if (args.rows or args.roles or args.widths) and mpath.exists():
+        prev = json.loads(mpath.read_text(encoding='utf-8'))
+        merged = {key(e): e for e in prev['shots']}
+        merged.update({key(e): e for e in manifest})
+        manifest = sorted(merged.values(), key=key)
+        old_blocked = prev.get('blocked_requests', [])
+    data = {
+        'target': 'real', 'generatedAt': time.strftime('%Y-%m-%dT%H:%M:%S%z'),
+        'sizes': [f'{w}x{h}' for w, h in SIZES.items()],
+        'identity': ident_seen, 'total': len(manifest), 'ok': sum(e['ok'] for e in manifest),
+        'failed': [e['file'] for e in manifest if not e['ok']],
+        'blocked_requests': old_blocked + blocked, 'shots': manifest,
+    }
+    mpath.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+    print(f'สำเร็จ {data["ok"]}/{data["total"]} · คำขอที่ไม่ใช่ GET ถูกบล็อก {len(blocked)} รายการ · manifest: {mpath}')
+    for b in blocked:
+        print('  BLOCKED', b['method'], b['url'], '<-', b['shot'])
+    return 0 if not data['failed'] else 2
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--target', choices=sorted(TARGETS), default='mockup')
@@ -546,8 +884,8 @@ def main() -> int:
             print(f'{r.id}  {n:>2}  {",".join(r.roles):<32} {r.title}')
         print(f'รวม {len(ROWS)} แถว, {total} ภาพ')
         return 0
-    if args.target != 'mockup':
-        raise SystemExit('--target real ยังไม่เปิดใช้ (T22)')
+    if args.target == 'real':
+        return run_real(args)
     return run_mockup(args)
 
 
