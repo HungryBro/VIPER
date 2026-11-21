@@ -1,5 +1,6 @@
 // Dashboard ผู้เรียน (T17) ย้ายจาก Dashboard ของ mockup v2 ตัวเลขมาจาก /api/me/summary และ
-// "การทดลองล่าสุด" มาจาก audit processing.run ของตัวเองผ่าน /api/me/activity?action=processing.run
+// "การประมวลผลล่าสุด" มาจาก audit processing.run ของตัวเองผ่าน /api/me/activity?action=processing.run&runs=true
+// (เฉพาะที่สั่งรัน ไม่นับการ poll งานเทรน B2)
 // ส่วนคอร์ส ไทม์ไลน์ ความคืบหน้า ฟีดแบค ยังไม่มีระบบรองรับ จึงเป็นสถานะว่าง
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -21,10 +22,10 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const summary = useLoaded(getMySummary, 'โหลดสรุปไม่สำเร็จ');
   const recentLoader = useCallback(
-    () => listMyActivityPage({ limit: RECENT_RUNS, action: ['processing.run'] }),
+    () => listMyActivityPage({ limit: RECENT_RUNS, action: ['processing.run'], runs: true }),
     [],
   );
-  const recent = useLoaded(recentLoader, 'โหลดการทดลองล่าสุดไม่สำเร็จ');
+  const recent = useLoaded(recentLoader, 'โหลดการประมวลผลล่าสุดไม่สำเร็จ');
   const stats = summary.data;
 
   return (
@@ -65,7 +66,7 @@ export default function DashboardPage() {
             </div>
             <div className="stat-pair">
               <span>
-                การทดลองทั้งหมด
+                การประมวลผลที่สั่งรัน
                 <strong>
                   {num(stats?.run_count)} <small>ครั้ง</small>
                 </strong>
@@ -96,7 +97,7 @@ export default function DashboardPage() {
           </section>
           <section className="panel recent-panel">
             <div className="section-title">
-              <h2>การทดลองล่าสุด</h2>
+              <h2>การประมวลผลที่สั่งรันล่าสุด</h2>
               <History size={17} />
             </div>
             {recent.loading ? (

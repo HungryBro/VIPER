@@ -21,10 +21,18 @@ const COMPACT_MOBILE_QUERY = '(max-width: 767px), (max-height: 560px) and (point
 
 // `active` เป็น false เมื่อ editor ถูกเก็บ mount ไว้แต่ซ่อนอยู่หลัง route อื่น (ดู LabHost ใน src/App.tsx)
 // งานที่รัน การแก้ undo/redo, Log panel และ clipboard จึงอยู่ครบเมื่อกลับมา
-export default function LabPage({ active = true }: { active?: boolean }) {
+// platformMenu: LabHost ส่งมาเฉพาะโทรศัพท์แนวนอนที่ซ่อน header แพลตฟอร์มไว้ (B7b) ปุ่มนี้เปิด/ปิด header นั้น
+type PlatformMenuToggle = { open: boolean; toggle: () => void };
+
+export default function LabPage({ active = true, platformMenu }: { active?: boolean; platformMenu?: PlatformMenuToggle }) {
   const [isRunning, setIsRunning] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  // ข้อความแจ้งสั้นๆ บน editor (เช่น เปิด template เป็นแท็บใหม่เบื้องหลังเพราะมีงานรันอยู่) หายเองใน 6 วินาที
+  const [labNotice, setLabNotice] = useState<string | null>(null);
+  // A4f: เพิ่มค่าเมื่อรายการ template ในคลังอาจเก่า (บันทึกจาก SAVE TEMPLATE หรือกลับมาที่ /lab)
+  const [templateRefreshKey, setTemplateRefreshKey] = useState(0);
+  const bumpTemplateList = useCallback(() => setTemplateRefreshKey((value) => value + 1), []);
   const [isCompactMobile, setIsCompactMobile] = useState(() => (
     typeof window !== 'undefined' && window.matchMedia(COMPACT_MOBILE_QUERY).matches
   ));
@@ -199,6 +207,12 @@ export default function LabPage({ active = true }: { active?: boolean }) {
     );
   }, [activeTabId, isRunning]);
 
+  // อ่านสถานะรันล่าสุดใน callback ที่ถูกเก็บไว้ (labBridge เรียกผ่าน ref)
+  const isRunningRef = useRef(isRunning);
+  useEffect(() => {
+    isRunningRef.current = isRunning;
+  }, [isRunning]);
+
   const handleLoadTemplate = useCallback((template: { name: string; nodes: WorkflowTab['nodes']; edges: WorkflowTab['edges'] }) => {
     syncCanvasToCurrentTab();
     const newId = `tab-${Date.now()}`;
@@ -207,6 +221,13 @@ export default function LabPage({ active = true }: { active?: boolean }) {
     const newTab: WorkflowTab = {
       id: newId, name: template.name, nodes: cleanNodes, edges: template.edges, viewport: { x: 0, y: 0, zoom: 1 }
     };
+    // มี pipeline รันอยู่ (A3 ผู้ใช้เลือกข้อ ข): เพิ่มแท็บใหม่ไว้เบื้องหลัง ไม่สลับแท็บและไม่ restore canvas
+    // ผลของงานที่รันจึงอยู่ในแท็บเดิมครบ ผู้ใช้กดสลับไปแท็บใหม่เองเมื่อพร้อม
+    if (isRunningRef.current) {
+      setTabs((prev) => [...prev, newTab]);
+      setLabNotice(`เปิด "${template.name}" เป็นแท็บใหม่แล้ว (ยังไม่สลับเพราะมี pipeline รันอยู่)`);
+      return;
+    }
     setTabs((prev) => [...prev, newTab]);
     setActiveTabId(newId);
     setTimeout(() => { canvasRef.current?.restoreSnapshot(cleanNodes, template.edges, 'fit'); }, 0);
@@ -295,6 +316,12 @@ export default function LabPage({ active = true }: { active?: boolean }) {
     return () => clearTimeout(timer);
   }, [pendingTemplate, active]);
 
+  useEffect(() => {
+    if (!labNotice) return;
+    const timer = setTimeout(() => setLabNotice(null), 6000);
+    return () => clearTimeout(timer);
+  }, [labNotice]);
+
   const handleAddNodeFromLibrary = useCallback((nodeType: string) => {
     canvasRef.current?.addNode(nodeType);
   }, []);
@@ -305,6 +332,8 @@ export default function LabPage({ active = true }: { active?: boolean }) {
     const becameActive = active && !wasActiveRef.current;
     wasActiveRef.current = active;
     if (!becameActive) return;
+    // ระหว่างซ่อน ผู้ใช้อาจแก้หรือลบ template ที่หน้า Templates: ให้คลังใน Lab โหลดรายการใหม่
+    bumpTemplateList();
     let second = 0;
     const first = requestAnimationFrame(() => {
       second = requestAnimationFrame(() => canvasRef.current?.fitView());
@@ -313,13 +342,25 @@ export default function LabPage({ active = true }: { active?: boolean }) {
       cancelAnimationFrame(first);
       cancelAnimationFrame(second);
     };
-  }, [active]);
+  }, [active, bumpTemplateList]);
 
   return (
     <div className={`viper-app w-screen h-[100dvh] flex flex-col overflow-hidden bg-gray-900 text-white ${isCompactMobile ? 'compact-mobile' : ''}`}>
       {/* หัวของแพลตฟอร์ม (Header) แสดงอยู่เหนือ editor ใน LabHost แล้ว (ชื่อผู้ใช้ แผงจัดการผู้ใช้ของ admin และ Log out อยู่ที่นั่น) */}
       <div className="viper-header relative z-30 flex min-h-12 items-center gap-2 border-b-2 border-teal-500 bg-gray-900 px-3 shadow-lg sm:gap-3">
         <h1 className="min-w-0 flex-1 truncate text-base font-extrabold tracking-wide text-teal-400 sm:text-lg">VIPER Lab</h1>
+        {platformMenu && (
+          <button
+            type="button"
+            onClick={platformMenu.toggle}
+            aria-expanded={platformMenu.open}
+            aria-label={platformMenu.open ? 'ซ่อนเมนูแพลตฟอร์ม' : 'เมนูแพลตฟอร์ม (บัญชี หน้าอื่น ออกจากระบบ)'}
+            title="เมนูแพลตฟอร์ม"
+            className="flex h-9 shrink-0 touch-manipulation items-center justify-center rounded-md border border-slate-700 bg-slate-800 px-2 text-[10px] font-bold text-slate-300 hover:border-teal-500/50 hover:text-teal-300"
+          >
+            {platformMenu.open ? 'ซ่อนเมนู' : 'เมนู'}
+          </button>
+        )}
         <button
           type="button"
           onClick={() => setHelpOpen(true)}
@@ -345,15 +386,24 @@ export default function LabPage({ active = true }: { active?: boolean }) {
             getCurrentWorkflow={getCurrentWorkflow}
             onLoadPlatformTemplate={handleLoadPlatformTemplate}
             onAddNode={handleAddNodeFromLibrary}
+            templateRefreshKey={templateRefreshKey}
           />
           <div className="flex-1 h-full relative">
-            <FlowCanvas ref={canvasRef} isRunning={isRunning} onPipelineDone={handleStop} onFlowChange={handleFlowChange} currentTabName={activeTabName} active={active} />
+            <FlowCanvas ref={canvasRef} isRunning={isRunning} onPipelineDone={handleStop} onFlowChange={handleFlowChange} currentTabName={activeTabName} active={active && !saveTemplateOpen && !helpOpen} />
           </div>
         </ReactFlowProvider>
       </div>
+      {labNotice && (
+        <div
+          role="status"
+          className="pointer-events-none fixed bottom-4 left-1/2 z-[120] max-w-[90vw] -translate-x-1/2 rounded-md border border-teal-500/50 bg-gray-900/95 px-4 py-2 text-sm text-teal-200 shadow-lg"
+        >
+          {labNotice}
+        </div>
+      )}
       {helpOpen && <LabHelpDialog onClose={() => setHelpOpen(false)} />}
       {saveTemplateOpen && (
-        <SaveTemplateDialog getCurrentWorkflow={getCurrentWorkflow} onClose={() => setSaveTemplateOpen(false)} />
+        <SaveTemplateDialog getCurrentWorkflow={getCurrentWorkflow} onClose={() => setSaveTemplateOpen(false)} onSaved={bumpTemplateList} />
       )}
     </div>
   );

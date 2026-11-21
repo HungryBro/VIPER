@@ -16,6 +16,8 @@ interface TemplateJobGroup {
 interface SidebarProps {
   getCurrentWorkflow: () => CurrentWorkflow | null;
   onLoadPlatformTemplate: (template: TemplateDetail) => void;
+  /** ส่งต่อให้ TemplatePlatformLibrary: เปลี่ยนค่าเมื่อรายการ template ต้องโหลดใหม่ (A4f) */
+  templateRefreshKey?: number;
   onAddNode: (nodeType: string) => void;
 }
 
@@ -46,7 +48,7 @@ const Icons: Record<string, React.FC<{ className?: string }>> = {
   )
 };
 
-const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode }: SidebarProps) => {
+const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templateRefreshKey }: SidebarProps) => {
 
   const [activeTab, setActiveTab] = useState<'nodes' | 'templates'>('nodes');
   const [templateView, setTemplateView] = useState<PlatformTemplateView>('official');
@@ -320,6 +322,7 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode }: Side
                 getCurrentWorkflow={getCurrentWorkflow}
                 onLoad={onLoadPlatformTemplate}
                 onViewChange={setTemplateView}
+                refreshKey={templateRefreshKey}
               />
             )}
           </div>

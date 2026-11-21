@@ -115,6 +115,8 @@ function LogsTable() {
   const load = useCallback(async () => {
     const id = ++requestId.current;
     setLoading(true);
+    // "โหลดเพิ่ม" ที่ค้างอยู่ของตัวกรองเก่าถูกทิ้ง (requestId เปลี่ยน) finally ของมันจึงไม่รีเซ็ตให้ ต้องรีเซ็ตที่นี่
+    setLoadingMore(false);
     setError(null);
     try {
       const page = await listAdminAuditLogPage({

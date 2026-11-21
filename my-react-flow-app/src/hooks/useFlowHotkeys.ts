@@ -31,6 +31,9 @@ const isTypingTarget = (target: EventTarget | null) => {
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
 };
 
+// A modal (Save Template, help, template edit) is open over the canvas: keys belong to it, not to the nodes behind it.
+const isModalOpen = () => document.querySelector('[aria-modal="true"]') !== null;
+
 const makeId = () =>
   `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -165,6 +168,7 @@ export function useFlowHotkeys(opts: UseFlowHotkeysOptions) {
     if (!enabled) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (isTypingTarget(e.target)) return;
+      if (isModalOpen()) return;
 
       if (isCmdOrCtrl(e) && !e.altKey) {
         const key = e.key.toLowerCase();
@@ -194,7 +198,20 @@ export function useFlowHotkeys(opts: UseFlowHotkeysOptions) {
       }
     };
 
+    // React Flow's built-in Backspace delete listens on document. A modal the Lab page does not track
+    // (the template edit dialog in the library) must not let it delete nodes behind it, so the key
+    // stops at window (capture) before it reaches document. Typing in the modal's fields is untouched.
+    const blockCanvasDeleteBehindModal = (e: KeyboardEvent) => {
+      if (e.key !== 'Backspace' && e.key !== 'Delete') return;
+      if (isTypingTarget(e.target) || !isModalOpen()) return;
+      e.stopPropagation();
+    };
+
     window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
+    window.addEventListener('keydown', blockCanvasDeleteBehindModal, true);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keydown', blockCanvasDeleteBehindModal, true);
+    };
   }, [enabled, undo, redo, doCopy, doPaste, doDelete]);
 }

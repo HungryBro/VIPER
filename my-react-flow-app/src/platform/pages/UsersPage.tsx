@@ -16,7 +16,12 @@ import { isAdmin, roleLabel } from '../permissions';
 import { useToast } from '../toast';
 import { Badge, Button, Empty, Modal, cx, time } from '../ui';
 
-type Confirm = { title: string; message: string; update: AdminUserUpdate; done: string; user: AdminUser };
+// banMs: ระยะแบน คำนวณ banned_until ตอนกดยืนยัน ไม่ใช่ตอนเปิด modal (เปิดค้างไว้นานแล้วระยะจะไม่สั้นลง)
+type Confirm = { title: string; message: string; update: AdminUserUpdate; done: string; user: AdminUser; banMs?: number };
+
+// บัญชีระบบ (provider "system" เช่น VIPER Official ที่เป็นเจ้าของ template Official) แสดงในรายการแต่ล็อกทุกการแก้ไข
+// server ปฏิเสธ (403) ซ้ำอยู่แล้ว
+const isSystemAccount = (user: AdminUser): boolean => user.provider === 'system';
 
 const joinedOn = (value: string): string =>
   new Date(value).toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok', day: 'numeric', month: 'short', year: 'numeric' });
@@ -75,7 +80,8 @@ function UsersTable({ currentUserId }: { currentUserId: number }) {
       user,
       title: `แบน ${user.display_name} (${label})?`,
       message: 'บัญชีนี้จะเข้าใช้งานไม่ได้จนกว่าจะครบกำหนด หรือจนกว่าผู้ดูแลจะยกเลิกแบน',
-      update: { status: 'banned', banned_until: new Date(Date.now() + durationMs).toISOString() },
+      update: { status: 'banned' },
+      banMs: durationMs,
       done: 'แบนผู้ใช้แล้ว',
     });
 
@@ -132,6 +138,9 @@ function UsersTable({ currentUserId }: { currentUserId: number }) {
             <tbody>
               {shown.map((account) => {
                 const isSelf = account.id === currentUserId;
+                const system = isSystemAccount(account);
+                // locked: แก้บัญชีนี้ไม่ได้ (ตัวเอง หรือบัญชีระบบ)
+                const locked = isSelf || system;
                 const busy = account.id === updatingId;
                 const banned = account.status === 'banned';
                 return (
@@ -141,12 +150,13 @@ function UsersTable({ currentUserId }: { currentUserId: number }) {
                         {account.display_name}
                         {isSelf ? ' (คุณ)' : ''}
                       </strong>
+                      {system && <Badge tone="amber">บัญชีระบบ</Badge>}
                       <small>{account.email}</small>
                     </td>
                     <td>
                       <select
                         value={account.role}
-                        disabled={isSelf || busy}
+                        disabled={locked || busy}
                         aria-label={`บทบาทของ ${account.email}`}
                         onChange={(event) =>
                           void apply(account, { role: event.target.value as 'admin' | 'user' }, 'อัปเดตบทบาทและบันทึก Platform Log แล้ว')
@@ -165,7 +175,7 @@ function UsersTable({ currentUserId }: { currentUserId: number }) {
                           aria-checked={isAdmin(account) || account.can_teach}
                           aria-label={`สิทธิ์ผู้สอนของ ${account.display_name}`}
                           className={cx('toggle-switch', (isAdmin(account) || account.can_teach) && 'on')}
-                          disabled={isAdmin(account) || isSelf || busy}
+                          disabled={isAdmin(account) || locked || busy}
                           onClick={() => askTeach(account)}
                         >
                           <span />
@@ -188,7 +198,7 @@ function UsersTable({ currentUserId }: { currentUserId: number }) {
                       {banned ? (
                         <Button
                           kind="secondary"
-                          disabled={isSelf || busy}
+                          disabled={locked || busy}
                           onClick={() => void apply(account, { status: 'active' }, 'ยกเลิกแบนแล้ว')}
                         >
                           ยกเลิกแบน
@@ -196,7 +206,7 @@ function UsersTable({ currentUserId }: { currentUserId: number }) {
                       ) : (
                         <select
                           value=""
-                          disabled={isSelf || busy}
+                          disabled={locked || busy}
                           aria-label={`แบน ${account.email}`}
                           onChange={(event) => {
                             const option = banOptions.find((item) => item.label === event.target.value);
@@ -239,9 +249,11 @@ function UsersTable({ currentUserId }: { currentUserId: number }) {
             </Button>
             <Button
               onClick={() => {
-                const { user, update, done } = confirm;
+                const { user, update, done, banMs } = confirm;
                 setConfirm(null);
-                void apply(user, update, done);
+                const finalUpdate =
+                  banMs === undefined ? update : { ...update, banned_until: new Date(Date.now() + banMs).toISOString() };
+                void apply(user, finalUpdate, done);
               }}
             >
               ยืนยัน

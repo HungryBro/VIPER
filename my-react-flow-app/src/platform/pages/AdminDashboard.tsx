@@ -1,5 +1,5 @@
 // Dashboard ผู้ดูแล (role=admin) T17 ย้ายจาก AdminDashboard ของ mockup v2 ตัวเลขมาจาก API จริง:
-//  - ผู้ใช้ที่เปิดใช้งาน = จำนวนผู้ใช้ใน /api/admin/users ที่ status = 'active'
+//  - ผู้ใช้ที่เปิดใช้งาน = จำนวนผู้ใช้ใน /api/admin/users ที่ status = 'active' ไม่นับบัญชีระบบ (provider 'system' เช่น VIPER Official) (B5)
 //  - Template = จำนวน template ที่ admin เห็นได้ (Official + Public + Private ของตัวเอง) นับ id ไม่ซ้ำ
 //  - เหตุการณ์ = X-Total-Count ของ /api/admin/audit-logs
 // ส่วนคอร์สและงานรอตรวจยังไม่มีระบบรองรับ จึงไม่แสดง
@@ -24,7 +24,7 @@ export default function AdminDashboard() {
   const eventsLoader = useCallback(async () => (await listAdminAuditLogPage({ limit: 1 })).total, []);
   const events = useLoaded(eventsLoader, 'โหลดเหตุการณ์ไม่สำเร็จ');
 
-  const activeUsers = users.data ? users.data.filter((user) => user.status === 'active').length : null;
+  const activeUsers = users.data ? users.data.filter((user) => user.status === 'active' && user.provider !== 'system').length : null;
   const errors = [users.error, templates.error, events.error].filter(Boolean);
 
   return (

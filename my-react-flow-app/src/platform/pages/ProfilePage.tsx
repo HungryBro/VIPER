@@ -41,7 +41,12 @@ function ActivityList() {
     try {
       const page = await listMyActivityPage({ limit: ACTIVITY_PAGE_SIZE, offset });
       if (id !== requestId.current) return;
-      setItems((previous) => (offset === 0 ? page.items : [...previous, ...page.items]));
+      // offset เลื่อนได้ถ้ามี log ใหม่ระหว่างกด "โหลดเพิ่ม" จึงกันแถวซ้ำตาม id แบบเดียวกับหน้า Logs
+      setItems((previous) => {
+        if (offset === 0) return page.items;
+        const seen = new Set(previous.map((log) => log.id));
+        return [...previous, ...page.items.filter((log) => !seen.has(log.id))];
+      });
       setTotal(page.total);
     } catch (failure) {
       if (id === requestId.current) setError(errorText(failure, 'โหลดประวัติไม่สำเร็จ'));
@@ -184,7 +189,7 @@ export default function ProfilePage() {
             <strong>{num(stats?.activity_count)}</strong>กิจกรรม
           </span>
           <span>
-            <strong>{num(stats?.run_count)}</strong>การทดลอง
+            <strong>{num(stats?.run_count)}</strong>การประมวลผลที่สั่งรัน
           </span>
         </div>
       </section>
@@ -297,7 +302,7 @@ export default function ProfilePage() {
               ))
             )}
             <div className="profile-experiment-note">
-              <Badge tone="blue">{num(stats?.run_count)} การทดลอง</Badge>
+              <Badge tone="blue">{num(stats?.run_count)} ครั้งที่สั่งรัน</Badge>
               <p>จำนวนครั้งที่คุณรัน Workflow ใน Lab ดูรายการแต่ละครั้งได้ในแท็บประวัติ</p>
             </div>
           </section>

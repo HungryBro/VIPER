@@ -537,6 +537,9 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
             onNodeDragStop={() => (isDraggingRef.current = false)}
             isValidConnection={onValidateConnection}
             onEdgesDelete={onEdgesDelete}
+            // A1: React Flow's own Backspace delete listens on the whole document; turn it off while
+            // the editor is hidden or a Lab dialog is open (active is false then), as useFlowHotkeys does.
+            deleteKeyCode={active ? 'Backspace' : null}
           >
             <MiniMap
               position="bottom-left"

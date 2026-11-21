@@ -287,7 +287,7 @@ export default function TemplatesPage() {
   const selected = find(selectedId);
   const editing = find(editingId);
   const deleting = find(deletingId);
-  const canEditCard = (template: TemplateSummary) => canManageTemplate(user, template) || canToggleComments(user);
+  const canEditCard = (template: TemplateSummary) => canManageTemplate(user, template) || canToggleComments(user, template);
 
   return (
     <div className="page">
@@ -422,7 +422,7 @@ export default function TemplatesPage() {
         <EditDialog
           template={editing}
           canManage={canManageTemplate(user, editing)}
-          canComments={canToggleComments(user)}
+          canComments={canToggleComments(user, editing)}
           onClose={() => setEditingId(null)}
           onSaved={() => {
             setEditingId(null);

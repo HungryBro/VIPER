@@ -17,7 +17,7 @@ import {
 } from '../lib/templateApi';
 import './styles/Templates.css';
 import { Avatar, VisibilityBadge } from './TemplateBadges';
-import { canManageTemplate, kindOf } from './templateAccess';
+import { canManageTemplate, canWriteComment, kindOf } from './templateAccess';
 import { useToast } from './toast';
 import { Badge, Button, Modal, time } from './ui';
 
@@ -183,6 +183,10 @@ export default function TemplateDetail({
               <p className="muted small">ยังไม่มีความคิดเห็น คุณสามารถเขียนผลที่ทดลองหรือถามเกี่ยวกับ Workflow นี้ได้</p>
             )}
           </div>
+          {user && !canWriteComment(user, template) ? (
+            // B3: admin อ่าน Private ของคนอื่นได้อย่างเดียว ไม่แสดงช่องเขียนความคิดเห็น
+            <p className="muted small">Template ส่วนตัวของผู้อื่น อ่านได้อย่างเดียว เขียนความคิดเห็นไม่ได้</p>
+          ) : (
           <form onSubmit={(event) => void submit(event)}>
             <label className="field">
               <span>ความคิดเห็นของคุณ</span>
@@ -213,6 +217,7 @@ export default function TemplateDetail({
               </Button>
             )}
           </form>
+          )}
         </div>
       </div>
       <div className="modal-actions">

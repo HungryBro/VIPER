@@ -31,6 +31,8 @@ type Props = {
   getCurrentWorkflow: () => CurrentWorkflow | null;
   onLoad: (template: TemplateDetail) => void;
   onViewChange: (view: PlatformTemplateView) => void;
+  /** เปลี่ยนค่าเมื่อรายการอาจเก่า (บันทึกจาก SAVE TEMPLATE ของ Lab หรือกลับมาที่ /lab หลังแก้/ลบที่หน้า Templates) แล้วรายการจะโหลดใหม่ */
+  refreshKey?: number;
 };
 
 type SaveDraft = {
@@ -90,6 +92,7 @@ export default function TemplatePlatformLibrary({
   getCurrentWorkflow,
   onLoad,
   onViewChange,
+  refreshKey = 0,
 }: Props) {
   const { user } = useAuth();
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
@@ -155,6 +158,14 @@ export default function TemplatePlatformLibrary({
     void refresh();
   }, [refresh]);
 
+  // A4f: รีเฟรชเมื่อ refreshKey เปลี่ยน (ข้ามรอบแรก เพราะ effect ข้างบนโหลดไปแล้ว)
+  const lastRefreshKeyRef = useRef(refreshKey);
+  useEffect(() => {
+    if (lastRefreshKeyRef.current === refreshKey) return;
+    lastRefreshKeyRef.current = refreshKey;
+    void refresh();
+  }, [refresh, refreshKey]);
+
   const beginSave = () => {
     const current = getCurrentWorkflow();
     if (!current || current.workflow.nodes.length === 0) {
@@ -209,7 +220,10 @@ export default function TemplatePlatformLibrary({
     try {
       onLoad(await loadPlatformTemplate(template.id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load template');
+      // รายการอาจเก่า (template ถูกลบหรือเปลี่ยนเป็น Private ที่หน้าอื่น): โหลดรายการใหม่แล้วค่อยแสดงข้อความ
+      const message = err instanceof Error ? err.message : 'Unable to load template';
+      await refresh();
+      setError(`${message} The template list has been refreshed.`);
     } finally {
       setBusyId(null);
     }
@@ -229,10 +243,14 @@ export default function TemplatePlatformLibrary({
     }
   };
 
-  const updateFromCanvas = async (templateId: number) => {
+  const updateFromCanvas = async (templateId: number, official = false) => {
     const current = getCurrentWorkflow();
     if (!current || current.workflow.nodes.length === 0) {
       setError('The current canvas is empty.');
+      return;
+    }
+    // A4e: Official ทุกคนใช้ร่วมกัน ต้องยืนยันก่อนเขียนทับ workflow ยกเลิกแล้วไม่ส่งคำขอ
+    if (official && !window.confirm('Replace this Official template\'s workflow with the current canvas? Everyone who opens this Official template will get the new workflow.')) {
       return;
     }
 
@@ -637,7 +655,7 @@ export default function TemplatePlatformLibrary({
                             disabled={busy}
                             onClick={() => {
                               setOpenSettingsId(null);
-                              void updateFromCanvas(template.id);
+                              void updateFromCanvas(template.id, true);
                             }}
                             className="w-full rounded px-2 py-1.5 text-left text-[8px] font-bold text-gray-300 transition-colors hover:bg-gray-800 disabled:opacity-50"
                           >

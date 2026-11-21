@@ -21,6 +21,13 @@ export const labBridge = {
     }
     return taken;
   },
+  // ล้างค่าที่ค้าง (เช่น ตอน logout หรือเปลี่ยนบัญชี) ผู้ใช้คนถัดไปจะไม่ได้ template ของคนก่อน
+  clear(): void {
+    if (pending) {
+      pending = null;
+      emit();
+    }
+  },
   peek: (): TemplateDetail | null => pending,
   subscribe(listener: () => void): () => void {
     listeners.add(listener);

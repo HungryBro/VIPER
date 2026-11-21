@@ -18,7 +18,7 @@ export type MeSummary = {
   // template ของฉันที่ไม่ถูกลบ (private + public)
   template_count: number;
   public_template_count: number;
-  // audit processing.run ของฉัน (รวมที่ไม่สำเร็จ ดู details.success)
+  // audit processing.run ของฉันที่เป็นการสั่งรัน (POST ไม่นับการ poll งานเทรนและ detection.models) รวมที่ไม่สำเร็จ ดู details.success
   run_count: number;
   // audit ทุกแถวที่ actor เป็นฉัน
   activity_count: number;
@@ -32,6 +32,8 @@ export type MeActivityQuery = {
   limit?: number;
   offset?: number;
   action?: string[];
+  // true: เฉพาะการประมวลผลที่สั่งรัน (POST ไม่นับการ poll งานเทรนและการขอรายการโมเดล) ตามกฎเดียวกับ run_count (B2)
+  runs?: boolean;
 };
 
 export type MeActivityPage = {
@@ -54,14 +56,23 @@ export async function getMySummary(): Promise<MeSummary> {
 }
 
 
+// ยอดรวมจาก header X-Total-Count ถ้าไม่มี header (เช่น proxy ตัดทิ้ง) Number(null) จะได้ 0 จึงต้องเช็กเอง
+// ไม่มี header: นับเท่าที่โหลดมาแล้ว และถ้าหน้านี้เต็มให้ถือว่ายังมีหน้าถัดไป (+1) ปุ่ม "โหลดเพิ่ม" จะยังแสดง
+function pageTotal(response: Response, offset: number, limit: number, received: number): number {
+  const header = response.headers.get('X-Total-Count');
+  const total = header === null || header.trim() === '' ? Number.NaN : Number(header);
+  if (Number.isFinite(total) && total >= 0) return total;
+  return offset + received + (received >= limit ? 1 : 0);
+}
+
 export async function listMyActivityPage(query: MeActivityQuery = {}): Promise<MeActivityPage> {
   const params = new URLSearchParams();
   params.set('limit', String(query.limit ?? 50));
   params.set('offset', String(query.offset ?? 0));
   query.action?.forEach((value) => params.append('action', value));
+  if (query.runs) params.set('runs', 'true');
   const response = await apiFetch(`/api/me/activity?${params.toString()}`);
   if (!response.ok) throw new Error(await responseDetail(response));
   const items: MeActivity[] = await response.json();
-  const total = Number(response.headers.get('X-Total-Count'));
-  return { items, total: Number.isFinite(total) ? total : items.length };
+  return { items, total: pageTotal(response, query.offset ?? 0, query.limit ?? 50, items.length) };
 }

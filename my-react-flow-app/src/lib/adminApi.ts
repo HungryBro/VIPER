@@ -49,6 +49,15 @@ async function responseDetail(response: Response): Promise<string> {
 }
 
 
+// ยอดรวมจาก header X-Total-Count ถ้าไม่มี header (เช่น proxy ตัดทิ้ง) Number(null) จะได้ 0 จึงต้องเช็กเอง
+// ไม่มี header: นับเท่าที่โหลดมาแล้ว และถ้าหน้านี้เต็มให้ถือว่ายังมีหน้าถัดไป (+1) ปุ่ม "โหลดเพิ่ม" จะยังแสดง
+function pageTotal(response: Response, offset: number, limit: number, received: number): number {
+  const header = response.headers.get('X-Total-Count');
+  const total = header === null || header.trim() === '' ? Number.NaN : Number(header);
+  if (Number.isFinite(total) && total >= 0) return total;
+  return offset + received + (received >= limit ? 1 : 0);
+}
+
 export async function listAdminUsers(): Promise<AdminUser[]> {
   const response = await apiFetch('/api/admin/users');
   if (!response.ok) throw new Error(await responseDetail(response));
@@ -93,8 +102,7 @@ export async function listAdminAuditLogPage(query: AdminAuditLogQuery = {}): Pro
   const response = await apiFetch(`/api/admin/audit-logs?${params.toString()}`);
   if (!response.ok) throw new Error(await responseDetail(response));
   const items: AdminAuditLog[] = await response.json();
-  const total = Number(response.headers.get('X-Total-Count'));
-  return { items, total: Number.isFinite(total) ? total : items.length };
+  return { items, total: pageTotal(response, query.offset ?? 0, query.limit ?? 100, items.length) };
 }
 
 

@@ -22,3 +22,7 @@
   flex: 1 1 0;
   min-height: 0;
 }
+/* B7b: โทรศัพท์แนวนอน ซ่อน header แพลตฟอร์ม (เปิดได้จากปุ่มเมนูบนหัวของ Lab ซึ่งมีเมนูบัญชีและ Log out) */
+.viper-lab-host.lab-header-collapsed > .viper-lab-platform-header {
+  display: none;
+}
