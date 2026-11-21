@@ -8,19 +8,19 @@ import App from './App';
 import LoginPage from './components/LoginPage';
 import Layout from './platform/Layout';
 import CoursesPage, { CourseRoute, LessonRoute } from './platform/pages/CoursesPage';
+import AnnouncementsPage from './platform/pages/AnnouncementsPage';
 import HomeRoute from './platform/pages/HomeRoute';
 import LogsPage from './platform/pages/LogsPage';
 import ProfilePage from './platform/pages/ProfilePage';
+import SubmissionsPage from './platform/pages/SubmissionsPage';
 import TeachPage, { TeachCourseRoute } from './platform/pages/TeachPage';
 import TemplatesPage from './platform/pages/TemplatesPage';
 import UsersPage from './platform/pages/UsersPage';
 import RequireAuth from './platform/RequireAuth';
 import { NotFoundPage, NotReadyPage, RootErrorBoundary } from './pages/StatusPages';
 
-const PLANNED_PATHS = [
-  'submissions',
-  'announcements',
-];
+// ทุก route ที่วางแผนไว้ย้ายครบแล้ว (T20) คงกลไกไว้สำหรับ route ใหม่ที่ยังไม่พร้อม
+const PLANNED_PATHS: string[] = [];
 
 export const router = createBrowserRouter([
   {
@@ -49,6 +49,8 @@ export const router = createBrowserRouter([
               { path: 'logs', Component: LogsPage },
               { path: 'templates', Component: TemplatesPage },
               { path: 'profile', Component: ProfilePage },
+              { path: 'submissions', Component: SubmissionsPage },
+              { path: 'announcements', Component: AnnouncementsPage },
               { path: 'courses', Component: CoursesPage },
               { path: 'courses/:courseId', Component: CourseRoute },
               { path: 'lessons/:lessonId', Component: LessonRoute },

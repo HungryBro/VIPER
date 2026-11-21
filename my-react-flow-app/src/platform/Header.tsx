@@ -5,9 +5,11 @@ import { Bell, LogOut, Moon, Sun, UserRound, Users, X } from 'lucide-react';
 
 import { useAuth } from '../auth/AuthContext';
 import AdminUserPanel from '../components/AdminUserPanel';
+import { listNotifications } from '../lib/learningApi';
 import { isAdmin, navItemsFor, roleLabel } from './permissions';
 import type { PlatformTheme } from './theme';
-import { Badge, Empty, cx } from './ui';
+import { useLoaded } from './useLoaded';
+import { Badge, Empty, cx, time } from './ui';
 
 export function Header({ theme, onToggleTheme }: { theme: PlatformTheme; onToggleTheme: () => void }) {
   const { user, logout } = useAuth();
@@ -17,6 +19,9 @@ export function Header({ theme, onToggleTheme }: { theme: PlatformTheme; onToggl
   const [accountOpen, setAccountOpen] = useState(false);
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
+  // การแจ้งเตือนมาจาก learningApi เท่านั้น (T20) ตอนนี้ว่าง; readIds เก็บเฉพาะในหน้านี้จนกว่าจะมี API บันทึกสถานะอ่าน
+  const notifications = useLoaded(listNotifications, 'โหลดการแจ้งเตือนไม่สำเร็จ');
+  const [readIds, setReadIds] = useState<string[]>([]);
   const popup = useRef<HTMLDivElement>(null);
   const accountPopup = useRef<HTMLDivElement>(null);
 
@@ -42,8 +47,9 @@ export function Header({ theme, onToggleTheme }: { theme: PlatformTheme; onToggl
 
   if (!user) return null;
   const nav = navItemsFor(user);
-  // ยังไม่มีระบบแจ้งเตือน (T20) แสดงสถานะว่างเสมอ ไม่มีตัวเลขค้าง
-  const unread = 0;
+  const allNotifications = (notifications.data ?? []).map((item) => ({ ...item, read: item.read || readIds.includes(item.id) }));
+  const unread = allNotifications.filter((item) => !item.read).length;
+  const shownNotifications = unreadOnly ? allNotifications.filter((item) => !item.read) : allNotifications;
   const initials = user.display_name.slice(0, 2).toUpperCase();
 
   return (
@@ -120,14 +126,43 @@ export function Header({ theme, onToggleTheme }: { theme: PlatformTheme; onToggl
                   >
                     ยังไม่อ่าน
                   </button>
-                  <button type="button" className="text-btn" disabled>
+                  <button
+                    type="button"
+                    className="text-btn"
+                    disabled={!unread}
+                    onClick={() => setReadIds(allNotifications.map((item) => item.id))}
+                  >
                     อ่านทั้งหมด
                   </button>
                 </div>
                 <div className="notification-list">
-                  <Empty icon={Bell} title="ไม่มีการแจ้งเตือน">
-                    รายการใหม่จะปรากฏเมื่อมีฟีดแบค ความคิดเห็น หรือการจัดการที่เกี่ยวข้อง
-                  </Empty>
+                  {notifications.error && <div className="validation-message" role="alert">{notifications.error}</div>}
+                  {shownNotifications.map((item) => (
+                    <button
+                      type="button"
+                      key={item.id}
+                      className={cx('notification-item', !item.read && 'unread')}
+                      onClick={() => {
+                        setReadIds((ids) => [...ids, item.id]);
+                        setNotificationsOpen(false);
+                        navigate(item.to);
+                      }}
+                    >
+                      <span className="notification-symbol">
+                        <Bell size={16} />
+                      </span>
+                      <span>
+                        <strong>{item.title}</strong>
+                        <p>{item.description}</p>
+                        <small>{time(item.at)}</small>
+                      </span>
+                    </button>
+                  ))}
+                  {!notifications.error && !shownNotifications.length && (
+                    <Empty icon={Bell} title="ไม่มีการแจ้งเตือน">
+                      รายการใหม่จะปรากฏเมื่อมีฟีดแบค ความคิดเห็น หรือการจัดการที่เกี่ยวข้อง
+                    </Empty>
+                  )}
                 </div>
               </section>
             )}
