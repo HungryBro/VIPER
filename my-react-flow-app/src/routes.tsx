@@ -7,20 +7,17 @@ import { createBrowserRouter } from 'react-router-dom';
 import App from './App';
 import LoginPage from './components/LoginPage';
 import Layout from './platform/Layout';
+import CoursesPage, { CourseRoute, LessonRoute } from './platform/pages/CoursesPage';
 import HomeRoute from './platform/pages/HomeRoute';
 import LogsPage from './platform/pages/LogsPage';
 import ProfilePage from './platform/pages/ProfilePage';
+import TeachPage, { TeachCourseRoute } from './platform/pages/TeachPage';
 import TemplatesPage from './platform/pages/TemplatesPage';
 import UsersPage from './platform/pages/UsersPage';
 import RequireAuth from './platform/RequireAuth';
 import { NotFoundPage, NotReadyPage, RootErrorBoundary } from './pages/StatusPages';
 
 const PLANNED_PATHS = [
-  'courses',
-  'courses/:courseId',
-  'lessons/:lessonId',
-  'teach',
-  'teach/:courseId',
   'submissions',
   'announcements',
 ];
@@ -52,6 +49,11 @@ export const router = createBrowserRouter([
               { path: 'logs', Component: LogsPage },
               { path: 'templates', Component: TemplatesPage },
               { path: 'profile', Component: ProfilePage },
+              { path: 'courses', Component: CoursesPage },
+              { path: 'courses/:courseId', Component: CourseRoute },
+              { path: 'lessons/:lessonId', Component: LessonRoute },
+              { path: 'teach', Component: TeachPage },
+              { path: 'teach/:courseId', Component: TeachCourseRoute },
               ...PLANNED_PATHS.map((path) => ({ path, Component: NotReadyPage })),
               { path: '*', Component: NotFoundPage },
             ],
