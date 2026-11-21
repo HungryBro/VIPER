@@ -487,9 +487,22 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 ผลตรวจรับชุด G (22 พ.ย. 2569, Opus ตัวหลัก): commit `2d7ee69a` (T18), `23adf420` (T19), `95599daf` (T20) ; `scripts/check.sh` → `CHECK PASS` (pytest 324/15 SURF, lint 0 error, build, node 9) ; อ่าน diff: `learningApi.ts` คืน `[]`/`null` ทุกฟังก์ชัน type อยู่ใน `platform/types.ts` หน้าใหม่และกระดิ่งอ่านผ่าน learningApi เท่านั้น ไม่พบข้อมูลตัวอย่างของ mockup (เทียบชื่อ title ใน `platform.mjs`) ; บัญชี admin จริงเปิด 8 route ใหม่ แสดงสถานะว่าง console ไม่มี error ; Playwright จำลองผู้เรียน: `/teach` และ `/teach/:id` ขึ้น "ต้องได้รับสิทธิ์ผู้สอน" เมนูมี My Submissions กระดิ่ง "ไม่มีการแจ้งเตือน" ไม่มี error ; ไฟล์นอกรายการ: `routes.tsx` ใน T20 (ลงทะเบียน route, `PLANNED_PATHS` เหลือ `[]` คงกลไก NotReadyPage ไว้) และ `parity.md`
 
 ### จุดตรวจ 3
-- [ ] agent: `agent-skills:code-reviewer`
-- [ ] ทุก route ในตารางเทียบเปิดได้ ไม่มีหน้าขาวหรือ error ใน console
-- [ ] BE, FE, LAB ผ่าน
+- [x] agent: `agent-skills:code-reviewer` (22 พ.ย. 2569: Critical 0, Important 3, Minor/Nit หลายข้อ ดูหัวข้อถัดไป)
+- [x] ทุก route ในตารางเทียบเปิดได้ ไม่มีหน้าขาวหรือ error ใน console (admin จริง 15 route: `/`, templates, users, logs, profile, courses, courses/:id, lessons/:id, teach, teach/:id, submissions, submissions?tab=grades, announcements, 404, lab ; ผู้เรียนจำลอง 8 route ใหม่ + กระดิ่ง)
+- [x] BE, FE, LAB ผ่าน (`check.sh` CHECK PASS ; Lab รัน Homography จริงได้ "Pipeline Finished" ผลครบ 6 โหนด console ไม่มี error)
+
+#### ผล code-reviewer จุดตรวจ 3 (รอผู้ใช้ตัดสินว่าจะแก้ข้อไหนก่อนระยะ 4)
+- Important
+  - R1 กระดิ่งไม่มีตัวเลขยังไม่อ่าน (`notification-count`) และจุด `tiny-dot` ต่อรายการแบบ mockup (`Header.tsx`) CSS ยังอยู่
+  - R2 admin ที่ไม่มี `can_teach` ไม่มีเมนู Submissions (`permissions.ts:34` ใช้ `teacher` อย่างเดียว) แต่หน้า `/submissions` ถือว่า admin เป็นฝั่งผู้สอน ; mockup `canTeach` คืน true ให้ admin
+  - R3 `/submissions` เลือกฝั่งผู้เรียน/ผู้สอนตามบทบาท ไม่ใช่ตาม view แบบ mockup: เมื่อมีการลงทะเบียน (learnsSomething) ผู้สอนจะมีเมนู Submissions และ My Submissions ที่ไปหน้าเดียวกัน เห็นงานของตัวเองไม่ได้ (เสนอใส่ฝั่งใน URL เช่น `?side=mine`)
+- Minor
+  - `COURSE_STATUS` ซ้ำสองไฟล์ และ destructure โดยไม่มี fallback สถานะที่ไม่รู้จักจะทำให้หน้าพัง (`CoursesPage.tsx:46,144`, `TeachPage.tsx:78,142`)
+  - สัญญาของ `getCourse`/`getLesson` คืน null ทั้งไม่พบและไม่มีสิทธิ์ ; `LessonView` จึงขึ้น "ต้องลงทะเบียนก่อน" แม้ id ไม่มีอยู่
+  - `types.ts`: metric ไม่มีชื่อ, `AutoCheckItem` มีทั้ง `ok` และ `passed`, rubric ผูกกับค่าคงที่ฝั่งหน้า, ฟังก์ชันรายการไม่มี pagination
+  - `Header.tsx` `navigate(item.to)` ไม่ตรวจว่าเป็น path ภายใน ; กระดิ่งโหลดครั้งเดียวต่อ mount
+  - `reviewOf` หาแบบ O(n·m) ใน `SubmissionsPage.tsx`
+- Nit: CourseTabs ใช้ปุ่ม+navigate แทน Link ; `<p>` ใน `<button>` ; โค้ดผู้เยี่ยมชมที่ไม่มีทางถึงใน `CoursesPage.tsx:170` และ parity P-05/P-06/P-07/P-21 ยังเขียนว่าผู้เยี่ยมชมเห็น (ขัดกับการตัดสินใจ 17 พ.ย.) ; parity P-11 ยังเขียนว่าไม่มีไฟล์ ; Gradebook ไม่มีสถานะกำลังโหลด ; `COMING_LATER` ซ้ำ 3 ไฟล์
 
 ---
 
