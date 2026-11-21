@@ -312,6 +312,118 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - [x] ค้นใน `src/` ไม่พบชื่อบัญชีตัวอย่างของ mockup (`John Doe`, `อริศรา`, `example.edu`)
 - [ ] **ให้ผู้ใช้ดูก่อนไประยะ 3**
 
+### แก้หลังจุดตรวจ 2
+ผลจาก agent 3 ตัวที่จุดตรวจ 2 และการตัดสินใจของผู้ใช้ (21 พ.ย. 2569) ทำให้ครบก่อนไประยะ 3 ผู้ทำและการแบ่งชุดกำหนดตอนเริ่มแก้ ทุกข้อใช้ข้อห้าม 6 ข้อเดิม, `scripts/check.sh` ต้อง `CHECK PASS` และงานที่แตะ backend ต้อง restart backend ก่อนตรวจกับข้อมูลจริง (`--reload` ไม่โหลดโค้ดใหม่อย่างน่าเชื่อถือ) การตรวจในเบราว์เซอร์ที่คาดว่าจะถูกปฏิเสธ ต้องเช็ก `/api/auth/me` ก่อนทุกครั้ง
+
+#### กลุ่ม A: บั๊กและเทสต์ที่ขาด (code-reviewer / test-engineer)
+
+- [ ] **A1 hotkey ของ Lab ทำงานอยู่หลัง modal** (Important) เปิด SAVE TEMPLATE หรือ "?" แล้วกด Backspace/Delete/Ctrl+Z/Ctrl+V ไปลบหรือ undo โหนดบน canvas ข้างหลัง
+  - เกณฑ์รับ: ระหว่างที่ `SaveTemplateDialog` หรือ `LabHelpDialog` เปิดอยู่ hotkey ของ canvas ไม่ทำงาน (เช่น `enabled: active && !saveTemplateOpen && !helpOpen` หรือข้าม event ที่อยู่ใน `[role="dialog"]`) ; ปิด modal แล้ว hotkey กลับมาทำงาน ; พิมพ์/ลบข้อความในช่องชื่อของ dialog ได้ตามปกติ
+  - ตรวจ: เลือกโหนด เปิด SAVE TEMPLATE กด Backspace, Delete, Ctrl+Z, Ctrl+V แล้วจำนวนโหนดไม่เปลี่ยน ; ปิด dialog แล้ว Delete ลบโหนดได้ ; ทำซ้ำกับปุ่ม "?"
+  - ไฟล์: `src/pages/LabPage.tsx`, `src/FlowCanvas.tsx` หรือ `src/hooks/useFlowHotkeys.ts` (เพิ่มโค้ดอย่างเดียว)
+
+- [ ] **A2 หน้า Logs: ปุ่ม "โหลดเพิ่ม" ค้างเป็นกำลังโหลด** (Important) เมื่อเปลี่ยนตัวกรองหรือคำค้นระหว่างที่ "โหลดเพิ่ม" ยังไม่กลับ
+  - เกณฑ์รับ: `load()` รีเซ็ต `loadingMore` ด้วย ; หลังเปลี่ยนตัวกรองระหว่างโหลดเพิ่ม ปุ่มกลับมากดได้และโหลดหน้าถัดไปของตัวกรองใหม่ถูกต้อง ไม่มีแถวของตัวกรองเก่าปน
+  - ตรวจ: Playwright จำลอง API ที่ตอบช้า กด "โหลดเพิ่ม" แล้วเปลี่ยนตัวกรองทันที ปุ่มต้องไม่ disabled ค้าง และแถวทั้งหมดตรงตัวกรองใหม่
+  - ไฟล์: `src/platform/pages/LogsPage.tsx`
+
+- [ ] **A3 "เปิดใน Lab" ระหว่างที่ pipeline รันอยู่ทำให้ pipeline ล้มและผลหาย** (Important) `handleLoadTemplate` สลับแท็บและ `restoreSnapshot` ทับ canvas ที่กำลังรัน
+  - **ต้องให้ผู้ใช้เลือกวิธีก่อนลงมือ**: (ก) รอให้ pipeline จบก่อนแล้วค่อยเปิด, (ข) เปิดเป็นแท็บใหม่โดยไม่สลับออกจากแท็บที่กำลังรัน, (ค) ถามยืนยันพร้อมบอกว่างานที่รันอยู่จะหยุด
+  - เกณฑ์รับ: กด Start แล้วไปหน้า Templates กด "เปิดใน Lab" แล้ว pipeline เดิมไม่ล้ม ผลของทุกโหนดอยู่ในแท็บเดิม ไม่ไปแสดงบนแท็บใหม่ (รวมกรณีเปิด template เดิมที่ id โหนดซ้ำ) และ template ที่ขอเปิดได้แท็บของตัวเองตามวิธีที่เลือก ; ไม่ยิง `/load` ซ้ำ
+  - ตรวจ: บัญชีจริง เปิด pipeline ที่ใช้เวลาหลายวินาที (ไม่ติดแคช) กด Start แล้วเปิด template จากหน้า Templates ทันที ดู log ว่าได้ "Pipeline Finished" และผลอยู่ครบในแท็บเดิม
+  - ไฟล์: `src/pages/LabPage.tsx` (effect ของ labBridge), อาจรวม `src/platform/labBridge.ts`
+
+- [ ] **A4 ข้อย่อย**
+  - [ ] **A4a ยอดรวมเมื่อไม่มี header `X-Total-Count`**: `Number(null)` ได้ 0
+    - เกณฑ์รับ: ถ้า header ไม่มี ใช้จำนวนแถวที่ได้แทน (หรือถือว่ายังมีหน้าถัดไปเมื่อได้เต็มหน้า) ไม่แสดง 0 และไม่ขึ้น "ถึงเหตุการณ์แรกสุดแล้ว" ผิด
+    - ตรวจ: Playwright จำลอง response ที่ไม่มี header ทั้งหน้า Logs, Profile และ Dashboard
+    - ไฟล์: `src/lib/adminApi.ts`, `src/lib/meApi.ts`
+  - [ ] **A4b เวลาแบนคำนวณตอนเปิด modal**: เปิดค้างแล้วระยะแบนสั้นลง และ BAN 1M ที่ค้างเกินนาทีได้ 422
+    - เกณฑ์รับ: เก็บ `durationMs` ใน state แล้วคำนวณ `banned_until` ตอนกดยืนยัน
+    - ตรวจ: Playwright ตั้งเวลาด้วย `page.clock` เปิด modal BAN 1M รอเกิน 1 นาทีแล้วยืนยัน body ที่ส่งมี `banned_until` เท่ากับเวลาที่กด + 1 นาที (ดักด้วย route ไม่ส่งถึง server จริง)
+    - ไฟล์: `src/platform/pages/UsersPage.tsx`
+  - [ ] **A4c ประวัติในหน้า Profile แถวซ้ำ**: offset เลื่อนเมื่อมี log ใหม่ระหว่างกด "โหลดเพิ่ม"
+    - เกณฑ์รับ: รวมหน้าด้วยการกันซ้ำตาม id แบบที่ LogsPage ทำ ไม่มี React key ซ้ำ
+    - ตรวจ: Playwright จำลองหน้า 2 ที่มีแถวซ้ำกับหน้า 1 แล้วนับแถวบนจอ = จำนวน id ไม่ซ้ำ และ console ไม่มีคำเตือน key ซ้ำ
+    - ไฟล์: `src/platform/pages/ProfilePage.tsx`
+  - [ ] **A4d template ที่ค้างใน labBridge ไม่ถูกล้างตอน logout**
+    - เกณฑ์รับ: เมื่อ user เปลี่ยน (logout หรือ login คนอื่น) ค่า pending ใน labBridge ถูกล้าง ผู้ใช้คนถัดไปไม่ได้ template ของคนก่อน
+    - ตรวจ: Playwright จำลอง push template แล้ว logout ก่อน 150ms login อีกบัญชีแล้วเปิด `/lab` ต้องไม่มีแท็บใหม่
+    - ไฟล์: `src/platform/labBridge.ts` และจุดที่ฟังการเปลี่ยน user (เช่น `src/App.tsx` หรือ `AuthContext`)
+  - [ ] **A4e ปุ่ม UPDATE CANVAS ของ Official ทับ workflow โดยไม่ถาม**
+    - เกณฑ์รับ: มีการยืนยันก่อนส่ง PATCH workflow (ข้อความบอกว่าเป็น Official ที่ทุกคนใช้) ยกเลิกแล้วไม่ส่งคำขอ ; ห้ามลบปุ่มหรือความสามารถเดิม
+    - ตรวจ: Playwright จำลอง admin กด UPDATE CANVAS แล้วยกเลิก = 0 คำขอ PATCH, ยืนยัน = 1 คำขอ
+    - ไฟล์: `src/components/TemplatePlatformLibrary.tsx`
+  - [ ] **A4f รายการ template ในคลังของ Lab ไม่รีเฟรช** หลังบันทึกผ่าน SAVE TEMPLATE หรือแก้/ลบที่หน้า Templates
+    - เกณฑ์รับ: หลังบันทึกจาก Lab และเมื่อกลับมาที่ `/lab` หลังแก้หรือลบที่หน้า Templates รายการในคลังตรงกับ API ; กดโหลด template ที่ถูกลบไปแล้วไม่เกิด ; ถ้าเกิด 404 จากรายการเก่า แสดงข้อความและรีเฟรชรายการ
+    - ตรวจ: Playwright จำลอง: บันทึกจาก Lab แล้วรายการใน Templates ของคลังมีชื่อใหม่ ; ลบที่หน้า Templates กลับ `/lab` แล้วรายการไม่มีแถวนั้น
+    - ไฟล์: `src/pages/LabPage.tsx` (ส่ง `onSaved`), `src/components/TemplatePlatformLibrary.tsx` (เพิ่มการรีเฟรชอย่างเดียว)
+
+- [ ] **A5 เทสต์ที่ขาด** (test-engineer) เพิ่มเทสต์อย่างเดียว ไม่แก้พฤติกรรม ถ้าเทสต์ใหม่ล้มให้รายงานก่อนแก้โค้ด
+  - [ ] **A5a รายการ template ของ admin และผู้สอนไม่มี Private ของคนอื่น**: ผู้เรียนสร้าง Private แล้ว admin และผู้สอนเรียก `/api/templates`, `/official`, `/mine` ต้องไม่มี id นั้น ; ผู้สอนเรียก GET และ load Private ของผู้เรียนได้ 404
+    - ตรวจ: เทสต์ใหม่ใน `tests/test_templates_api.py` ผ่าน
+  - [ ] **A5b `/api/me` ของ admin และผู้สอนเห็นเฉพาะของตัวเอง**: admin และผู้สอนมี log คนละ 1 แถวปนกับของผู้เรียน `X-Total-Count == "1"` และ summary นับเฉพาะของตัวเอง ; log ที่ admin กระทำต่อผู้เรียน (เช่น `ban.apply` ที่ `target_id` เป็นผู้เรียน) ไม่โผล่ในประวัติของผู้เรียน
+    - ตรวจ: เทสต์ใหม่ใน `tests/test_me_api.py` ผ่าน
+  - [ ] **A5c ALTER ตรงกับชนิดคอลัมน์ของ PostgreSQL**: เทียบ SQL ใน `_ensure_user_columns`/`_ensure_template_columns` กับ DDL ที่ compile จาก model ด้วย `postgresql.dialect()` (`can_teach` → `BOOLEAN`, `deleted_at` → `TIMESTAMP WITH TIME ZONE`) ; อ่าน `deleted_at` หลัง ALTER ผ่าน ORM แล้วได้ datetime (ตรวจ tz ตามที่ dialect รองรับ)
+    - ตรวจ: เทสต์ใหม่ใน `tests/test_schema_columns.py` ผ่าน โดยไม่ต้องมี PostgreSQL จริง
+  - [ ] **A5d ไล่หน้า audit log ที่มีแถว `actor_id` เป็น NULL**: seed บางแถวไม่มี actor แล้วไล่ทุกหน้าได้ id ครบ `X-Total-Count` ตรง และ `q` ที่ตรงกับ `request_path` ของแถวนั้นหาเจอ
+    - ตรวจ: เทสต์ใหม่ใน `tests/test_admin_audit_logs.py` ผ่าน
+
+#### กลุ่ม B: การตัดสินใจของผู้ใช้ (21 พ.ย. 2569)
+
+- [ ] **B1 ช่องโหว่อัปโหลดปก template (High, มีอยู่ก่อนแผนนี้ตั้งแต่ `f30c63b2`)** ตรวจชนิดไฟล์จากเนื้อหาจริง แล้วเปิดด้วย Pillow และบันทึกใหม่ (re-encode) โดย server กำหนดนามสกุลเอง (`.jpg`/`.png`/`.webp` ตามชนิดที่ตรวจได้) ใส่ `X-Content-Type-Options: nosniff` ให้ `/static`
+  - เกณฑ์รับ: อัปโหลดไฟล์ HTML/SVG/ข้อความที่ตั้งชื่อเป็น `.html` หรือส่ง content-type `image/png` ปลอมได้ 422 ไม่มีไฟล์ถูกบันทึก ; ภาพจริง jpeg/png/webp บันทึกเป็นไฟล์ที่ re-encode แล้ว นามสกุลตามชนิดจริง ไม่ใช้ชื่อไฟล์จาก client ; response ของ `/static/*` มี `X-Content-Type-Options: nosniff` ; ปกเดิมที่มีอยู่ยังแสดงได้ ; สิทธิ์อัปโหลดปกตามตาราง T8.1 ไม่เปลี่ยน
+  - ตรวจ: เทสต์ backend ใน `tests/test_templates_api.py` (ไฟล์ HTML ชื่อ `evil.html` + content-type `image/png` → 422, ภาพจริงสามชนิด → 200 และไฟล์เปิดด้วย Pillow ได้, นามสกุลถูก) ; TestClient เรียก `/static/...` แล้วมี header nosniff ; ตรวจกับข้อมูลจริงเฉพาะการเปิดดูปกเดิม
+  - ไฟล์: `server/routers/templates.py`, `server/utils_io.py` (เพิ่มฟังก์ชันใหม่ ไม่เปลี่ยน `save_upload` เดิมที่ `/api/upload` ใช้), `server/main.py`
+  - หมายเหตุ: `/api/upload` (อัปโหลดภาพเข้า Image Input) ใช้ `save_upload` และมีปัญหาเดียวกัน **ยังไม่ได้ตัดสินใจ** เพราะการ re-encode อาจเปลี่ยนภาพที่ใช้ประมวลผล (เช่น JPEG) ต้องถามผู้ใช้ก่อนแก้ ส่วน nosniff ของ `/static` ครอบไฟล์ที่อัปโหลดทางนี้ด้วย
+
+- [ ] **B2 ตัวเลข "การทดลอง" นับเฉพาะ POST และไม่นับการ poll**
+  - เกณฑ์รับ: `run_count`, `last_run_at` และ "การทดลองล่าสุด" นับเฉพาะ `processing.run` ที่ `details.method == "POST"` และไม่ใช่ `detection.train.jobs*` หรือ `detection.models` (ระบุเงื่อนไขในที่เดียวและใช้ร่วมกัน) ; ข้อความบนจอบอกความหมายตรง (เช่น "การประมวลผลที่สั่งรัน") ; ข้อมูล audit เดิมไม่ถูกแก้
+  - ตรวจ: เทสต์ใน `tests/test_me_api.py` สร้าง log POST, GET poll ของงานเทรน และ GET models แล้ว summary นับเฉพาะ POST ; activity ที่กรองสำหรับ "การทดลองล่าสุด" ไม่มี poll ; บัญชีจริง: เทียบกับ `SELECT count(*) FROM audit_logs WHERE actor_id=<me> AND action='processing.run' AND metadata->>'method'='POST' AND metadata->>'operation' NOT LIKE 'detection.train.jobs%' AND metadata->>'operation' <> 'detection.models'`
+  - ไฟล์: `server/routers/me.py`, `src/platform/pages/DashboardPage.tsx`, `ProfilePage.tsx`, `InstructorDashboard.tsx` (ป้าย)
+
+- [ ] **B3 admin อ่าน Private ของคนอื่นได้อย่างเดียว** ห้ามเขียนคอมเมนต์และห้ามเปิดปิดความคิดเห็นบน Private ของคนอื่น (GET และ load ยังทำได้ตามข้อ 8)
+  - เกณฑ์รับ: admin `POST /api/templates/{private ของคนอื่น}/comments` ได้ 403 ; `PATCH /api/admin/templates/{private ของคนอื่น}/comments` ได้ 403 ; admin ยังเปิดปิดความคิดเห็นของ Official และ Public ได้ตามเดิม ; หน้าจอไม่แสดงช่องเขียนคอมเมนต์และสวิตช์ในกรณีนี้ ; plan.md ข้อ 8 แก้ข้อความให้ตรง
+  - ตรวจ: เทสต์ใหม่ใน `tests/test_templates_api.py` และ `tests/test_admin_*.py` (ทั้งกรณี 403 และกรณีเดิมที่ยังต้องผ่าน)
+  - ไฟล์: `server/routers/templates.py`, `server/routers/admin.py`, `src/platform/TemplateDetail.tsx`, `src/platform/templateAccess.ts`, `tasks/plan.md`
+
+- [ ] **B4 PATCH และอัปโหลดปกบน Private ของคนอื่นตอบ 404** แทน 403 เหมือน GET และ DELETE (กันการไล่หา id)
+  - เกณฑ์รับ: ผู้ที่มองไม่เห็นแถวนั้น (ไม่ใช่เจ้าของ และไม่ใช่ admin) เรียก PATCH หรือ cover ได้ 404 ; ผู้ที่มองเห็นแต่ไม่มีสิทธิ์แก้ (เช่น admin กับ Private ของคนอื่น หรือใครก็ได้กับ Public ของคนอื่น) ยังได้ 403 ; เทสต์เดิมที่ล็อก 403 ไว้ (`test_private_template_is_owner_only_until_published`) แก้ค่าที่คาดเฉพาะกรณีนี้และระบุเหตุผลในคอมเมนต์
+  - ตรวจ: เทสต์ใน `tests/test_templates_api.py` ครบทั้ง 404 และ 403 ข้างบน
+  - ไฟล์: `server/routers/templates.py` (ใช้ `_get_visible_template` แบบ `delete_template`), `tests/test_templates_api.py`
+
+- [ ] **B5 บัญชีระบบ "VIPER Official"** ห้ามลบ แสดงในหน้า Users พร้อมป้าย "บัญชีระบบ" ล็อกไม่ให้แก้ role, แบน หรือ `can_teach` และไม่นับในสถิติ
+  - เกณฑ์รับ: backend `PATCH /api/admin/users/{id}` กับบัญชี `provider == "system"` ได้ 403 ไม่มีอะไรเปลี่ยนและไม่มี audit log การเปลี่ยน ; ไม่มีทางลบบัญชีนี้ (ตอนนี้ไม่มี endpoint ลบผู้ใช้ ถ้ามีในอนาคตต้องกันด้วย) ; หน้า Users แสดงแถวนี้พร้อมป้าย "บัญชีระบบ" และควบคุมทุกตัว disabled ; Dashboard ของ admin "ผู้ใช้ที่เปิดใช้งาน" ไม่นับบัญชีนี้ (ตอนนี้จะได้ 3 จาก 4) ; seed ของ Official ยังใช้บัญชีนี้ได้ตามเดิม
+  - ตรวจ: เทสต์ใหม่ใน `tests/test_admin_users.py` (role/status/can_teach กับบัญชีระบบ → 403) ; Playwright จำลองหน้า Users และ Dashboard ; บัญชีจริง: ตัวเลขบน Dashboard = `SELECT count(*) FROM users WHERE status='active' AND provider <> 'system'`
+  - ไฟล์: `server/routers/admin.py`, `src/platform/pages/UsersPage.tsx`, `src/platform/pages/AdminDashboard.tsx`
+
+- [ ] **B6 server_default ของคอลัมน์ Boolean** เปลี่ยนจากข้อความ (`"false"`, `"true"`) เป็น `false()` / `true()` ของ SQLAlchemy สำหรับ `users.can_teach`, `templates.is_official`, `templates.comments_enabled`
+  - เกณฑ์รับ: บน SQLite หลัง `create_all` insert แบบ raw โดยไม่ระบุคอลัมน์แล้ว ORM อ่าน `can_teach is False`, `is_official is False`, `comments_enabled is True` ; ไม่เปลี่ยน schema ของ PostgreSQL ที่มีอยู่ (ไม่มี ALTER ใหม่) และ DDL ที่ compile ด้วย `postgresql.dialect()` ยังได้ `DEFAULT false` / `DEFAULT true`
+  - ตรวจ: เทสต์ใหม่ใน `tests/test_schema_columns.py` ; snapshot T1 แถวเดิมไม่เปลี่ยน
+  - ไฟล์: `server/models.py`, `tests/test_schema_columns.py`
+
+- [ ] **B7 หน้าตา**
+  - [ ] **B7a editor ยังเป็นธีมมืดเดิมใต้ header แพลตฟอร์ม** (ผู้ใช้ตัดสิน: คงไว้) บันทึกใน `tasks/parity.md` แถว P-13 ว่าเป็นการตัดสินใจ ไม่ใช่งานค้าง
+    - ตรวจ: หมายเหตุ P-13 ระบุการตัดสินใจ 21 พ.ย.
+  - [ ] **B7b ซ่อน header แพลตฟอร์มบน `/lab` ในโหมดจอแคบ (compact-mobile เช่นโทรศัพท์แนวนอน)**
+    - เกณฑ์รับ: ในโหมด compact-mobile header แพลตฟอร์มไม่กินพื้นที่ editor ; เมนูบัญชี (โปรไฟล์ แผงจัดการผู้ใช้ของ admin ออกจากระบบ) และการไปหน้าอื่นยังเข้าถึงได้ทางใดทางหนึ่งบน `/lab` (ห้ามหาย) ; จอปกติและ 375 แนวตั้งไม่เปลี่ยน ; หน้าไม่ล้นจอ
+    - ตรวจ: Playwright/browser ที่ 844×390 (มี pointer coarse) วัดความสูงของ editor เพิ่มขึ้นจาก ~288px และหาเมนูบัญชีกับ Log out เจอ ; ที่ 1440×900 และ 375×812 ผลเหมือนก่อนแก้
+    - ไฟล์: `src/App.tsx` (LabHost), `src/platform/styles/lab.css`, อาจรวม `src/pages/LabPage.tsx` (เพิ่มอย่างเดียว)
+  - [ ] **B7c การ์ด template แสดงไอคอนแทนภาพ preview ของ workflow** (ผู้ใช้ตัดสิน: คงไว้) บันทึกใน `tasks/parity.md` แถว P-22
+    - ตรวจ: หมายเหตุ P-22 ระบุการตัดสินใจ 21 พ.ย.
+
+#### ข้อสังเกตที่ยังไม่ได้ตัดสิน (ไม่ทำจนกว่าผู้ใช้สั่ง)
+- ธีมของ header บน `/lab` ไม่ตามธีมที่สลับจากหน้าอื่นจนกว่าจะ reload เพราะ `LabHost` เก็บ state ธีมของตัวเอง (code-reviewer ข้อ 6)
+- `/api/upload` มีช่องโหว่แบบเดียวกับ B1 (ดูหมายเหตุใน B1)
+
+#### งานรอบถัดไป (ไม่ทำในแผนนี้) ข้อ Low จาก security-auditor
+- ตั้ง `https_only=True` ให้ session cookie เมื่อ deploy ผ่าน HTTPS (`server/main.py`)
+- ตรวจ header `Origin` / `Sec-Fetch-Site` กับทุก method ที่ไม่ใช่ GET หรือใช้ CSRF token แบบ double-submit (ตอนนี้พึ่ง SameSite=Lax อย่างเดียว)
+- จำกัดจำนวนค่า `action` ใน `/api/me/activity` และ `/api/admin/audit-logs` (เช่นไม่เกิน 50) และความยาวแต่ละค่า
+- ให้ startup ล้มเมื่อใช้ `SESSION_SECRET` ค่า default นอก dev (`server/config.py`)
+- ย้าย seed ออกจาก `GET /api/templates/official` ไปทำตอน startup อย่างเดียว หรือใช้ `INSERT ... ON CONFLICT DO NOTHING` และ commit เฉพาะเมื่อมีการเปลี่ยน
+- ไฟล์ปกของ template ที่ถูกลบหรือเป็น Private ยังเปิดได้ผ่าน `/static` โดยไม่ต้อง login (เสิร์ฟผ่าน endpoint ที่ตรวจสิทธิ์ หรือย้าย/เปลี่ยนชื่อไฟล์ตอนลบ)
+
 ---
 
 ## ระยะ 3: ส่วนที่ปล่อยว่าง
