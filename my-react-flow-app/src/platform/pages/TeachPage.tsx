@@ -9,14 +9,9 @@ import { useAuth } from '../../auth/AuthContext';
 import { getCourse, listManagedCourses } from '../../lib/learningApi';
 import { canTeach, isAdmin } from '../permissions';
 import { useLoaded } from '../useLoaded';
+import { courseStatusBadge } from '../types';
 import { Badge, Button, Empty } from '../ui';
 import { CourseTabs } from './CoursesPage';
-
-const COURSE_STATUS: Record<string, [string, string]> = {
-  draft: ['Draft', 'amber'],
-  published: ['Published', 'teal'],
-  archived: ['Archived', 'neutral'],
-};
 
 const COMING_LATER = 'ระบบคอร์สจะเพิ่มภายหลัง';
 
@@ -46,7 +41,8 @@ function TeachGuard({ children }: { children: React.ReactNode }) {
 function TeachHome() {
   const { user } = useAuth();
   const { data, error, loading } = useLoaded(listManagedCourses, 'โหลดคอร์สที่สอนไม่สำเร็จ');
-  const courses = data ?? [];
+  // แสดงหน้าแรกของรายการ (data.next ใช้ต่อเมื่อมีระบบคอร์ส)
+  const courses = data?.items ?? [];
   return (
     <div className="page">
       <div className="page-heading">
@@ -75,7 +71,7 @@ function TeachHome() {
       {courses.length > 0 && (
         <section className="panel">
           {courses.map((course) => {
-            const [label, tone] = COURSE_STATUS[course.status];
+            const [label, tone] = courseStatusBadge(course.status);
             return (
               <div className="management-row teach-course-row" key={course.id}>
                 <div className="course-icon blue">
@@ -139,7 +135,7 @@ function CourseEditor({ courseId }: { courseId: string }) {
       </div>
     );
   }
-  const [label, tone] = COURSE_STATUS[found.status];
+  const [label, tone] = courseStatusBadge(found.status);
   return (
     <div className="page">
       <Link className="back-link" to="/teach">

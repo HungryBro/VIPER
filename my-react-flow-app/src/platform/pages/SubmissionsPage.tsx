@@ -1,8 +1,11 @@
 // หน้า Submissions (T20) ย้ายจาก SubmissionsHub / LearningHistory / Reviews / Gradebook / SubmissionDetail ของ mockup v2
-// route: /submissions และ /submissions?tab=grades ข้อมูลมาจาก src/lib/learningApi.ts เท่านั้น (ตอนนี้ว่างทั้งหมด)
-// ผู้สอน/ผู้ดูแล (can_teach หรือ admin) เห็นฝั่งตรวจงาน: Submissions + Grades ของผู้เรียน; ผู้เรียนเห็น My Submissions + Grades ของตัวเอง
+// route: /submissions (?tab=grades) ข้อมูลมาจาก src/lib/learningApi.ts เท่านั้น (ตอนนี้ว่างทั้งหมด)
+// ฝั่งที่แสดงเลือกจาก URL แบบ view ของ mockup ไม่ใช่จากบทบาทอย่างเดียว:
+//   ?side=mine หรือผู้ที่ไม่มีสิทธิ์ผู้สอน = ฝั่งผู้เรียน (My Submissions + Grades ของตัวเอง)
+//   ไม่มี side และเป็นผู้สอน/ผู้ดูแล (can_teach หรือ admin) = ฝั่งตรวจงาน (Submissions + Grades ของผู้เรียน)
+// ผู้สอนที่ลงทะเบียนเรียนด้วยจึงมีเมนู Submissions และ My Submissions ที่เปิดคนละฝั่งได้ (permissions.ts)
 // แบบฟอร์มให้คะแนนไม่เปิดใช้ (ว่างตามแผน) เพราะยังไม่มีระบบรับคะแนน
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ChevronRight, FileText, MousePointer2, Play } from 'lucide-react';
 
@@ -34,6 +37,14 @@ function Switcher({ teacherSide, tab, onChange }: { teacherSide: boolean; tab: T
 }
 
 const reviewTone = (review: Review | undefined) => (review ? 'teal' : 'blue');
+
+// ผลตรวจตาม submissionId สร้างครั้งเดียวต่อชุดข้อมูล (ไม่ค้นแบบ find ทุกแถว)
+function useReviewIndex(reviews: Review[] | undefined) {
+  return useMemo(() => {
+    const index = new Map((reviews ?? []).map((review) => [review.submissionId, review] as const));
+    return (submissionId: string) => index.get(submissionId);
+  }, [reviews]);
+}
 const reviewLabel = (review: Review | undefined, pending: string) => (review ? 'ตรวจแล้ว' : pending);
 
 function SubmissionDetail({ submission, review, teacher = false }: { submission: Submission; review?: Review; teacher?: boolean }) {
@@ -50,7 +61,7 @@ function SubmissionDetail({ submission, review, teacher = false }: { submission:
       <div className="submission-metrics">
         {submission.result.metrics.map((value, index) => (
           <span key={index}>
-            ตัวชี้วัด {index + 1}
+            {submission.result.metricLabels?.[index] ?? `ตัวชี้วัด ${index + 1}`}
             <strong>{value.toFixed(1)}%</strong>
           </span>
         ))}
@@ -91,8 +102,9 @@ function LearningHistory({ switcher }: { switcher: React.ReactNode }) {
   const reviews = useLoaded(() => listReviews('mine'), 'โหลดผลตรวจไม่สำเร็จ');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lessonFilter, setLessonFilter] = useState('all');
-  const own = submissions.data ?? [];
-  const reviewOf = (id: string) => reviews.data?.find((item) => item.submissionId === id);
+  // หน้าแรกของรายการ (data.next ใช้ต่อเมื่อมีระบบคอร์ส)
+  const own = submissions.data?.items ?? [];
+  const reviewOf = useReviewIndex(reviews.data?.items);
   const items = own.filter((item) => lessonFilter === 'all' || item.lessonId === lessonFilter);
   const selected = items.find((item) => item.id === selectedId);
   const error = submissions.error ?? reviews.error;
@@ -173,8 +185,8 @@ function Reviews({ switcher }: { switcher: React.ReactNode }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'pending' | 'reviewed'>('all');
   const [lessonFilter, setLessonFilter] = useState('all');
-  const all = submissions.data ?? [];
-  const reviewOf = (id: string) => reviews.data?.find((item) => item.submissionId === id);
+  const all = submissions.data?.items ?? [];
+  const reviewOf = useReviewIndex(reviews.data?.items);
   const items = all.filter(
     (item) =>
       (lessonFilter === 'all' || item.lessonId === lessonFilter) &&
@@ -245,12 +257,15 @@ function Reviews({ switcher }: { switcher: React.ReactNode }) {
               </section>
               <form className="panel review-form" onSubmit={(event) => event.preventDefault()}>
                 <h2>ให้คะแนนและฟีดแบค</h2>
-                {RUBRIC.map(([label, max], index) => (
-                  <label className="field" key={label}>
-                    {label} (เต็ม {max})
-                    <input type="number" min={0} max={max} value={reviewOf(selected.id)?.rubric[index] ?? ''} disabled readOnly />
-                  </label>
-                ))}
+                {/* เกณฑ์มาจากผลตรวจเอง (มีชื่อและคะแนนเต็ม) ถ้ายังไม่ตรวจใช้ RUBRIC ตั้งต้น */}
+                {(reviewOf(selected.id)?.rubric ?? RUBRIC.map(([label, max]) => ({ label, max, score: null }))).map(
+                  ({ label, max, score }) => (
+                    <label className="field" key={label}>
+                      {label} (เต็ม {max})
+                      <input type="number" min={0} max={max} value={score ?? ''} disabled readOnly />
+                    </label>
+                  ),
+                )}
                 <label className="field">
                   ฟีดแบค
                   <textarea rows={4} value={reviewOf(selected.id)?.feedback ?? ''} disabled readOnly />
@@ -272,7 +287,7 @@ function Gradebook({ scope, switcher }: { scope: LearningScope; switcher: React.
   const teacher = scope === 'teaching';
   const grades = useLoaded(() => listGrades(scope), 'โหลดคะแนนไม่สำเร็จ');
   const [lessonFilter, setLessonFilter] = useState('all');
-  const all: GradeRow[] = grades.data ?? [];
+  const all: GradeRow[] = grades.data?.items ?? [];
   const lessons = [...new Map(all.map((row) => [row.lessonId, row.lessonTitle])).entries()];
   const rows = all.filter((row) => lessonFilter === 'all' || row.lessonId === lessonFilter);
   return (
@@ -343,13 +358,20 @@ function Gradebook({ scope, switcher }: { scope: LearningScope; switcher: React.
 export default function SubmissionsPage() {
   const { user } = useAuth();
   const [params, setParams] = useSearchParams();
-  const teacherSide = canTeach(user) || isAdmin(user);
+  const mineRequested = params.get('side') === 'mine';
+  const teacherSide = !mineRequested && (canTeach(user) || isAdmin(user));
   const tab: Tab = params.get('tab') === 'grades' ? 'grades' : 'work';
   const switcher = (
     <Switcher
       teacherSide={teacherSide}
       tab={tab}
-      onChange={(next) => setParams(next === 'grades' ? { tab: 'grades' } : {}, { replace: true })}
+      onChange={(next) => {
+        // สลับแท็บโดยคงฝั่งเดิม (side=mine) ไว้
+        const query: Record<string, string> = {};
+        if (mineRequested) query.side = 'mine';
+        if (next === 'grades') query.tab = 'grades';
+        setParams(query, { replace: true });
+      }}
     />
   );
   return (

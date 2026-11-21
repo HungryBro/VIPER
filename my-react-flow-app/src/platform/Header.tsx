@@ -11,9 +11,11 @@ import type { PlatformTheme } from './theme';
 import { useLoaded } from './useLoaded';
 import { Badge, Empty, cx, time } from './ui';
 
+const isInternalPath = (to: string): boolean => to.startsWith('/') && !to.startsWith('//') && !to.startsWith('/\\');
+
 export function Header({ theme, onToggleTheme }: { theme: PlatformTheme; onToggleTheme: () => void }) {
   const { user, logout } = useAuth();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const navigate = useNavigate();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -47,7 +49,8 @@ export function Header({ theme, onToggleTheme }: { theme: PlatformTheme; onToggl
 
   if (!user) return null;
   const nav = navItemsFor(user);
-  const allNotifications = (notifications.data ?? []).map((item) => ({ ...item, read: item.read || readIds.includes(item.id) }));
+  // หน้าแรกของรายการ (data.next ใช้ต่อเมื่อมีระบบแจ้งเตือนและปุ่มโหลดเพิ่ม)
+  const allNotifications = (notifications.data?.items ?? []).map((item) => ({ ...item, read: item.read || readIds.includes(item.id) }));
   const unread = allNotifications.filter((item) => !item.read).length;
   const shownNotifications = unreadOnly ? allNotifications.filter((item) => !item.read) : allNotifications;
   const initials = user.display_name.slice(0, 2).toUpperCase();
@@ -72,7 +75,11 @@ export function Header({ theme, onToggleTheme }: { theme: PlatformTheme; onToggl
               to={item.to}
               end={item.end}
               className={({ isActive }) =>
-                cx((isActive || item.activePrefixes?.some((prefix) => pathname.startsWith(prefix))) && 'active')
+                cx(
+                  (item.activeWhen
+                    ? item.activeWhen(pathname, search)
+                    : isActive || item.activePrefixes?.some((prefix) => pathname.startsWith(prefix))) && 'active',
+                )
               }
             >
               {item.label}
@@ -100,6 +107,7 @@ export function Header({ theme, onToggleTheme }: { theme: PlatformTheme; onToggl
               }}
             >
               <Bell size={19} />
+              {unread > 0 && <span className="notification-count">{unread > 9 ? '9+' : unread}</span>}
             </button>
             {notificationsOpen && (
               <section className="notification-popup" aria-label="รายการแจ้งเตือน">
@@ -125,6 +133,11 @@ export function Header({ theme, onToggleTheme }: { theme: PlatformTheme; onToggl
                     aria-label={`ยังไม่อ่าน ${unread} รายการ`}
                   >
                     ยังไม่อ่าน
+                    {unread > 0 && (
+                      <span className="unread-dot" aria-hidden="true">
+                        {unread > 9 ? '9+' : unread}
+                      </span>
+                    )}
                   </button>
                   <button
                     type="button"
@@ -145,7 +158,8 @@ export function Header({ theme, onToggleTheme }: { theme: PlatformTheme; onToggl
                       onClick={() => {
                         setReadIds((ids) => [...ids, item.id]);
                         setNotificationsOpen(false);
-                        navigate(item.to);
+                        // ปลายทางมาจาก server: ไปเฉพาะ path ภายในแอป ("/..." ไม่ใช่ "//host" หรือ URL ภายนอก)
+                        if (isInternalPath(item.to)) navigate(item.to);
                       }}
                     >
                       <span className="notification-symbol">
@@ -156,6 +170,7 @@ export function Header({ theme, onToggleTheme }: { theme: PlatformTheme; onToggl
                         <p>{item.description}</p>
                         <small>{time(item.at)}</small>
                       </span>
+                      {!item.read && <span className="tiny-dot" />}
                     </button>
                   ))}
                   {!notifications.error && !shownNotifications.length && (

@@ -4,6 +4,21 @@
 
 export type CourseStatus = 'draft' | 'published' | 'archived';
 
+// ป้ายสถานะคอร์ส [ข้อความ, tone ของ Badge] ใช้ร่วมกันที่ Courses และ Teach
+// สถานะที่ไม่รู้จัก (server เพิ่มสถานะใหม่ภายหลัง) แสดงชื่อสถานะตรงๆ แทนการทำให้หน้าพัง
+const COURSE_STATUS: Record<CourseStatus, readonly [string, string]> = {
+  draft: ['Draft', 'amber'],
+  published: ['Published', 'teal'],
+  archived: ['Archived', 'neutral'],
+};
+export const courseStatusBadge = (status: string): readonly [string, string] =>
+  COURSE_STATUS[status as CourseStatus] ?? [status, 'neutral'];
+
+// หน้าของรายการจาก learningApi: next = cursor ของหน้าถัดไป (null = หน้าสุดท้าย)
+// ส่ง cursor กลับมาใน PageQuery เพื่อขอหน้าถัดไป ตอนนี้ทุกฟังก์ชันคืนหน้าเดียวที่ว่าง
+export type ListPage<T> = { items: T[]; next: string | null };
+export type PageQuery = { cursor?: string | null; limit?: number };
+
 export type Course = {
   id: string;
   ownerId: string;
@@ -39,6 +54,12 @@ export type LessonActivity = {
   version: number;
 };
 
+// ส่วนของบทเรียนที่ผู้ยังไม่ลงทะเบียนเห็นได้ (หน้าล็อก)
+export type LessonPreview = Pick<Lesson, 'id' | 'courseId' | 'title' | 'subtitle'>;
+
+// ผลของ getLesson: null = ไม่พบหรือมองไม่เห็น (server ตอบ 404) ; locked = มีอยู่แต่ต้องลงทะเบียนก่อน (403)
+export type LessonLookup = { locked: false; lesson: Lesson } | { locked: true; lesson: LessonPreview };
+
 export type Lesson = {
   id: string;
   courseId: string;
@@ -54,7 +75,7 @@ export type Lesson = {
 };
 
 // ผลตรวจอัตโนมัติตอนส่งงาน: structure = ตรวจโครง workflow, metrics = ตรวจตัวชี้วัดตามเกณฑ์
-export type AutoCheckItem = { label: string; ok?: boolean; passed?: boolean; value?: number; target?: number; op?: string };
+export type AutoCheckItem = { label: string; passed: boolean; value?: number; target?: number; op?: string };
 export type AutoCheck = { structure: AutoCheckItem[]; metrics: AutoCheckItem[]; passed: boolean };
 
 export type Submission = {
@@ -67,8 +88,8 @@ export type Submission = {
   learnerName: string;
   activityVersion: number;
   at: string;
-  // สรุปค่าที่ผู้เรียนตั้ง และตัวชี้วัดเป็นเปอร์เซ็นต์ เรียงตาม metricLabels ของ pipeline
-  result: { settings: string; metrics: number[] };
+  // สรุปค่าที่ผู้เรียนตั้ง และตัวชี้วัดเป็นเปอร์เซ็นต์ ; metricLabels[i] คือชื่อของ metrics[i] (ไม่มีจะแสดง "ตัวชี้วัด i")
+  result: { settings: string; metrics: number[]; metricLabels?: string[] };
   autoCheck: AutoCheck | null;
   // Workflow ณ เวลาที่ส่ง
   nodes: Array<{ id: string; label: string }>;
@@ -76,20 +97,21 @@ export type Submission = {
   hints: number;
 };
 
-export type RubricScores = number[];
+// คะแนนย่อยแต่ละเกณฑ์ มาพร้อมชื่อและคะแนนเต็มจาก server จึงไม่ผูกกับลำดับของ RUBRIC ฝั่งหน้า
+export type RubricItem = { label: string; max: number; score: number };
 
 export type Review = {
   submissionId: string;
   // คะแนนรวม 0-100 = ผลรวม rubric
   score: number;
-  rubric: RubricScores;
+  rubric: RubricItem[];
   feedback: string;
   at: string;
   reviewerId: string;
   reviewerName: string;
 };
 
-// เกณฑ์ให้คะแนนย่อย [ชื่อเกณฑ์, คะแนนเต็ม] ตาม RUBRIC ของ mockup (รวม 100)
+// เกณฑ์ให้คะแนนย่อยตั้งต้น [ชื่อเกณฑ์, คะแนนเต็ม] ตาม RUBRIC ของ mockup (รวม 100) ใช้เมื่อยังไม่มีผลตรวจที่มี rubric ของตัวเอง
 export const RUBRIC: ReadonlyArray<readonly [string, number]> = [
   ['โครงสร้าง Workflow', 40],
   ['การทดลองและประเมินผล', 40],

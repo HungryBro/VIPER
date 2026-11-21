@@ -8,16 +8,10 @@ import { ArrowLeft, ArrowRight, BookOpen, LockKeyhole, Pencil, Play } from 'luci
 
 import { useAuth } from '../../auth/AuthContext';
 import { getCourse, getLesson, listCourses, listLessons } from '../../lib/learningApi';
-import type { Course, CourseStatus } from '../types';
+import { courseStatusBadge, type Course } from '../types';
 import { canTeach, isAdmin } from '../permissions';
 import { useLoaded } from '../useLoaded';
 import { Badge, Button, Empty, Markdown, cx } from '../ui';
-
-const COURSE_STATUS: Record<CourseStatus, [string, string]> = {
-  draft: ['Draft', 'amber'],
-  published: ['Published', 'teal'],
-  archived: ['Archived', 'neutral'],
-};
 
 const COMING_LATER = 'ระบบคอร์สจะเพิ่มภายหลัง';
 
@@ -43,7 +37,7 @@ export function CourseTabs({ active }: { active: 'courses' | 'teach' }) {
 
 function CourseCard({ course }: { course: Course }) {
   const navigate = useNavigate();
-  const [statusLabel, tone] = COURSE_STATUS[course.status];
+  const [statusLabel, tone] = courseStatusBadge(course.status);
   return (
     <article className="panel catalog-course">
       <div className="section-title">
@@ -86,7 +80,8 @@ export default function CoursesPage() {
   const { data, error, loading } = useLoaded(listCourses, 'โหลดรายการคอร์สไม่สำเร็จ');
   const [query, setQuery] = useState('');
   const needle = query.trim().toLowerCase();
-  const courses = (data ?? []).filter((course) => `${course.title} ${course.description} ${course.code}`.toLowerCase().includes(needle));
+  // แสดงหน้าแรกของรายการ (data.next ใช้ต่อเมื่อมีระบบคอร์สและปุ่มโหลดเพิ่ม)
+  const courses = (data?.items ?? []).filter((course) => `${course.title} ${course.description} ${course.code}`.toLowerCase().includes(needle));
   return (
     <div className="page">
       <div className="page-heading">
@@ -141,7 +136,7 @@ function CourseView({ courseId }: { courseId: string }) {
     );
   }
   const canRead = found.enrolled || found.canManage;
-  const [statusLabel, tone] = COURSE_STATUS[found.status];
+  const [statusLabel, tone] = courseStatusBadge(found.status);
   return (
     <div className="page">
       <Link className="back-link" to="/courses">
@@ -215,24 +210,43 @@ export function CourseRoute() {
 function LessonView({ lessonId }: { lessonId: string }) {
   const lesson = useLoaded(() => getLesson(lessonId), 'โหลดบทเรียนไม่สำเร็จ');
   if (lesson.loading) return <div className="page"><p className="muted small" role="status">กำลังโหลด...</p></div>;
-  const found = lesson.data;
-  if (!found) {
+  const lookup = lesson.data;
+  // null = ไม่พบบทเรียน (หรือโหลดไม่สำเร็จ) ; locked = มีอยู่แต่ต้องลงทะเบียนก่อน (สัญญาของ getLesson)
+  if (!lookup) {
     return (
       <div className="page">
         <Empty
-          icon={LockKeyhole}
-          title="ต้องลงทะเบียนก่อนเปิดบทเรียน"
+          icon={BookOpen}
+          title="ไม่พบบทเรียน"
           action={
             <Link className="btn primary" to="/courses">
               ไปที่รายการคอร์ส
             </Link>
           }
         >
-          {lesson.error ?? `เนื้อหาเต็มและ Lab เปิดให้ผู้ที่ลงทะเบียนในคอร์สนี้เท่านั้น (${COMING_LATER})`}
+          {lesson.error ?? `บทเรียนนี้ไม่มีอยู่หรือยังไม่เผยแพร่ (${COMING_LATER})`}
         </Empty>
       </div>
     );
   }
+  if (lookup.locked) {
+    return (
+      <div className="page">
+        <Empty
+          icon={LockKeyhole}
+          title="ต้องลงทะเบียนก่อนเปิดบทเรียน"
+          action={
+            <Link className="btn primary" to={`/courses/${lookup.lesson.courseId}`}>
+              ไปที่คอร์สของบทเรียนนี้
+            </Link>
+          }
+        >
+          {lookup.lesson.title}: เนื้อหาเต็มและ Lab เปิดให้ผู้ที่ลงทะเบียนในคอร์สนี้เท่านั้น
+        </Empty>
+      </div>
+    );
+  }
+  const found = lookup.lesson;
   return (
     <div className="page">
       <Link className="back-link" to={`/courses/${found.courseId}`}>

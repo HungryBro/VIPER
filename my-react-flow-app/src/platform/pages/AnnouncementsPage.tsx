@@ -11,7 +11,8 @@ import { Badge, Button, Empty, time } from '../ui';
 export default function AnnouncementsPage() {
   const { user } = useAuth();
   const { data, error, loading } = useLoaded(listAnnouncements, 'โหลดประกาศไม่สำเร็จ');
-  const items = data ?? [];
+  // แสดงหน้าแรกของรายการ (data.next ใช้ต่อเมื่อมีระบบประกาศ)
+  const items = data?.items ?? [];
   return (
     <div className="page">
       <div className="page-heading">
