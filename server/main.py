@@ -1,7 +1,8 @@
 # server/main.py
 from contextlib import asynccontextmanager
 import os
-from fastapi import FastAPI, UploadFile, File, Depends, HTTPException
+import uuid
+from fastapi import FastAPI, UploadFile, File, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import inspect, text
@@ -12,7 +13,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from .audit import audit_processing_activity
 from .config import settings
-from .utils_io import save_upload, static_url, ensure_dirs, OUT, UPLOAD_DIR
+from .utils_io import checked_upload_extension, UploadRejected, static_url, ensure_dirs, OUT, UPLOAD_DIR
 from .routers import (
     admin, auth, me, templates,
     features, matching, alignment, quality, 
@@ -97,6 +98,18 @@ app.add_middleware(
 )
 
 ensure_dirs(UPLOAD_DIR)
+
+
+@app.middleware("http")
+async def static_nosniff(request: Request, call_next):
+    # Files under /static are served by extension; nosniff stops a browser from
+    # guessing another type (such as HTML) from the bytes.
+    response = await call_next(request)
+    if request.url.path.startswith("/static/"):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
 app.mount("/static", StaticFiles(directory=OUT), name="static")
 app.include_router(auth.router)
 app.include_router(admin.router)
@@ -117,12 +130,27 @@ app.include_router(evaluation.router,     prefix="/api/evaluation", dependencies
 
 @app.post("/api/upload", dependencies=processing_audit_required)
 async def api_upload(files: list[UploadFile] = File(...)):
-    saved = []
+    # The type comes from the bytes and the server picks the extension; the bytes
+    # are stored unchanged, so the image a node processes is the one uploaded.
+    # Every file is checked before any is written, so a rejected batch leaves nothing behind.
+    checked = []
     for f in files:
-        path = await save_upload(f, UPLOAD_DIR)
-        
+        contents = await f.read()
+        try:
+            ext = checked_upload_extension(f.filename, contents)
+        except UploadRejected as exc:
+            raise HTTPException(status_code=422, detail=f"{f.filename}: {exc}") from exc
+        checked.append((f.filename, ext, contents))
+
+    ensure_dirs(UPLOAD_DIR)
+    saved = []
+    for filename, ext, contents in checked:
+        path = os.path.join(UPLOAD_DIR, f"{uuid.uuid4().hex}{ext}")
+        with open(path, "wb") as out:
+            out.write(contents)
+
         saved.append({
-            "name": f.filename,
+            "name": filename,
             "path": path,                 
             "url": static_url(path)
         })

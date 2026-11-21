@@ -16,7 +16,7 @@ from ..schemas import (
     TemplateSummary,
     TemplateUpdate,
 )
-from ..utils_io import OUT, ensure_dirs, save_upload, static_url
+from ..utils_io import OUT, UploadRejected, save_reencoded_cover, static_url
 
 
 router = APIRouter(prefix="/api/templates", tags=["templates"])
@@ -235,6 +235,12 @@ def create_template_comment(
     db: Session = Depends(get_db),
 ):
     template = _get_visible_template(db, template_id, user)
+    if template.visibility == "private" and template.owner_id != user.id:
+        # An admin may read someone else's private template, never write on it.
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You cannot comment on someone else's private template",
+        )
     if not template.comments_enabled:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -365,9 +371,9 @@ def update_template(
     user: User = Depends(require_active_user),
     db: Session = Depends(get_db),
 ):
-    template = db.scalar(_template_query().where(Template.id == template_id))
-    if template is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+    # Someone else's private template is 404 as in GET and DELETE, so its id
+    # cannot be probed; one the caller can see but not edit is 403 below.
+    template = _get_visible_template(db, template_id, user)
     values = payload.model_dump(exclude_unset=True)
     becomes_official = False
     if template.is_official:
@@ -473,9 +479,8 @@ async def upload_template_cover(
     user: User = Depends(require_active_user),
     db: Session = Depends(get_db),
 ):
-    template = db.scalar(_template_query().where(Template.id == template_id))
-    if template is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
+    # 404 for someone else's private template, as in PATCH (see update_template).
+    template = _get_visible_template(db, template_id, user)
     if template.is_official and not _can_manage_official(user):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -504,9 +509,12 @@ async def upload_template_cover(
             detail="Cover image must be 5 MB or smaller",
         )
 
-    await file.seek(0)
-    ensure_dirs(TEMPLATE_COVERS_DIR)
-    saved_path = await save_upload(file, TEMPLATE_COVERS_DIR)
+    # The declared content type only filters early; the bytes decide. The cover
+    # is decoded and written again by the server with an extension it picks.
+    try:
+        saved_path, _ = save_reencoded_cover(contents, TEMPLATE_COVERS_DIR)
+    except UploadRejected as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=str(exc)) from exc
     template.cover_url = static_url(saved_path)
     _add_audit(
         db,

@@ -11,18 +11,39 @@ from ..schemas import MeActivityPublic, MeSummary
 router = APIRouter(prefix="/api/me", tags=["me"])
 
 
+def counted_run_conditions():
+    """Which processing.run rows count as a run the user started (B2).
+
+    Only POST requests count. Polling a training job (GET and cancel under
+    detection.train.jobs) and listing models (detection.models) are not runs.
+    run_count, last_run_at and the "recent runs" list all use this one rule;
+    the audit rows themselves are left unchanged.
+    """
+    operation = AuditLog.details["operation"].as_string()
+    return (
+        AuditLog.action == "processing.run",
+        AuditLog.details["method"].as_string() == "POST",
+        operation.not_like("detection.train.jobs%"),
+        operation != "detection.models",
+    )
+
+
 @router.get("/activity", response_model=list[MeActivityPublic])
 def list_my_activity(
     response: Response,
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     action: list[str] | None = Query(default=None),
+    runs: bool = Query(default=False),
     user: User = Depends(require_active_user),
     db: Session = Depends(get_db),
 ):
     conditions = [AuditLog.actor_id == user.id]
     if action:
         conditions.append(AuditLog.action.in_(action))
+    if runs:
+        # Only rows that count as a run (see counted_run_conditions).
+        conditions.extend(counted_run_conditions())
 
     total = db.scalar(select(func.count()).select_from(AuditLog).where(*conditions)) or 0
     response.headers["X-Total-Count"] = str(total)
@@ -54,7 +75,7 @@ def my_summary(
     ).one()
     run_count, last_run_at = db.execute(
         select(func.count(AuditLog.id), func.max(AuditLog.created_at)).where(
-            mine, AuditLog.action == "processing.run"
+            mine, *counted_run_conditions()
         )
     ).one()
 

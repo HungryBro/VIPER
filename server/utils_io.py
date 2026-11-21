@@ -3,6 +3,7 @@
 
 Every module that needs the project layout reads it from here.
 """
+import io
 import os
 import uuid
 import json
@@ -82,6 +83,96 @@ async def save_upload(f: UploadFile, dst_dir: str) -> str:
     with open(path, "wb") as out:
         out.write(await f.read())
     return path
+
+
+# --- Checked uploads (B1, C2) ---
+# The type of an uploaded file comes from its bytes, never from the client's
+# filename or content-type, and the server picks the extension. Files under
+# /static are served by extension, so an HTML or SVG file renamed to .png, or a
+# .png that is really HTML, must never be stored as is.
+
+# Image formats /api/upload has always taken (the Image Input nodes accept
+# .jpg .jpeg .png .bmp .webp .tif .tiff). MPO is how Pillow reports a JPEG from
+# some phone cameras.
+UPLOAD_IMAGE_EXTENSIONS = {
+    "JPEG": ".jpg",
+    "MPO": ".jpg",
+    "PNG": ".png",
+    "BMP": ".bmp",
+    "WEBP": ".webp",
+    "TIFF": ".tif",
+}
+# The U-Net node uploads its weights through /api/upload. A PyTorch file is a
+# zip archive (current format) or a pickle stream (legacy format).
+UPLOAD_MODEL_EXTENSIONS = {".pt", ".pth"}
+_ZIP_MAGIC = b"PK\x03\x04"
+_PICKLE_PROTOCOL_BYTE = 0x80
+
+COVER_IMAGE_FORMATS = {"JPEG": ".jpg", "MPO": ".jpg", "PNG": ".png", "WEBP": ".webp"}
+
+
+class UploadRejected(ValueError):
+    """The uploaded bytes are not a file type this endpoint accepts."""
+
+
+def detect_image_format(contents: bytes) -> Optional[str]:
+    """Pillow's format name for these bytes ("JPEG", "PNG", ...), or None if they are not an image."""
+    from PIL import Image, UnidentifiedImageError
+
+    try:
+        with Image.open(io.BytesIO(contents)) as image:
+            image_format = image.format
+            image.verify()
+    except (UnidentifiedImageError, Image.DecompressionBombError, OSError, SyntaxError, ValueError):
+        return None
+    return image_format
+
+
+def checked_upload_extension(filename: Optional[str], contents: bytes) -> str:
+    """The extension to store an /api/upload file under, decided from its bytes."""
+    image_format = detect_image_format(contents)
+    if image_format in UPLOAD_IMAGE_EXTENSIONS:
+        return UPLOAD_IMAGE_EXTENSIONS[image_format]
+
+    client_ext = os.path.splitext(filename or "")[1].lower()
+    if client_ext in UPLOAD_MODEL_EXTENSIONS and (
+        contents.startswith(_ZIP_MAGIC) or (contents[:1] and contents[0] == _PICKLE_PROTOCOL_BYTE)
+    ):
+        return client_ext
+    raise UploadRejected(
+        "Unsupported file: upload a JPEG, PNG, BMP, WebP or TIFF image, or a .pt/.pth model file"
+    )
+
+
+def save_reencoded_cover(contents: bytes, dst_dir: str) -> tuple[str, str]:
+    """Decode a cover image and save a fresh encoding of its pixels; returns (path, Pillow format).
+
+    Only what Pillow decodes as JPEG, PNG or WebP is accepted. Writing the pixels
+    again drops anything else the file carried (scripts, trailing data, metadata).
+    """
+    from PIL import Image, ImageOps, UnidentifiedImageError
+
+    try:
+        with Image.open(io.BytesIO(contents)) as image:
+            image_format = image.format
+            if image_format not in COVER_IMAGE_FORMATS:
+                raise UploadRejected("Cover image must be a JPEG, PNG, or WebP file")
+            image.load()
+            # Re-encoding drops EXIF, so apply its rotation to the pixels first.
+            pixels = ImageOps.exif_transpose(image)
+    except UploadRejected:
+        raise
+    except (UnidentifiedImageError, Image.DecompressionBombError, OSError, SyntaxError, ValueError) as exc:
+        raise UploadRejected("Cover image must be a JPEG, PNG, or WebP file") from exc
+
+    save_format = "JPEG" if image_format == "MPO" else image_format
+    if save_format == "JPEG" and pixels.mode not in ("RGB", "L"):
+        pixels = pixels.convert("RGB")
+    ensure_dirs(dst_dir)
+    path = os.path.join(dst_dir, f"{uuid.uuid4().hex}{COVER_IMAGE_FORMATS[image_format]}")
+    options = {"quality": 90} if save_format in ("JPEG", "WEBP") else {}
+    pixels.save(path, format=save_format, **options)
+    return path, save_format
 
 
 def static_url(abs_path: str) -> Optional[str]:

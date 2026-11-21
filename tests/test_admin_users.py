@@ -7,7 +7,7 @@ os.environ["AUTO_CREATE_TABLES"] = "false"
 
 from fastapi.testclient import TestClient
 from itsdangerous import TimestampSigner
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, func, select
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
@@ -365,5 +365,56 @@ def test_admin_can_set_own_can_teach_and_auth_me_returns_it():
         assert own.json()["role"] == "admin"
         assert me_after.status_code == 200
         assert me_after.json()["can_teach"] is True
+    finally:
+        app.dependency_overrides.clear()
+
+
+# ---- B5 (หลังจุดตรวจ 2): บัญชีระบบ VIPER Official ----------------------------
+
+def test_system_account_is_listed_but_its_role_status_and_teaching_cannot_change():
+    from server.official_templates import ensure_official_template_records
+
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    admin = add_user(engine, "admin-subject", "admin@example.com", role="admin")
+    with Session(engine) as db:
+        ensure_official_template_records(db)
+        db.commit()
+        system = db.scalar(select(User).where(User.provider == "system"))
+        system_id = system.id
+        before = (system.role, system.status, system.banned_until, system.can_teach)
+        logs_before = db.scalar(select(func.count(AuditLog.id)))
+
+    try:
+        with make_client(engine) as client:
+            authenticate(client, admin.id)
+            listed = client.get("/api/admin/users")
+            attempts = [
+                client.patch(f"/api/admin/users/{system_id}", json={"role": "admin"}),
+                client.patch(
+                    f"/api/admin/users/{system_id}",
+                    json={"status": "banned", "banned_until": (utc_now() + timedelta(minutes=1)).isoformat()},
+                ),
+                client.patch(f"/api/admin/users/{system_id}", json={"status": "banned"}),
+                client.patch(f"/api/admin/users/{system_id}", json={"can_teach": True}),
+            ]
+            # A regular account is still managed as before.
+            other = add_user(engine, "learner-subject", "learner@example.com")
+            regular = client.patch(f"/api/admin/users/{other.id}", json={"can_teach": True})
+
+        assert listed.status_code == 200
+        listed_system = [item for item in listed.json() if item["id"] == system_id]
+        assert listed_system and listed_system[0]["provider"] == "system"
+        assert [response.status_code for response in attempts] == [403, 403, 403, 403]
+        assert regular.status_code == 200
+        with Session(engine) as db:
+            system = db.get(User, system_id)
+            assert (system.role, system.status, system.banned_until, system.can_teach) == before
+            changes_to_system = db.scalar(
+                select(func.count(AuditLog.id)).where(AuditLog.target_id == str(system_id))
+            )
+            assert changes_to_system == 0
+            # Only the regular account's change was logged.
+            assert db.scalar(select(func.count(AuditLog.id))) == logs_before + 1
     finally:
         app.dependency_overrides.clear()

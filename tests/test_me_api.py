@@ -59,6 +59,10 @@ def authenticate(client: TestClient, user_id: int) -> None:
     client.cookies.set("viper_session", cookie, domain="testserver.local", path="/")
 
 
+# details ของ processing.run ที่นับเป็นการสั่งรัน (ดู counted_run_conditions ใน server/routers/me.py)
+RUN_POST = {"method": "POST", "operation": "feature.sift", "success": True}
+
+
 def add_log(db, actor_id, action, minutes=0, details=None, target_id=None):
     db.add(
         AuditLog(
@@ -228,11 +232,12 @@ def test_summary_matches_what_was_created_and_ignores_other_users():
         add_template(db, alice.id, "a2", "public")
         add_template(db, alice.id, "a3", "public", deleted=True)
         add_template(db, bob.id, "b1", "public")
-        add_log(db, alice.id, "processing.run", 1)
-        add_log(db, alice.id, "processing.run", 5)
+        # run_count นับเฉพาะ POST ที่สั่งรัน (B2) แถว processing.run ในเทสต์นี้จึงระบุ method/operation
+        add_log(db, alice.id, "processing.run", 1, details=RUN_POST)
+        add_log(db, alice.id, "processing.run", 5, details=RUN_POST)
         add_log(db, alice.id, "processing.upload", 6)
         add_log(db, alice.id, "template.create", 7)
-        add_log(db, bob.id, "processing.run", 99)
+        add_log(db, bob.id, "processing.run", 99, details=RUN_POST)
         db.commit()
     try:
         with make_client(engine) as client:
@@ -264,5 +269,75 @@ def test_summary_of_a_new_user_is_zero_and_null():
         assert body["last_run_at"] is None
         assert body["last_activity_at"] is None
         assert body["last_login_at"] is None
+    finally:
+        app.dependency_overrides.clear()
+
+
+# ---- B2 (หลังจุดตรวจ 2): นับเฉพาะการสั่งรัน ----------------------------------
+
+def test_run_count_and_recent_runs_count_only_post_runs_not_polling():
+    engine = make_engine()
+    alice = add_user(engine, "alice")
+    with Session(engine) as db:
+        add_log(db, alice.id, "processing.run", 1, details=RUN_POST)
+        add_log(db, alice.id, "processing.run", 2, details={"method": "POST", "operation": "detection.train.start"})
+        add_log(db, alice.id, "processing.run", 3, details={"method": "GET", "operation": "detection.train.jobs.abc"})
+        add_log(db, alice.id, "processing.run", 4, details={"method": "GET", "operation": "detection.train.jobs.abc"})
+        add_log(db, alice.id, "processing.run", 5, details={"method": "POST", "operation": "detection.train.jobs.abc.cancel"})
+        add_log(db, alice.id, "processing.run", 6, details={"method": "GET", "operation": "detection.models"})
+        add_log(db, alice.id, "processing.run", 7, details={"method": "POST", "operation": "detection.models"})
+        db.commit()
+    try:
+        with make_client(engine) as client:
+            authenticate(client, alice.id)
+            summary = client.get("/api/me/summary").json()
+            runs = client.get("/api/me/activity?action=processing.run&runs=true")
+            every_run_row = client.get("/api/me/activity?action=processing.run")
+        assert summary["run_count"] == 2
+        assert summary["last_run_at"].startswith("2026-01-10T12:02")
+        assert runs.headers["X-Total-Count"] == "2"
+        assert [item["details"].get("operation") for item in runs.json()] == ["detection.train.start", "feature.sift"]
+        # The audit rows themselves are unchanged and still listed without the filter.
+        assert every_run_row.headers["X-Total-Count"] == "7"
+    finally:
+        app.dependency_overrides.clear()
+
+
+# ---- A5b (หลังจุดตรวจ 2): admin และผู้สอนเห็นเฉพาะของตัวเอง ----------------------
+
+def test_me_endpoints_of_admin_and_instructor_return_only_their_own_rows():
+    engine = make_engine()
+    admin = add_user(engine, "admin", role="admin")
+    teacher = add_user(engine, "teacher", can_teach=True)
+    learner = add_user(engine, "learner")
+    with Session(engine) as db:
+        add_log(db, admin.id, "processing.run", 1, details=RUN_POST)
+        add_log(db, teacher.id, "processing.run", 2, details=RUN_POST)
+        add_log(db, learner.id, "processing.run", 3, details=RUN_POST)
+        add_log(db, learner.id, "template.create", 4)
+        # What the admin did to the learner belongs to the admin's history, not the learner's.
+        add_log(db, admin.id, "ban.apply", 5, target_id=str(learner.id))
+        db.commit()
+    try:
+        with make_client(engine) as client:
+            results = {}
+            for name, user in (("admin", admin), ("teacher", teacher), ("learner", learner)):
+                authenticate(client, user.id)
+                activity = client.get("/api/me/activity")
+                results[name] = (
+                    activity.headers["X-Total-Count"],
+                    [item["action"] for item in activity.json()],
+                    client.get("/api/me/summary").json(),
+                )
+        assert results["admin"][0] == "2"
+        assert results["admin"][1] == ["ban.apply", "processing.run"]
+        assert results["admin"][2]["run_count"] == 1
+        assert results["admin"][2]["activity_count"] == 2
+        assert results["teacher"][0] == "1"
+        assert results["teacher"][2]["run_count"] == 1
+        assert results["teacher"][2]["activity_count"] == 1
+        assert results["learner"][0] == "2"
+        assert "ban.apply" not in results["learner"][1]
+        assert results["learner"][2]["activity_count"] == 2
     finally:
         app.dependency_overrides.clear()

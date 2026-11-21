@@ -186,3 +186,101 @@ def test_deleted_at_is_added_to_a_table_that_already_has_the_official_columns():
 
 def read_columns(engine, table: str) -> list[str]:
     return [column["name"] for column in inspect(engine).get_columns(table)]
+
+
+# ---- A5c / B6 (หลังจุดตรวจ 2) -------------------------------------------
+
+def _captured_alters(helper) -> dict[str, str]:
+    """Run an ALTER helper on the old SQLite tables; map each added column to the type SQL it used."""
+    import re
+
+    from sqlalchemy import event
+
+    engine = make_old_engine()
+    statements: list[str] = []
+
+    def capture(_conn, _cursor, statement, _params, _context, _executemany):
+        statements.append(statement)
+
+    event.listen(engine, "before_cursor_execute", capture)
+    helper(engine)
+    added = {}
+    for statement in statements:
+        match = re.match(r"ALTER TABLE \w+ ADD COLUMN (\w+) (.+?)(?: NOT NULL)?(?: DEFAULT \w+)?$", statement.strip())
+        if match:
+            added[match.group(1)] = match.group(2)
+    return added
+
+
+def test_alter_sql_types_match_the_postgresql_ddl_of_the_models():
+    from sqlalchemy.dialects import postgresql
+
+    from server.models import Template, User
+
+    dialect = postgresql.dialect()
+    alters = {**_captured_alters(_ensure_user_columns), **_captured_alters(_ensure_template_columns)}
+    model_columns = {"can_teach": User.__table__.c.can_teach}
+    model_columns.update({name: Template.__table__.c[name] for name in ("cover_url", "is_official", "official_key", "deleted_at")})
+
+    assert set(alters) == set(model_columns)
+    for name, column in model_columns.items():
+        assert alters[name] == column.type.compile(dialect=dialect), name
+    assert alters["can_teach"] == "BOOLEAN"
+    assert alters["deleted_at"] == "TIMESTAMP WITH TIME ZONE"
+
+
+def test_deleted_at_added_by_alter_reads_back_through_the_orm_as_a_datetime():
+    from datetime import datetime, timezone
+
+    from sqlalchemy.orm import Session
+
+    from server.models import Template
+
+    engine = make_old_engine()
+    _ensure_user_columns(engine)
+    _ensure_template_columns(engine)
+    stamp = datetime(2026, 11, 21, 10, 30, tzinfo=timezone.utc)
+    with Session(engine) as db:
+        db.get(Template, 1).deleted_at = stamp
+        db.commit()
+    with Session(engine) as db:
+        value = db.get(Template, 1).deleted_at
+        untouched = db.get(Template, 2).deleted_at
+
+    assert isinstance(value, datetime)
+    # SQLite keeps no time zone; PostgreSQL TIMESTAMPTZ returns an aware value. The wall time is the same.
+    assert value.replace(tzinfo=None) == stamp.replace(tzinfo=None)
+    assert untouched is None
+
+
+def test_boolean_server_defaults_apply_to_raw_inserts_and_compile_for_postgresql():
+    from sqlalchemy.dialects import postgresql
+    from sqlalchemy.orm import Session
+    from sqlalchemy.schema import CreateTable
+
+    from server.database import Base
+    from server.models import Template, User
+
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    Base.metadata.create_all(engine)
+    with engine.begin() as connection:
+        connection.execute(text(
+            "INSERT INTO users (id, provider, provider_subject, email, display_name) "
+            "VALUES (1, 'google', 'sub-1', 'a@example.com', 'A')"
+        ))
+        connection.execute(text(
+            "INSERT INTO templates (id, owner_id, name, workflow) VALUES (1, 1, 'T', '{}')"
+        ))
+    with Session(engine) as db:
+        user = db.get(User, 1)
+        template = db.get(Template, 1)
+        assert user.can_teach is False
+        assert template.is_official is False
+        assert template.comments_enabled is True
+
+    dialect = postgresql.dialect()
+    users_ddl = str(CreateTable(User.__table__).compile(dialect=dialect))
+    templates_ddl = str(CreateTable(Template.__table__).compile(dialect=dialect))
+    assert "can_teach BOOLEAN DEFAULT false NOT NULL" in users_ddl
+    assert "is_official BOOLEAN DEFAULT false NOT NULL" in templates_ddl
+    assert "comments_enabled BOOLEAN DEFAULT true NOT NULL" in templates_ddl

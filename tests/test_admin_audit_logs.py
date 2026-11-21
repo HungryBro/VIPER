@@ -149,23 +149,30 @@ def test_processing_request_creates_activity_log_for_the_current_user():
         app.dependency_overrides.clear()
 
 
+def png_bytes() -> bytes:
+    from io import BytesIO
+
+    from PIL import Image
+
+    buffer = BytesIO()
+    Image.new("RGB", (4, 4), (10, 20, 30)).save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
 def test_successful_upload_creates_processing_activity_log(monkeypatch, tmp_path):
     engine = make_engine()
     Base.metadata.create_all(engine)
     learner = add_user(engine, "learner", "learner@example.com")
 
-    async def fake_save_upload(file, _destination):
-        await file.read()
-        return str(tmp_path / (file.filename or "upload.bin"))
-
-    monkeypatch.setattr("server.main.save_upload", fake_save_upload)
+    # /api/upload ตรวจชนิดจากเนื้อหาจริง (C2) จึงส่งภาพ PNG จริง และเขียนไฟล์ลง tmp_path แทน outputs/uploads
+    monkeypatch.setattr("server.main.UPLOAD_DIR", str(tmp_path))
 
     try:
         with make_client(engine) as client:
             authenticate(client, learner.id)
             response = client.post(
                 "/api/upload",
-                files={"files": ("sample.png", b"image-data", "image/png")},
+                files={"files": ("sample.png", png_bytes(), "image/png")},
             )
 
         assert response.status_code == 200
@@ -413,5 +420,51 @@ def test_new_audit_endpoints_reject_regular_users_and_anonymous():
 
         assert [r.status_code for r in anonymous] == [401, 401]
         assert [r.status_code for r in forbidden] == [403, 403]
+    finally:
+        app.dependency_overrides.clear()
+
+
+# ---- A5d (หลังจุดตรวจ 2): แถวที่ไม่มี actor ---------------------------------
+
+def test_paging_and_search_include_rows_without_an_actor():
+    from datetime import datetime, timedelta, timezone
+
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    admin = add_user(engine, "admin", "admin@example.com", role="admin")
+    seed_many_logs(engine, admin.id, 20)
+    base = datetime(2026, 2, 1, tzinfo=timezone.utc)
+    with Session(engine) as db:
+        for index in range(7):
+            db.add(
+                AuditLog(
+                    actor_id=None,
+                    action="auth.login_failed",
+                    target_type="auth",
+                    target_id=None,
+                    details={},
+                    request_path=f"/api/auth/anonymous-{index}",
+                    status_code=401,
+                    created_at=base + timedelta(minutes=index // 2),
+                )
+            )
+        db.commit()
+
+    try:
+        with make_client(engine) as client:
+            authenticate(client, admin.id)
+            ids, totals = fetch_all_pages(client, page_size=6)
+            found = client.get("/api/admin/audit-logs?limit=50&q=anonymous-4")
+
+        with Session(engine) as db:
+            all_ids = set(db.scalars(select(AuditLog.id)).all())
+            target = db.scalar(select(AuditLog.id).where(AuditLog.request_path == "/api/auth/anonymous-4"))
+        assert len(ids) == len(set(ids)) == 27
+        assert set(ids) == all_ids
+        assert totals == {"27"}
+        assert found.status_code == 200
+        assert [item["id"] for item in found.json()] == [target]
+        assert found.json()[0]["actor"] is None
+        assert found.headers["X-Total-Count"] == "1"
     finally:
         app.dependency_overrides.clear()

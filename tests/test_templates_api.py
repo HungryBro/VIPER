@@ -78,6 +78,30 @@ def workflow(label: str = "SIFT") -> dict:
     }
 
 
+def image_bytes(fmt: str, mode: str = "RGB", size=(8, 6)) -> bytes:
+    from io import BytesIO
+
+    from PIL import Image
+
+    buffer = BytesIO()
+    Image.new(mode, size, 128 if mode == "L" else (200, 30, 60)).save(buffer, format=fmt)
+    return buffer.getvalue()
+
+
+def png_bytes() -> bytes:
+    # ปกที่ server รับต้องเป็นภาพจริง (B1 ตรวจจากเนื้อหาและ re-encode)
+    return image_bytes("PNG")
+
+
+def image_format(contents: bytes):
+    from io import BytesIO
+
+    from PIL import Image
+
+    with Image.open(BytesIO(contents)) as image:
+        return image.format
+
+
 def test_private_template_is_owner_only_until_published():
     engine = make_engine()
     Base.metadata.create_all(engine)
@@ -125,7 +149,8 @@ def test_private_template_is_owner_only_until_published():
         assert public_before.json() == []
         assert hidden_detail.status_code == 404
         assert hidden_load.status_code == 404
-        assert forbidden_update.status_code == 403
+        # B4 (21 พ.ย. 2569): PATCH บน Private ของคนอื่นตอบ 404 เหมือน GET/DELETE เพื่อไม่ให้ไล่หา id ได้ (เดิม 403)
+        assert forbidden_update.status_code == 404
         assert published.status_code == 200
         assert published.json()["visibility"] == "public"
         assert [item["id"] for item in public_after.json()] == [template_id]
@@ -245,7 +270,7 @@ def test_owner_can_edit_template_details_and_upload_cover():
             )
             uploaded = client.post(
                 f"/api/templates/{template_id}/cover",
-                files={"file": ("cover.png", b"fake-png-content", "image/png")},
+                files={"file": ("cover.png", png_bytes(), "image/png")},
             )
             served_cover = client.get(uploaded.json()["cover_url"])
 
@@ -264,7 +289,8 @@ def test_owner_can_edit_template_details_and_upload_cover():
         assert uploaded.status_code == 200
         assert uploaded.json()["cover_url"].startswith("/static/test-template-covers/")
         assert served_cover.status_code == 200
-        assert served_cover.content == b"fake-png-content"
+        # B1: ปกถูก re-encode โดย server จึงเทียบว่าเป็น PNG ที่เปิดได้ ไม่เทียบไบต์ตรงกับที่ส่ง
+        assert image_format(served_cover.content) == "PNG"
         assert forbidden.status_code == 403
         assert audit_logs.status_code == 200
         assert any(log["action"] == "template.cover_update" for log in audit_logs.json())
@@ -311,7 +337,7 @@ def test_official_templates_support_comments_and_admin_managed_cover():
             )
             admin_cover = client.post(
                 f"/api/templates/{official_id}/cover",
-                files={"file": ("cover.png", b"admin-cover", "image/png")},
+                files={"file": ("cover.png", png_bytes(), "image/png")},
             )
             closed = client.patch(
                 f"/api/admin/templates/{official_id}/comments",
@@ -409,7 +435,7 @@ def test_instructor_can_create_official_and_edit_official_details_workflow_and_c
             )
             cover = client.post(
                 f"/api/templates/{seeded_id}/cover",
-                files={"file": ("cover.png", b"teacher-cover", "image/png")},
+                files={"file": ("cover.png", png_bytes(), "image/png")},
             )
             edited_own_official = client.patch(
                 f"/api/templates/{created.json()['id']}",
@@ -570,7 +596,7 @@ def test_learner_cannot_create_or_edit_official_and_own_templates_still_work():
             )
             own_cover = client.post(
                 f"/api/templates/{own_id}/cover",
-                files={"file": ("cover.png", b"own-cover", "image/png")},
+                files={"file": ("cover.png", png_bytes(), "image/png")},
             )
 
         assert create_official.status_code == 403
@@ -1119,5 +1145,228 @@ def test_seed_does_not_recreate_deleted_official_or_refill_its_workflow():
         assert deleted_id not in listed
         assert emptied_deleted_id not in listed
         assert len(listed) == len(OFFICIAL_TEMPLATE_CATALOG) - 2
+    finally:
+        app.dependency_overrides.clear()
+
+
+# ---- หลังจุดตรวจ 2 -------------------------------------------------------
+
+def _private_template(client, owner_id: int, name: str = "Private") -> int:
+    authenticate(client, owner_id)
+    created = client.post(
+        "/api/templates",
+        json={"name": name, "visibility": "private", "workflow": workflow()},
+    )
+    assert created.status_code == 201
+    return created.json()["id"]
+
+
+def test_b1_cover_rejects_non_images_and_stores_a_reencoded_image_with_a_server_extension():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    owner = add_user(engine, "owner", "owner@example.com")
+    cover_dir = os.path.join(OUT, "test-b1-covers")
+    original_cover_dir = templates_router.TEMPLATE_COVERS_DIR
+    templates_router.TEMPLATE_COVERS_DIR = cover_dir
+    payload = b"<script>alert(document.cookie)</script>"
+    png_with_trailer = png_bytes() + b"<html><script>alert(1)</script></html>"
+
+    try:
+        with make_client(engine) as client:
+            template_id = _private_template(client, owner.id)
+            rejected = [
+                client.post(f"/api/templates/{template_id}/cover", files={"file": (name, body, kind)})
+                for name, body, kind in (
+                    ("evil.html", b"<html>" + payload + b"</html>", "image/png"),
+                    ("evil.png", b"<svg xmlns='http://www.w3.org/2000/svg'>" + payload + b"</svg>", "image/png"),
+                    ("notes.jpg", b"just some text", "image/jpeg"),
+                    ("cover.gif", image_bytes("GIF"), "image/png"),
+                )
+            ]
+            files_after_rejects = os.listdir(cover_dir) if os.path.isdir(cover_dir) else []
+            accepted = {}
+            for fmt, mime, name in (
+                ("JPEG", "image/jpeg", "photo.html"),
+                ("PNG", "image/png", "cover.exe"),
+                ("WEBP", "image/webp", "cover"),
+            ):
+                response = client.post(
+                    f"/api/templates/{template_id}/cover",
+                    files={"file": (name, image_bytes(fmt), mime)},
+                )
+                served = client.get(response.json()["cover_url"])
+                accepted[fmt] = (response, served)
+            trailer = client.post(
+                f"/api/templates/{template_id}/cover",
+                files={"file": ("cover.png", png_with_trailer, "image/png")},
+            )
+            trailer_served = client.get(trailer.json()["cover_url"])
+
+        assert [response.status_code for response in rejected] == [422, 422, 422, 422]
+        assert files_after_rejects == []
+        for fmt, ext in (("JPEG", ".jpg"), ("PNG", ".png"), ("WEBP", ".webp")):
+            response, served = accepted[fmt]
+            assert response.status_code == 200, fmt
+            url = response.json()["cover_url"]
+            assert url.endswith(ext), url
+            assert "photo" not in url and "cover.exe" not in url
+            assert served.status_code == 200
+            assert served.headers["x-content-type-options"] == "nosniff"
+            assert image_format(served.content) == fmt
+        assert trailer.status_code == 200
+        assert b"<script>" not in trailer_served.content
+        assert image_format(trailer_served.content) == "PNG"
+    finally:
+        templates_router.TEMPLATE_COVERS_DIR = original_cover_dir
+        shutil.rmtree(cover_dir, ignore_errors=True)
+        app.dependency_overrides.clear()
+
+
+def test_static_files_are_served_with_nosniff():
+    probe_dir = os.path.join(OUT, "test-nosniff")
+    os.makedirs(probe_dir, exist_ok=True)
+    with open(os.path.join(probe_dir, "existing.png"), "wb") as handle:
+        handle.write(png_bytes())
+    try:
+        with TestClient(app) as client:
+            served = client.get("/static/test-nosniff/existing.png")
+        assert served.status_code == 200
+        assert served.headers["x-content-type-options"] == "nosniff"
+    finally:
+        shutil.rmtree(probe_dir, ignore_errors=True)
+
+
+def test_b3_admin_reads_someone_elses_private_template_but_cannot_comment_or_toggle_comments():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    owner = add_user(engine, "owner", "owner@example.com")
+    admin = add_user(engine, "admin", "admin@example.com", role="admin")
+
+    try:
+        with make_client(engine) as client:
+            private_id = _private_template(client, owner.id)
+            public = client.post(
+                "/api/templates",
+                json={"name": "Public", "visibility": "public", "workflow": workflow()},
+            ).json()["id"]
+            owner_comment = client.post(f"/api/templates/{private_id}/comments", json={"body": "note to self"})
+
+            authenticate(client, admin.id)
+            own_private = client.post(
+                "/api/templates",
+                json={"name": "Admin private", "visibility": "private", "workflow": workflow()},
+            ).json()["id"]
+            detail = client.get(f"/api/templates/{private_id}")
+            loaded = client.post(f"/api/templates/{private_id}/load")
+            comments = client.get(f"/api/templates/{private_id}/comments")
+            comment = client.post(f"/api/templates/{private_id}/comments", json={"body": "admin note"})
+            toggle = client.patch(f"/api/admin/templates/{private_id}/comments", json={"comments_enabled": False})
+            public_toggle = client.patch(f"/api/admin/templates/{public}/comments", json={"comments_enabled": False})
+            public_comment_toggle_back = client.patch(
+                f"/api/admin/templates/{public}/comments", json={"comments_enabled": True}
+            )
+            public_comment = client.post(f"/api/templates/{public}/comments", json={"body": "admin on public"})
+            own_private_toggle = client.patch(
+                f"/api/admin/templates/{own_private}/comments", json={"comments_enabled": False}
+            )
+
+        assert owner_comment.status_code == 201
+        assert detail.status_code == 200
+        assert loaded.status_code == 200
+        assert comments.status_code == 200
+        assert comment.status_code == 403
+        assert toggle.status_code == 403
+        assert public_toggle.status_code == 200
+        assert public_comment_toggle_back.status_code == 200
+        assert public_comment.status_code == 201
+        assert own_private_toggle.status_code == 200
+        with Session(engine) as db:
+            saved = db.get(Template, private_id)
+            assert saved.comments_enabled is True
+            bodies = db.scalars(select(Comment.body).where(Comment.template_id == private_id)).all()
+            assert bodies == ["note to self"]
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_b4_patch_and_cover_on_someone_elses_private_template_are_404_for_those_who_cannot_see_it():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    owner = add_user(engine, "owner", "owner@example.com")
+    viewer = add_user(engine, "viewer", "viewer@example.com")
+    admin = add_user(engine, "admin", "admin@example.com", role="admin")
+    cover_dir = os.path.join(OUT, "test-b4-covers")
+    original_cover_dir = templates_router.TEMPLATE_COVERS_DIR
+    templates_router.TEMPLATE_COVERS_DIR = cover_dir
+
+    try:
+        with make_client(engine) as client:
+            private_id = _private_template(client, owner.id)
+            public_id = client.post(
+                "/api/templates",
+                json={"name": "Public", "visibility": "public", "workflow": workflow()},
+            ).json()["id"]
+
+            authenticate(client, viewer.id)
+            viewer_patch = client.patch(f"/api/templates/{private_id}", json={"name": "x"})
+            viewer_cover = client.post(
+                f"/api/templates/{private_id}/cover", files={"file": ("c.png", png_bytes(), "image/png")}
+            )
+            viewer_public_patch = client.patch(f"/api/templates/{public_id}", json={"name": "x"})
+            viewer_public_cover = client.post(
+                f"/api/templates/{public_id}/cover", files={"file": ("c.png", png_bytes(), "image/png")}
+            )
+            missing_patch = client.patch("/api/templates/999999", json={"name": "x"})
+
+            authenticate(client, admin.id)
+            admin_patch = client.patch(f"/api/templates/{private_id}", json={"name": "x"})
+            admin_cover = client.post(
+                f"/api/templates/{private_id}/cover", files={"file": ("c.png", png_bytes(), "image/png")}
+            )
+
+        assert viewer_patch.status_code == 404
+        assert viewer_cover.status_code == 404
+        assert viewer_public_patch.status_code == 403
+        assert viewer_public_cover.status_code == 403
+        assert missing_patch.status_code == 404
+        assert admin_patch.status_code == 403
+        assert admin_cover.status_code == 403
+        with Session(engine) as db:
+            assert db.get(Template, private_id).name == "Private"
+            assert db.get(Template, private_id).cover_url is None
+    finally:
+        templates_router.TEMPLATE_COVERS_DIR = original_cover_dir
+        shutil.rmtree(cover_dir, ignore_errors=True)
+        app.dependency_overrides.clear()
+
+
+def test_a5a_admin_and_instructor_lists_never_include_someone_elses_private_template():
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    learner = add_user(engine, "learner", "learner@example.com")
+    admin = add_user(engine, "admin", "admin@example.com", role="admin")
+    teacher = add_user(engine, "teacher", "teacher@example.com")
+    with Session(engine) as db:
+        db.get(User, teacher.id).can_teach = True
+        db.commit()
+
+    try:
+        with make_client(engine) as client:
+            private_id = _private_template(client, learner.id, "Learner private")
+            listings = {}
+            for name, user in (("admin", admin), ("teacher", teacher)):
+                authenticate(client, user.id)
+                listings[name] = [
+                    [item["id"] for item in client.get(path).json()]
+                    for path in ("/api/templates", "/api/templates/official", "/api/templates/mine")
+                ]
+            teacher_detail = client.get(f"/api/templates/{private_id}")
+            teacher_load = client.post(f"/api/templates/{private_id}/load")
+
+        for name, lists in listings.items():
+            for ids in lists:
+                assert private_id not in ids, name
+        assert teacher_detail.status_code == 404
+        assert teacher_load.status_code == 404
     finally:
         app.dependency_overrides.clear()

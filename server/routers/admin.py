@@ -136,6 +136,13 @@ def update_user_access(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found",
         )
+    if target.provider == "system":
+        # The system account (VIPER Official, owner of the Official templates)
+        # is not a person: its role, status and teaching flag never change.
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="The system account cannot be changed",
+        )
 
     requested = payload.model_fields_set
     if not requested:
@@ -279,6 +286,12 @@ def update_template_comments(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Template not found",
+        )
+    if template.visibility == "private" and template.owner_id != admin.id:
+        # An admin may read someone else's private template, never change it.
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Comments on someone else's private template cannot be changed",
         )
 
     previous = template.comments_enabled
