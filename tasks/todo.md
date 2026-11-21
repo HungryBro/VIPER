@@ -514,20 +514,22 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 
 ## ระยะ 4: ยืนยันความครบถ้วน
 
-### [ ] T21 สคริปต์ตรวจข้อมูล
+### [x] T21 สคริปต์ตรวจข้อมูล
 เทียบฐานข้อมูลกับ snapshot, API กับฐานข้อมูล และรายการในโค้ด frontend ตามที่ระบุใน plan.md
 
 - เกณฑ์รับ
-  - [ ] แถวเดิมทุกแถวจาก snapshot ยังอยู่และ hash เท่าเดิม (ไม่นับคอลัมน์ที่เปลี่ยนตามการใช้งานและ `can_teach`)
-  - [ ] จำนวนและชุด id จาก API ของ Users, Templates (3 แท็บ, เฉพาะ `deleted_at IS NULL`), Comments, Logs (รวมทุกหน้า) เท่ากับฐานข้อมูล
-  - [ ] แถวที่ถูก soft delete ยังอยู่ในฐานข้อมูลและ hash ตรง snapshot (ไม่นับ `deleted_at`)
-  - [ ] โหนดที่เปิดใช้ 22 ชนิดใน `nodeCatalog.ts` อยู่ในคลังครบ และรายการที่เปิดใช้ 9 รายการใน `server/official_templates.json` ตรงกับแถว Official ที่มี workflow; ผลออกเป็น `outputs/parity-report/data.json`
+  - [x] แถวเดิมทุกแถวจาก snapshot ยังอยู่และ hash เท่าเดิม (ไม่นับคอลัมน์ที่เปลี่ยนตามการใช้งานและ `can_teach`)
+  - [x] จำนวนและชุด id จาก API ของ Users, Templates (3 แท็บ, เฉพาะ `deleted_at IS NULL`), Comments, Logs (รวมทุกหน้า) เท่ากับฐานข้อมูล
+  - [x] แถวที่ถูก soft delete ยังอยู่ในฐานข้อมูลและ hash ตรง snapshot (ไม่นับ `deleted_at`)
+  - [x] โหนดที่เปิดใช้ 22 ชนิดใน `nodeCatalog.ts` อยู่ในคลังครบ และรายการที่เปิดใช้ 9 รายการใน `server/official_templates.json` ตรงกับแถว Official ที่มี workflow; ผลออกเป็น `outputs/parity-report/data.json`
 - ตรวจ: รันสคริปต์แล้วทุกข้อเป็น PASS; ทดลองลบคอมเมนต์ทดสอบหนึ่งรายการแล้วสคริปต์ต้องรายงานผิด
 - ขึ้นกับ: T1, ระยะ 2 ทั้งหมด
 - ไฟล์: `scripts/verify_migration.py`
 - ขนาด: M
 - skill: `test-driven-development` (สคริปต์ต้องจับความผิดที่ใส่ไว้ได้)
 - ผู้ทำ: Opus subagent (high) · ชุด H
+- ผลตรวจรับ (22 พ.ย. 2569, Opus ตัวหลัก): commit `70eb4e9d` ; รันกับฐานข้อมูลจริงเอง: identity admin id 2, `RESULT: PASS (14/14)` exit 0 ; จำนวนแถว users|templates|comments|audit_logs ก่อน=หลัง `4|16|1|2677` ; สคริปต์อ่านอย่างเดียว (transaction REPEATABLE READ READ ONLY, API ผ่าน TestClient ใช้ GET เท่านั้น ไม่เปิด lifespan) ; ทดลองใส่ความผิดบนฐานข้อมูลชั่วคราว `viper_verify_tmp` จาก pg_dump: ลบคอมเมนต์ id 6 → `FAIL snapshot.comments ... missing ids [6]` exit 1 แล้ว dropdb (ตรวจ `pg_database` ไม่มีแล้ว) ; `tests/test_verify_migration.py` 23 เทสต์ ; `check.sh` CHECK PASS pytest 347 เส้นฐานปรับเป็น >= 347
+- รอผู้ใช้ยืนยัน: แถว Official ที่ `official_key` ไม่อยู่ใน 9 รายการที่เปิดใช้ของ seed ถือเป็น FAIL ; แถว Official ที่ไม่มี key (ผู้สอน/admin สร้างเอง) แค่แสดงรายการ แต่ต้องมี workflow (ตอนนี้ไม่มีทั้งสองแบบ)
 
 ### [ ] T22 รายงานภาพเทียบ mockup กับของจริง
 ถ่ายของจริงทุกแถวในตารางเทียบ แล้วสร้างหน้ารายงานวางคู่กับภาพ mockup จาก T2

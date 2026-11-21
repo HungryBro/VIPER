@@ -4,7 +4,7 @@
   "note": "เส้นฐานของ scripts/check.sh ห้ามแก้ค่าในไฟล์นี้ให้หลวมลงโดยไม่ได้รับอนุมัติจากผู้ใช้ ค่า min_passed ปรับขึ้นได้เมื่อเพิ่มเทสต์",
   "backend": {
     "command": "./.venv/bin/python -m pytest --ignore=tests/compare_yolo",
-    "min_passed": 324,
+    "min_passed": 347,
     "max_failed": 15,
     "allowed_failures_reason": "SURF ใช้ไม่ได้ใน OpenCV build นี้ (cv2.error) ล้มมาก่อนแผนนี้ ไม่แก้ในแผนนี้",
     "allowed_failures": [
