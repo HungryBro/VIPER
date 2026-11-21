@@ -113,7 +113,7 @@ const data = readJson(path.join(OUT, 'data.json'));
 let dataHtml = '<p class="warn">ไม่พบ data.json</p>';
 if (data) {
   const pass = data.checks.filter((c) => c.status === 'PASS').length;
-  dataHtml = `<p><strong>ผลตรวจข้อมูล (scripts/verify_migration.py): ${esc(data.result)} ${pass}/${data.checks.length}</strong>
+  dataHtml = `<p><strong>ผลตรวจข้อมูล (scripts/verify_migration.py): ${esc(data.result?.overall ?? data.result)} ${pass}/${data.checks.length}</strong>
  · สร้างเมื่อ ${esc(data.generated_at)} · ตัวตนที่ใช้ตรวจ id=${esc(data.identity?.id)} role=${esc(data.identity?.role)}</p>
 <table class="checks"><thead><tr><th>check</th><th>เกณฑ์</th><th>ผล</th><th>สรุป</th></tr></thead><tbody>
 ${data.checks.map((c) => `<tr class="${c.status === 'PASS' ? 'pass' : 'fail'}"><td><code>${esc(c.check_id)}</code></td><td>${esc(c.criterion)}</td><td>${esc(c.status)}</td><td>${esc(c.summary)}</td></tr>`).join('\n')}
