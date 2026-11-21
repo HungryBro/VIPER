@@ -491,18 +491,24 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - [x] ทุก route ในตารางเทียบเปิดได้ ไม่มีหน้าขาวหรือ error ใน console (admin จริง 15 route: `/`, templates, users, logs, profile, courses, courses/:id, lessons/:id, teach, teach/:id, submissions, submissions?tab=grades, announcements, 404, lab ; ผู้เรียนจำลอง 8 route ใหม่ + กระดิ่ง)
 - [x] BE, FE, LAB ผ่าน (`check.sh` CHECK PASS ; Lab รัน Homography จริงได้ "Pipeline Finished" ผลครบ 6 โหนด console ไม่มี error)
 
-#### ผล code-reviewer จุดตรวจ 3 (รอผู้ใช้ตัดสินว่าจะแก้ข้อไหนก่อนระยะ 4)
+#### ผล code-reviewer จุดตรวจ 3 (ผู้ใช้สั่ง 22 พ.ย.: แก้ R1–R3 และ Minor ; Nit ไม่ทำ ยกเว้น parity P-11)
 - Important
-  - R1 กระดิ่งไม่มีตัวเลขยังไม่อ่าน (`notification-count`) และจุด `tiny-dot` ต่อรายการแบบ mockup (`Header.tsx`) CSS ยังอยู่
-  - R2 admin ที่ไม่มี `can_teach` ไม่มีเมนู Submissions (`permissions.ts:34` ใช้ `teacher` อย่างเดียว) แต่หน้า `/submissions` ถือว่า admin เป็นฝั่งผู้สอน ; mockup `canTeach` คืน true ให้ admin
-  - R3 `/submissions` เลือกฝั่งผู้เรียน/ผู้สอนตามบทบาท ไม่ใช่ตาม view แบบ mockup: เมื่อมีการลงทะเบียน (learnsSomething) ผู้สอนจะมีเมนู Submissions และ My Submissions ที่ไปหน้าเดียวกัน เห็นงานของตัวเองไม่ได้ (เสนอใส่ฝั่งใน URL เช่น `?side=mine`)
+  - [x] R1 กระดิ่งไม่มีตัวเลขยังไม่อ่าน (`notification-count`) และจุด `tiny-dot` ต่อรายการแบบ mockup (`Header.tsx`) CSS ยังอยู่
+  - [x] R2 admin ที่ไม่มี `can_teach` ไม่มีเมนู Submissions (`permissions.ts:34` ใช้ `teacher` อย่างเดียว) แต่หน้า `/submissions` ถือว่า admin เป็นฝั่งผู้สอน ; mockup `canTeach` คืน true ให้ admin
+  - [x] R3 `/submissions` เลือกฝั่งผู้เรียน/ผู้สอนตามบทบาท ไม่ใช่ตาม view แบบ mockup: เมื่อมีการลงทะเบียน (learnsSomething) ผู้สอนจะมีเมนู Submissions และ My Submissions ที่ไปหน้าเดียวกัน เห็นงานของตัวเองไม่ได้ (เสนอใส่ฝั่งใน URL เช่น `?side=mine`)
 - Minor
-  - `COURSE_STATUS` ซ้ำสองไฟล์ และ destructure โดยไม่มี fallback สถานะที่ไม่รู้จักจะทำให้หน้าพัง (`CoursesPage.tsx:46,144`, `TeachPage.tsx:78,142`)
-  - สัญญาของ `getCourse`/`getLesson` คืน null ทั้งไม่พบและไม่มีสิทธิ์ ; `LessonView` จึงขึ้น "ต้องลงทะเบียนก่อน" แม้ id ไม่มีอยู่
-  - `types.ts`: metric ไม่มีชื่อ, `AutoCheckItem` มีทั้ง `ok` และ `passed`, rubric ผูกกับค่าคงที่ฝั่งหน้า, ฟังก์ชันรายการไม่มี pagination
-  - `Header.tsx` `navigate(item.to)` ไม่ตรวจว่าเป็น path ภายใน ; กระดิ่งโหลดครั้งเดียวต่อ mount
-  - `reviewOf` หาแบบ O(n·m) ใน `SubmissionsPage.tsx`
+  - [x] `COURSE_STATUS` ซ้ำสองไฟล์ และ destructure โดยไม่มี fallback สถานะที่ไม่รู้จักจะทำให้หน้าพัง (`CoursesPage.tsx:46,144`, `TeachPage.tsx:78,142`)
+  - [x] สัญญาของ `getCourse`/`getLesson` คืน null ทั้งไม่พบและไม่มีสิทธิ์ ; `LessonView` จึงขึ้น "ต้องลงทะเบียนก่อน" แม้ id ไม่มีอยู่
+  - [x] `types.ts`: metric ไม่มีชื่อ, `AutoCheckItem` มีทั้ง `ok` และ `passed`, rubric ผูกกับค่าคงที่ฝั่งหน้า, ฟังก์ชันรายการไม่มี pagination
+  - [x] `Header.tsx` `navigate(item.to)` ไม่ตรวจว่าเป็น path ภายใน ; กระดิ่งโหลดครั้งเดียวต่อ mount
+  - [x] `reviewOf` หาแบบ O(n·m) ใน `SubmissionsPage.tsx`
 - Nit: CourseTabs ใช้ปุ่ม+navigate แทน Link ; `<p>` ใน `<button>` ; โค้ดผู้เยี่ยมชมที่ไม่มีทางถึงใน `CoursesPage.tsx:170` และ parity P-05/P-06/P-07/P-21 ยังเขียนว่าผู้เยี่ยมชมเห็น (ขัดกับการตัดสินใจ 17 พ.ย.) ; parity P-11 ยังเขียนว่าไม่มีไฟล์ ; Gradebook ไม่มีสถานะกำลังโหลด ; `COMING_LATER` ซ้ำ 3 ไฟล์
+- ผลแก้ (22 พ.ย. 2569):
+  - R1 กระดิ่งมี `notification-count` (9+), จุด `unread-dot` ที่ตัวกรองยังไม่อ่าน และ `tiny-dot` ต่อรายการ
+  - R2 เมนู Submissions แสดงเมื่อ `can_teach` หรือ admin (`permissions.ts`)
+  - R3 ฝั่งของ `/submissions` ตาม URL: `?side=mine` = ฝั่งผู้เรียน, เมนู My Submissions ชี้ `/submissions?side=mine`, สลับแท็บคง side ไว้, เมนูที่ active ตัดสินจาก query (`NavItem.activeWhen`)
+  - Minor: `courseStatusBadge()` ใน `types.ts` ใช้ร่วม มี fallback ; `getLesson` คืน `LessonLookup | null` (null = ไม่พบ → "ไม่พบบทเรียน", `locked` → "ต้องลงทะเบียนก่อน") `getCourse` null = ไม่พบ/มองไม่เห็น ; `metricLabels?`, `AutoCheckItem.passed` อย่างเดียว, `Review.rubric: RubricItem[]` ; รายการคืน `ListPage<T> { items, next }` รับ `PageQuery` ; กระดิ่งไปเฉพาะ path ภายใน ; `useReviewIndex` (Map) ; หมายเหตุ: กระดิ่งยังโหลดครั้งเดียวต่อ mount จนกว่าจะมี API จริง
+  - ตรวจ: `check.sh` CHECK PASS ; `scripts/ui_checks_phase3.py` (Playwright + learningApi จำลองที่มีข้อมูล) 23/23 ; `scripts/ui_checks.py` 21/21 ; admin จริงเปิด 11 route console ไม่มี error เมนู active ถูก
 
 ---
 
