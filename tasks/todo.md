@@ -444,12 +444,12 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 
 ## ระยะ 3: ส่วนที่ปล่อยว่าง
 
-### [ ] T18 `learningApi.ts` ที่คืนรายการว่าง
+### [x] T18 `learningApi.ts` ที่คืนรายการว่าง
 ไฟล์เดียวที่เป็นแหล่งข้อมูลของคอร์ส บทเรียน งานที่ส่ง คะแนน ประกาศ และการแจ้งเตือน พร้อม type ที่ตรงกับโครงข้อมูลของ mockup
 
 - เกณฑ์รับ
-  - [ ] ทุกฟังก์ชันคืนรายการว่างและมี type ครบ
-  - [ ] ไม่มีหน้าใดอ่านข้อมูลกลุ่มนี้จากที่อื่น
+  - [x] ทุกฟังก์ชันคืนรายการว่างและมี type ครบ
+  - [x] ไม่มีหน้าใดอ่านข้อมูลกลุ่มนี้จากที่อื่น
 - ตรวจ: FE
 - ขึ้นกับ: T5
 - ไฟล์: `src/lib/learningApi.ts`, `src/platform/types.ts`
@@ -457,13 +457,13 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `api-and-interface-design` (ไฟล์นี้เป็นจุดต่อกับระบบคอร์สรอบหน้า)
 - ผู้ทำ: Sonnet subagent (medium) · ชุด G
 
-### [ ] T19 หน้า Courses, Course, Lesson, Teach แบบว่าง
+### [x] T19 หน้า Courses, Course, Lesson, Teach แบบว่าง
 ย้ายโครงหน้า `CourseCatalog`, `CoursePage`, `LessonPage`, `TeachHome` ให้แสดงสถานะว่างที่บอกว่าจะเพิ่มภายหลัง
 
 - เกณฑ์รับ
-  - [ ] `/courses` แสดงหัวข้อและข้อความว่างตามแบบ mockup
-  - [ ] ผู้ที่ไม่มี `can_teach` เปิดหน้า Teach แล้วเห็นข้อความ "ต้องได้รับสิทธิ์ผู้สอน"
-  - [ ] ปุ่มสร้างคอร์สและตัวออกแบบ Lab ไม่เปิดใช้ และบันทึกในตารางเทียบว่า `ว่างตามแผน`
+  - [x] `/courses` แสดงหัวข้อและข้อความว่างตามแบบ mockup
+  - [x] ผู้ที่ไม่มี `can_teach` เปิดหน้า Teach แล้วเห็นข้อความ "ต้องได้รับสิทธิ์ผู้สอน"
+  - [x] ปุ่มสร้างคอร์สและตัวออกแบบ Lab ไม่เปิดใช้ และบันทึกในตารางเทียบว่า `ว่างตามแผน`
 - ตรวจ: FE, เปิดทุก route ตรวจ console ไม่มี error
 - ขึ้นกับ: T18
 - ไฟล์: `src/platform/pages/CoursesPage.tsx`, `src/platform/pages/TeachPage.tsx`, `src/routes.tsx`
@@ -471,18 +471,20 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
 - skill: `frontend-ui-engineering`
 - ผู้ทำ: Sonnet subagent (medium) · ชุด G
 
-### [ ] T20 หน้า Submissions, Grades, Announcements และกระดิ่งแบบว่าง
+### [x] T20 หน้า Submissions, Grades, Announcements และกระดิ่งแบบว่าง
 ย้ายโครง `SubmissionsHub`, `LearningHistory`, `Reviews`, `Gradebook`, `Announcements` และรายการแจ้งเตือน
 
 - เกณฑ์รับ
-  - [ ] แต่ละหน้าแสดงหัวข้อ แท็บสลับ และสถานะว่าง
-  - [ ] ไม่มีงานตัวอย่าง คะแนน หรือการแจ้งเตือนตัวอย่างของ mockup
+  - [x] แต่ละหน้าแสดงหัวข้อ แท็บสลับ และสถานะว่าง
+  - [x] ไม่มีงานตัวอย่าง คะแนน หรือการแจ้งเตือนตัวอย่างของ mockup
 - ตรวจ: FE, เปิดทุก route ด้วยบัญชี admin และบัญชีธรรมดา
 - ขึ้นกับ: T18
 - ไฟล์: `src/platform/pages/SubmissionsPage.tsx`, `src/platform/pages/AnnouncementsPage.tsx`, `src/platform/Header.tsx`
 - ขนาด: M
 - skill: `frontend-ui-engineering`
 - ผู้ทำ: Sonnet subagent (medium) · ชุด G
+
+ผลตรวจรับชุด G (22 พ.ย. 2569, Opus ตัวหลัก): commit `2d7ee69a` (T18), `23adf420` (T19), `95599daf` (T20) ; `scripts/check.sh` → `CHECK PASS` (pytest 324/15 SURF, lint 0 error, build, node 9) ; อ่าน diff: `learningApi.ts` คืน `[]`/`null` ทุกฟังก์ชัน type อยู่ใน `platform/types.ts` หน้าใหม่และกระดิ่งอ่านผ่าน learningApi เท่านั้น ไม่พบข้อมูลตัวอย่างของ mockup (เทียบชื่อ title ใน `platform.mjs`) ; บัญชี admin จริงเปิด 8 route ใหม่ แสดงสถานะว่าง console ไม่มี error ; Playwright จำลองผู้เรียน: `/teach` และ `/teach/:id` ขึ้น "ต้องได้รับสิทธิ์ผู้สอน" เมนูมี My Submissions กระดิ่ง "ไม่มีการแจ้งเตือน" ไม่มี error ; ไฟล์นอกรายการ: `routes.tsx` ใน T20 (ลงทะเบียน route, `PLANNED_PATHS` เหลือ `[]` คงกลไก NotReadyPage ไว้) และ `parity.md`
 
 ### จุดตรวจ 3
 - [ ] agent: `agent-skills:code-reviewer`
