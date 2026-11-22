@@ -231,9 +231,10 @@ export function Header({ theme, onToggleTheme }: { theme: PlatformTheme; onToggl
                     setAccountOpen(false);
                     // ออกจากระบบแล้วกลับหน้าแรก (ไม่ให้ RequireAuth พาไป /login?next=หน้าเดิม)
                     // ถ้า POST /api/auth/logout ล้ม AuthContext ล้าง user แล้ว ก็ยังกลับหน้าแรกเหมือนกัน
-                    void logout()
-                      .catch(() => undefined)
-                      .then(() => navigate('/', { replace: true }));
+                    // ไป "/" (หน้าสาธารณะ) ก่อนล้าง user: ถ้าล้างก่อน RequireAuth ของหน้าปัจจุบันจะพาไป /login?next= ก่อน navigate
+                    // flushSync: ให้ React render "/" เสร็จก่อน (ไม่อย่างนั้น setUser(null) อาจถึงก่อนแล้วยังไปหน้า login)
+                    navigate('/', { replace: true, flushSync: true });
+                    void logout().catch(() => undefined);
                   }}
                 >
                   <LogOut size={16} />
