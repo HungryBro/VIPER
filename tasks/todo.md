@@ -611,8 +611,51 @@ skill ที่ใช้ทุก task (ไม่เขียนซ้ำใน�
   - ไฟล์นอกรายการ: `scripts/build_parity_report.mjs` นับสถานะแถว R ตามคำนำหน้า (ผ่าน/ไม่ผ่าน) เพราะช่องสถานะมีหมายเหตุจาก T23 ต่อท้าย
 
 ### จุดตรวจสุดท้าย
-- [ ] agent: `agent-skills:code-reviewer`, `agent-skills:test-engineer`, `agent-skills:security-auditor` + `/code-review` กับ diff ทั้ง branch
-- [ ] BE ล้มไม่เกิน 15 รายการเดิม, FE ไม่มี error
-- [ ] `verify_migration.py` เป็น PASS ทุกข้อ
+- [x] agent: `agent-skills:code-reviewer`, `agent-skills:test-engineer`, `agent-skills:security-auditor` + `/code-review` (ระดับ high ตามที่ผู้ใช้สั่ง) ขอบเขต `e8aae3cf..HEAD` ตามที่ผู้ใช้เลือก (ไม่รวม untangle refactor ก่อนแผน) ผลอยู่ด้านล่าง
+- [x] BE ล้มไม่เกิน 15 รายการเดิม, FE ไม่มี error (check.sh: pytest 347/15 SURF, lint 0 error, build, node 9)
+- [x] `verify_migration.py` เป็น PASS ทุกข้อ (14/14)
 - [ ] ผู้ใช้เปิด `outputs/parity-report/index.html` แล้วอนุมัติ
 - [ ] ยังไม่ merge เข้า `main` จนกว่าผู้ใช้จะอนุมัติ
+
+#### ผลรีวิวจุดตรวจสุดท้าย (23 พ.ย. 2569) รอผู้ใช้ตัดสินก่อนแก้ ยังไม่ได้แก้ข้อใด
+
+ตรวจซ้ำโดยตัวหลักแล้วทุกข้อที่ติดป้าย "ยืนยัน" ; [CR] = code-reviewer, [TE] = test-engineer, [SA] = security-auditor, [/cr] = /code-review high ; รวมข้อที่ซ้ำกันไว้ข้อเดียว
+
+**Critical**
+- [ ] F1 [SA C1] (ยืนยัน) รันโค้ดบน server ได้ผ่านไฟล์ .pt ที่อัปโหลด: `/api/upload` รับ `.pt/.pth` (C2) และคืน `path` จริง (`server/main.py:154`) ; `_resolve_model` (`server/algos/detection/yolo_adapter.py:36`) รับ absolute path ใดก็ได้ ; Ultralytics 8.4.112 ตั้ง `weights_only=False` เอง (`ultralytics/utils/patches.py:178-179`) และโปรเจกต์ไม่ได้ตั้ง `ULTRALYTICS_SAFE_LOAD` ; ผู้ใช้ที่ login แล้วอัปโหลด pickle แล้วเรียก `/api/detection/detect` (หรือ gradcam/train/evaluation) ด้วย `model_path` นั้น = รันโค้ด อ่าน `.env` ได้ ; มีก่อนแผน (save_upload เดิมรับทุกนามสกุล) แต่ C2 รับ .pt อย่างเป็นทางการ ; ร้ายแรงกว่าข้อ torch.load ที่จดในงานรอบถัดไป ; ทางแก้ที่เสนอ: ตั้ง `ULTRALYTICS_SAFE_LOAD=1`, จำกัด `model_path` ให้อยู่ใต้ `models/` และผลเทรนใน `OUT/detection/train`, ตัด `path` ออกจาก response ของ `/api/upload` (ต้องตรวจว่า node ใดใช้ `path` อยู่), U-Net โหลดด้วย `weights_only=True` อย่างเดียว ; SA แนะนำให้แก้ก่อน merge
+
+**High / Important**
+- [ ] F2 [TE H1, SA I2] (ยืนยัน) เทสต์อาจเขียนลง PostgreSQL จริงถ้าลำดับ import เปลี่ยน: `tests/conftest.py` ไม่ตั้ง `AUTO_CREATE_TABLES=false` ; `test_node_defaults.py`, `test_platform_models.py`, `test_yolo_adapter.py` import `server.*` โดยไม่ตั้ง env ; เทสต์ของแผนใช้ `with TestClient(app)` ซึ่งรัน lifespan (create_all, ALTER, seed) บน engine จริง ; รันเต็มชุดตอนนี้ปลอดภัยเพราะ `test_admin_audit_logs.py` ถูก collect ก่อน แต่ `pytest tests/test_node_defaults.py tests/test_templates_api.py` จะชนฐานจริง ; แก้: ตั้ง env ใน `conftest.py` บนสุด
+- [ ] F3 [/cr, CR M4, SA M1] `/api/upload` อ่านทุกไฟล์ในชุดเก็บใน list `checked` ก่อนเขียน (`server/main.py:136-144`) และไม่มีเพดานขนาดหรือจำนวนไฟล์ ; โค้ดเดิมอ่าน/เขียนทีละไฟล์ จุดสูงสุดของหน่วยความจำจึงแย่ลง ; workflow JSON ของ template ก็ไม่จำกัดขนาด (`schemas.py` WorkflowDocument) ; แก้: เขียนไฟล์ชั่วคราวระหว่างตรวจแล้ว rename, เพดานต่อไฟล์/ต่อชุด ตอบ 413
+
+**Medium / Minor**
+- [ ] F4 [CR M3, SA L1] (ยืนยันโดย SA: PNG 140 KB ขนาด 12000×12000 ผ่าน ใช้ RAM ~335 MB) ปกไม่จำกัดจำนวนพิกเซล `save_reencoded_cover` (`server/utils_io.py`) ; แก้: ตรวจ `image.size` ก่อน `load()` (เช่นไม่เกิน 25 ล้านพิกเซล) ตอบ 422
+- [ ] F5 [CR 1] (ยืนยัน) ErrorBoundary มีที่ route รากจุดเดียว (`routes.tsx:29`) error ตอน render ในหน้าแพลตฟอร์มใดจะแทน `App` ทั้งก้อน `LabHost` ถูก unmount งานที่รัน undo/Log/clipboard หาย ขัดการตัดสินใจข้อ 9 ; แก้: ErrorBoundary ที่ route `Layout`
+- [ ] F6 [CR 2] (ยืนยัน) ลิงก์ "Templates" ในหน้าต่างบันทึกสำเร็จของ Save Template (`SaveTemplateDialog.tsx:76`) ไม่เรียก `onClose` dialog ค้างใน Lab ที่ซ่อน กลับมา /lab ยังเปิดอยู่และ hotkey ใช้ไม่ได้จนปิดเอง ; แก้: `onClick={onClose}`
+- [ ] F7 [TE M1] ยังไม่มีเทสต์: เลื่อน template ที่ workflow ว่างเป็น Official ต้องได้ 422
+- [ ] F8 [TE M2, L8] ยังไม่มีเทสต์ re-encode ปก: EXIF orientation, MPO, CMYK ; และ MPO ใน `/api/upload`
+- [ ] F9 [TE M3, M4, L5, L6] ไม่มี unit test ฝั่ง frontend ของ `templateAccess.ts`, `permissions.ts` (navItemsFor/activeWhen), ส่วน sessionStorage ของ `safeNext.ts` (`takeNext` อ่านครั้งเดียว หมดอายุ ตรวจซ้ำ), `theme.ts`, `labBridge.ts`, `learningApi.ts`
+- [ ] F10 [TE M5, M6] สคริปต์ UI: เช็ก A2 ใน `ui_checks.py` ผ่านได้แม้ไม่มี guard เพราะ `time.sleep` ใน route handler บล็อก dispatcher ; `ui_checks_phase3.py` exit 0 เสมอแม้มี FAIL ; ทั้งสองไม่อยู่ใน `check.sh` (จะเพิ่มหรือไม่ = ผู้ใช้ตัดสิน)
+- [ ] F11 [TE M7, L7] guard read-only ของ `verify_migration.py` ทดสอบแค่ SQLite ไม่มีเทสต์ branch PostgreSQL (`default_transaction_read_only=on`) และ branch RuntimeError ; ตัวกรอง JSON ของ `counted_run_conditions` ทดสอบแค่ SQLite
+
+**Low**
+- [ ] F12 [/cr, SA L4a] Lab tabs ใน `localStorage['n2n_app_tabs']` ใช้ร่วมกันทุกบัญชีในเบราว์เซอร์เดียว logout แล้วคนถัดไปเห็น workflow ของคนก่อน (มีก่อนแผน, mockup review B6) ; แก้: key ต่อ user id หรือล้างตอน logout (ต้องตัดสินเรื่องแท็บที่มีอยู่)
+- [ ] F13 [SA L2] `/api/upload` คืน path จริงบนเครื่อง (ชื่อบัญชี OS) มีก่อนแผน ; รวมกับ F1
+- [ ] F14 [SA L3] workflow ที่โหลดจาก template ไม่ถูก sanitize ตอนโหลด (`LabPage.tsx:300`) เจ้าของ Public/ผู้สอนที่แก้ Official ใส่ `style`/`className` และ URL รูปภายนอก (`https:`/`data:`) ได้ ; ไม่พบ script XSS
+- [ ] F15 [SA L4b] session แบบ stateless: logout ล้างแค่ cookie ในเบราว์เซอร์นั้น cookie ที่หลุดใช้ได้ถึง 8 ชม. ; แก้ถ้าต้องการ: `session_version` ใน users
+- [ ] F16 [/cr] ผู้สอนลบ Official ที่ seed ไว้ได้ถาวร ไม่มีทางกู้ในแอป (seed ไม่สร้างแถวที่ลบแล้ว) ; ตรงกับการตัดสินใจข้อ 7 หรือไม่ ต้องการปุ่มกู้คืน (admin) หรือให้ลบแถวที่มี `official_key` ได้เฉพาะ admin
+- [ ] F17 [TE L1–L4, L9] เทสต์ย่อย: `q` กับ `_` และ display_name, escape ของ `action_prefix`, `expose_headers`, การลบชนกัน (rowcount != 1), `pytest.raises(Exception)` กว้างไป
+- [ ] F18 [SA I1, I3] ไม่มี CSP / frame-ancestors ; `resolve_image_path` รับ absolute path ใดก็ได้ อ่านไฟล์ภาพที่ไหนก็ได้บนเครื่อง (นอก diff)
+
+**Nit**
+- [ ] F19 [/cr] admin แก้ `can_teach` ของตัวเองแล้ว AuthContext ไม่ refresh เมนูยังเก่าจน reload (`UsersPage.tsx:57`)
+- [ ] F20 [/cr] เปิด /lab แล้วไปหน้าอื่น หน้ามี Header 2 ชุด (ซ่อน 1) skip link 2 อัน AdminUserPanel 2 ตัว `listNotifications` 2 ครั้ง (`App.tsx:67`)
+- [ ] F21 [CR 5] skip link บน /lab ไม่มีปลายทาง `id="main"`
+- [ ] F22 [CR 6] แก้ template แล้ว PATCH สำเร็จแต่อัปโหลดปกล้ม การ์ดยังแสดงชื่อเดิมจน reload (`TemplatesPage.tsx:160-171`)
+- [ ] F23 [CR 7] `hasPendingNext()` ไม่มีผู้เรียก (จดไว้ ห้ามลบตามข้อห้าม)
+
+**ตรวจ ab4e0513 (untangle refactor ก่อนแผน) ตามที่ผู้ใช้สั่ง: ไฟล์ที่ถูกลบมีของแทนหรือไม่** (ลบ 94 ไฟล์)
+- `Image-to-Descriptor/image/` 70 ไฟล์ (รูปตัวอย่าง 68 + `.DS_Store` 1 + `IMG_2747` ไม่มีนามสกุล): เทียบ hash กับทุกไฟล์รูปบนดิสก์ (2,058 ไฟล์ ไม่รวม node_modules, .venv, parity-report) **พบสำเนา 1 ไฟล์**: `FullMoon2010.jpg` = `outputs/samples/Moonsample.jpg` (รูปของ template Otsu/Snake) ; **อีก 69 ไฟล์ไม่มีสำเนาใน working tree** อยู่ใน git history เท่านั้น (`ab4e0513^` และ `main` ยังมีโฟลเดอร์นี้) ; ไม่มีโค้ด เทสต์ หรือ template ใดอ้างถึงชื่อไฟล์เหล่านี้หรือ `Image-to-Descriptor` เลย (คำว่า monkey ที่พบคือ `monkeypatch`) ; ถ้า merge เข้า main รูปเหล่านี้จะหายจาก tree กู้ได้ด้วย `git checkout ab4e0513^ -- Image-to-Descriptor/image` → **ผู้ใช้ตัดสิน: ปล่อยให้อยู่ใน history หรือย้ายไปเก็บ (เช่น `outputs/samples/` ซึ่งถูก gitignore)**
+- `Image-to-Descriptor/tools/` 13 ไฟล์: เป็นสคริปต์ CLI แยก (ใช้ matplotlib, `sys.argv`) ที่ server ไม่เคยเรียก (git grep ใน `ab4e0513^` ไม่พบการอ้างถึง) ; ฝั่ง server มี adapter ของแต่ละตัวอยู่ก่อน refactor แล้ว: SIFT/ORB/SURF → `server/algos/feature/*_adapter.py`, BFMatcher/FLANN → `server/algos/matching/`, Affine/Homography → `server/algos/ObjectAlignment/`, BRISQUE/PSNR/SSIM → `server/algos/quality/` (ไม่ใช่สำเนา ความคล้ายของข้อความ 0.01–0.31 เป็นคนละ implementation) ; `brisque_models/*.yml` 2 ไฟล์ hash ตรงกับ `server/algos/quality/brisque_models/` ; **HOG.py ไม่มีของแทน** (ไม่เคยเป็นโหนดใน Lab และไม่มี adapter) อยู่ใน history เท่านั้น
+- `my-react-flow-app/src/lib/templates/*.ts` 9 ไฟล์ + `workflowTemplates.ts`: template 12 รายการย้ายไป `server/official_templates.json` ครบ (id ของโหนดทุกตัวตรงกับ TS เดิม) ; enabled 9 รายการ seed เข้า DB (verify_migration: 9/9 มี workflow) ; disabled 3 รายการ (CLAHE, Real-ESRGAN, DeepLab V3+) ตามกลุ่มโหนดที่ซ่อน คงอยู่ใน JSON
+- `.DS_Store` 2 ไฟล์: ไฟล์ระบบ ไม่ต้องมีของแทน
