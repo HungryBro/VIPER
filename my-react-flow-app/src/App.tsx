@@ -51,7 +51,7 @@ function LabHost() {
 
   return (
     <div
-      className={headerCollapsed ? 'viper-lab-host lab-header-collapsed' : 'viper-lab-host'}
+      className={['viper-lab-host', headerCollapsed && 'lab-header-collapsed', !onLab && 'viper-lab-host--hidden'].filter(Boolean).join(' ')}
       aria-hidden={!onLab || undefined}
       inert={!onLab}
       style={onLab ? undefined : { position: 'fixed', inset: 0, visibility: 'hidden', pointerEvents: 'none' }}

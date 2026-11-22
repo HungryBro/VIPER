@@ -83,6 +83,8 @@ export default function TemplateDetail({
   };
 
   const remove = async (comment: TemplateComment) => {
+    // ลบแล้วกู้คืนไม่ได้ ต้องยืนยันก่อน เหมือนคลัง template ใน Lab (R-30 พบใน T23 ว่าหน้านี้ไม่มีกล่องยืนยัน)
+    if (!window.confirm('ลบความคิดเห็นนี้? ลบแล้วกู้คืนไม่ได้')) return;
     setRemovingId(comment.id);
     try {
       await deleteTemplateComment(template.id, comment.id);

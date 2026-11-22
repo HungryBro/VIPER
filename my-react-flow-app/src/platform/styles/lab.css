@@ -26,3 +26,10 @@
 .viper-lab-host.lab-header-collapsed > .viper-lab-platform-header {
   display: none;
 }
+/* ตอนอยู่ route อื่น editor ค้าง mount แต่ซ่อน (LabHost) React Flow ใส่ visibility: visible แบบ inline ให้ทุกโหนด
+   ซึ่งชนะ visibility: hidden ที่สืบทอดจาก host โหนดจึงลอยทับหน้าอื่น (พบใน T23) จึงบังคับทั้ง subtree ด้วย !important */
+.viper-lab-host--hidden,
+.viper-lab-host--hidden * {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
