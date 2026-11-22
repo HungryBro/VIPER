@@ -33,8 +33,9 @@
   --blue: #94b0ff;
   --blue-soft: #283653;
   --blue-ink: #adc1ff;
-  --action: #526fe0;
-  --action-hover: #5a73dc;
+  /* T24: เดิม #526fe0 / #5a73dc (ตาม mockup) ตัวอักษรขาวบนปุ่มได้ 4.46:1 / 4.27:1 ต่ำกว่า WCAG AA 4.5:1 เข้มขึ้นเล็กน้อยให้ผ่าน */
+  --action: #506ddf;
+  --action-hover: #546fd6;
   --teal: #8ed3ad;
   --teal-soft: #233c32;
   --amber: #ebc378;
@@ -241,6 +242,10 @@
 .viper-platform .submission-metrics>span { background: var(--subtle); border-radius: 6px; }
 .viper-platform .snapshot-nodes>div { border-radius: 6px; }
 .viper-platform .table-scroll { padding: 0; border-radius: 9px; }
+/* T24: App.css (สร้างจาก mockup) ใส่สี #7b91ae ตายตัว ธีมสว่างได้ 2.91:1 ใช้ token --muted แทนเพื่อให้อ่านได้ทั้งสองธีม */
+.viper-platform .brand-small { color: var(--muted); }
+/* T24: ให้กล่องเลื่อนเป็น containing block ของ .sr-only (position:absolute) ในหัวตาราง ไม่อย่างนั้นหลุดกล่องแล้วทำให้หน้ากว้างเกินจอ 375px (/logs) */
+.viper-platform .table-scroll { position: relative; }
 .viper-platform table { font-size: 12px; width: 100%; }
 .viper-platform th { font-size:12px; font-weight: 600; padding: 14px 18px; background: var(--subtle); }
 .viper-platform td { padding: 18px; font-size: 12px; }
