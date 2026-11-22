@@ -107,7 +107,9 @@ const count = (list, s) => list.filter((r) => r.status === s).length;
 const unknown = pc.filter((r) => !STATUSES.includes(r.status));
 if (unknown.length) throw new Error('สถานะไม่รู้จัก: ' + unknown.map((r) => `${r.id}=${r.status}`).join(', '));
 const rStatus = {};
-for (const r of rr) rStatus[r.status] = (rStatus[r.status] ?? 0) + 1;
+// T25: ช่องสถานะของแถว R มีหมายเหตุผลตรวจต่อท้าย (T23) นับตามคำนำหน้า ผ่าน / ไม่ผ่าน / ยังไม่ตรวจ
+const rKey = (s) => (s.match(/^(ไม่ผ่าน|ผ่าน|ยังไม่ตรวจ)/) ?? [s])[0];
+for (const r of rr) rStatus[rKey(r.status)] = (rStatus[rKey(r.status)] ?? 0) + 1;
 
 const data = readJson(path.join(OUT, 'data.json'));
 let dataHtml = '<p class="warn">ไม่พบ data.json</p>';
