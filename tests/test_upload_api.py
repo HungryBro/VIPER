@@ -87,9 +87,11 @@ def test_every_previously_accepted_type_uploads_with_unchanged_bytes(client, nam
     assert response.status_code == 200
     saved = response.json()["files"][0]
     assert saved["name"] == name
-    assert saved["path"].endswith(ext)
     assert saved["url"].endswith(ext)
-    with open(saved["path"], "rb") as handle:
+    # F13: "path" is the /static URL (the processing routes resolve it), not the path on the server
+    assert saved["path"] == saved["url"]
+    assert not saved["path"].startswith(str(client.upload_dir))
+    with open(os.path.join(client.upload_dir, os.path.basename(saved["url"])), "rb") as handle:
         assert handle.read() == body
 
 
@@ -121,3 +123,56 @@ def test_a_batch_with_one_bad_file_writes_nothing(client):
 
     assert response.status_code == 422
     assert os.listdir(client.upload_dir) == []
+
+
+# ---- F3 (final checkpoint): size and count limits; files stream to disk, nothing left behind
+
+
+def test_a_file_over_the_size_limit_is_413_and_nothing_is_written(client, monkeypatch):
+    monkeypatch.setattr("server.main.MAX_UPLOAD_FILE_BYTES", 200)
+    monkeypatch.setattr("server.main.UPLOAD_CHUNK_BYTES", 64)
+    big = image_bytes("BMP")  # uncompressed 9x7 BMP: over 200 bytes; the PNG is under
+    assert len(big) > 200 > len(image_bytes("PNG"))
+
+    response = client.post(
+        "/api/upload",
+        files=[
+            ("files", ("small.png", image_bytes("PNG"), "image/png")),
+            ("files", ("big.bmp", big, "image/bmp")),
+        ],
+    )
+
+    assert response.status_code == 413
+    assert "big.bmp" in response.json()["detail"]
+    assert os.listdir(client.upload_dir) == []
+
+
+def test_a_batch_over_the_total_limit_is_413(client, monkeypatch):
+    monkeypatch.setattr("server.main.MAX_UPLOAD_BATCH_BYTES", len(image_bytes("PNG")) + 10)
+    files = [("files", (f"p{i}.png", image_bytes("PNG"), "image/png")) for i in range(3)]
+
+    response = client.post("/api/upload", files=files)
+
+    assert response.status_code == 413
+    assert os.listdir(client.upload_dir) == []
+
+
+def test_more_files_than_the_count_limit_is_413(client, monkeypatch):
+    monkeypatch.setattr("server.main.MAX_UPLOAD_FILES", 2)
+    files = [("files", (f"p{i}.png", image_bytes("PNG"), "image/png")) for i in range(3)]
+
+    response = client.post("/api/upload", files=files)
+
+    assert response.status_code == 413
+    assert os.listdir(client.upload_dir) == []
+
+
+def test_a_batch_within_the_limits_keeps_its_order_and_leaves_no_part_files(client):
+    names = [f"img{i}.png" for i in range(5)]
+    response = client.post("/api/upload", files=[("files", (name, image_bytes("PNG"), "image/png")) for name in names])
+
+    assert response.status_code == 200
+    assert [item["name"] for item in response.json()["files"]] == names
+    stored = os.listdir(client.upload_dir)
+    assert len(stored) == 5
+    assert not any(name.endswith(".part") for name in stored)

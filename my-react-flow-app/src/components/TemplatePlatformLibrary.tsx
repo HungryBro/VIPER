@@ -584,7 +584,8 @@ export default function TemplatePlatformLibrary({
           const canManageOfficial = isAdmin || canTeach(user);
           const canManageSettings = template.is_official ? canManageOfficial : isOwner || isAdmin;
           // ลบได้: Official = admin/ผู้สอน, template ทั่วไป = เจ้าของเท่านั้น (ตรงกับ DELETE /api/templates/{id})
-          const canDelete = template.is_official ? canManageOfficial : isOwner;
+          // F16: Official ที่ seed ไว้ (มี official_key) ลบได้เฉพาะ admin
+          const canDelete = template.is_official ? (template.official_key ? isAdmin : canManageOfficial) : isOwner;
           const commentsOpen = openCommentsId === template.id;
           const comments = commentsByTemplate[template.id];
           const commentsLoading = commentsLoadingId === template.id;

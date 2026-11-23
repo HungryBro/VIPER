@@ -69,6 +69,8 @@ def test_evaluator_reads_yolo_labels_runs_model_and_writes_result(tmp_path: Path
     dataset_yaml = make_validation_dataset(tmp_path)
     model_path = tmp_path / "best.pt"
     model_path.write_bytes(b"model")
+    # F1: weights load only from allowed folders; this test keeps its model in tmp_path
+    monkeypatch.setattr(yolo_adapter, "allowed_model_roots", lambda: (tmp_path.resolve(),))
     model = FakeModel()
     monkeypatch.setattr(yolo_adapter, "_load_yolo", lambda _: model)
 

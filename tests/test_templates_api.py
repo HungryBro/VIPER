@@ -831,6 +831,9 @@ def delete_logs(engine) -> list[AuditLog]:
 
 
 def test_admin_and_instructor_delete_official_and_learner_cannot():
+    # F16 (final checkpoint): a seeded Official (official_key set) is never recreated once
+    # deleted, so only an admin deletes one. An instructor still deletes an Official they
+    # created themselves (no official_key); a learner deletes no Official.
     engine = make_engine()
     Base.metadata.create_all(engine)
     admin = add_user(engine, "admin", "admin@example.com", role="admin")
@@ -851,11 +854,18 @@ def test_admin_and_instructor_delete_official_and_learner_cannot():
             revoked_delete = client.delete(f"/api/templates/{first_id}")
 
             authenticate(client, teacher.id)
-            teacher_delete = client.delete(f"/api/templates/{first_id}")
-            teacher_again = client.delete(f"/api/templates/{first_id}")
+            teacher_seeded_delete = client.delete(f"/api/templates/{first_id}")
+            created = client.post(
+                "/api/templates",
+                json={"name": "Teacher official", "is_official": True, "workflow": workflow()},
+            )
+            own_id = created.json()["id"]
+            teacher_own_delete = client.delete(f"/api/templates/{own_id}")
+            teacher_own_again = client.delete(f"/api/templates/{own_id}")
 
             authenticate(client, admin.id)
-            admin_delete = client.delete(f"/api/templates/{second_id}")
+            admin_delete = client.delete(f"/api/templates/{first_id}")
+            admin_second = client.delete(f"/api/templates/{second_id}")
             admin_again = client.delete(f"/api/templates/{first_id}")
 
             authenticate(client, learner.id)
@@ -863,14 +873,19 @@ def test_admin_and_instructor_delete_official_and_learner_cannot():
 
         assert learner_delete.status_code == 403
         assert revoked_delete.status_code == 403
-        assert teacher_delete.status_code == 204
-        assert teacher_delete.content == b""
-        assert teacher_again.status_code == 404
+        assert teacher_seeded_delete.status_code == 403
+        assert teacher_seeded_delete.json()["detail"] == "Only an admin can delete a built-in Official template"
+        assert created.status_code == 201
+        assert teacher_own_delete.status_code == 204
+        assert teacher_own_delete.content == b""
+        assert teacher_own_again.status_code == 404
         assert admin_delete.status_code == 204
+        assert admin_second.status_code == 204
         assert admin_again.status_code == 404
         remaining = [item["id"] for item in official_after.json()]
         assert first_id not in remaining
         assert second_id not in remaining
+        assert own_id not in remaining
         assert third_id in remaining
         assert len(remaining) == len(OFFICIAL_TEMPLATE_CATALOG) - 2
 
@@ -882,20 +897,24 @@ def test_admin_and_instructor_delete_official_and_learner_cannot():
             assert second.deleted_at is not None
             assert first.is_official is True
             assert first.official_key
+            assert db.get(Template, own_id).deleted_at is not None
+            assert db.get(Template, own_id).official_key is None
             assert db.get(Template, third_id).deleted_at is None
 
         logs = delete_logs(engine)
         assert [(log.actor_id, log.target_id) for log in logs] == [
-            (teacher.id, str(first_id)),
+            (teacher.id, str(own_id)),
+            (admin.id, str(first_id)),
             (admin.id, str(second_id)),
         ]
-        assert logs[0].target_type == "template"
-        assert logs[0].status_code == 204
-        assert logs[0].details["is_official"] is True
-        assert logs[0].details["name"] == official[0]["name"]
-        assert logs[0].details["official_key"] == official[0]["official_key"]
-        assert logs[0].details["deleted_by"] == {"id": teacher.id, "display_name": "teacher"}
+        assert logs[1].target_type == "template"
+        assert logs[1].status_code == 204
+        assert logs[1].details["is_official"] is True
+        assert logs[1].details["name"] == official[0]["name"]
+        assert logs[1].details["official_key"] == official[0]["official_key"]
         assert logs[1].details["deleted_by"] == {"id": admin.id, "display_name": "admin"}
+        assert logs[0].details["official_key"] is None
+        assert logs[0].details["deleted_by"] == {"id": teacher.id, "display_name": "teacher"}
     finally:
         app.dependency_overrides.clear()
 

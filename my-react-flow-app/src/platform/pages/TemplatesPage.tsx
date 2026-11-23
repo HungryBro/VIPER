@@ -19,7 +19,7 @@ import {
   type TemplateVisibility,
 } from '../../lib/templateApi';
 import '../styles/Templates.css';
-import { canManageTemplate, canToggleComments, kindOf } from '../templateAccess';
+import { canDeleteTemplate, canManageTemplate, canToggleComments, kindOf } from '../templateAccess';
 import { Avatar, VisibilityBadge } from '../TemplateBadges';
 import TemplateDetail from '../TemplateDetail';
 import { useOpenInLab } from '../useOpenInLab';
@@ -125,6 +125,7 @@ function DeleteDialog({
 function EditDialog({
   template,
   canManage,
+  canDelete,
   canComments,
   onClose,
   onSaved,
@@ -132,6 +133,7 @@ function EditDialog({
 }: {
   template: TemplateSummary;
   canManage: boolean;
+  canDelete: boolean;
   canComments: boolean;
   onClose: () => void;
   onSaved: () => void;
@@ -221,7 +223,7 @@ function EditDialog({
             )}
           </fieldset>
           {canComments && <CommentSwitch template={template} on={commentsOn} onToggle={() => setCommentsOn((value) => !value)} />}
-          {canManage && (
+          {canDelete && (
             <div className="template-delete-section">
               <Button kind="secondary" type="button" className="danger" onClick={onAskDelete}>
                 <Trash2 size={15} />
@@ -422,6 +424,7 @@ export default function TemplatesPage() {
         <EditDialog
           template={editing}
           canManage={canManageTemplate(user, editing)}
+          canDelete={canDeleteTemplate(user, editing)}
           canComments={canToggleComments(user, editing)}
           onClose={() => setEditingId(null)}
           onSaved={() => {

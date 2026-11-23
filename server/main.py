@@ -99,6 +99,13 @@ app.add_middleware(
 
 ensure_dirs(UPLOAD_DIR)
 
+# F3: /api/upload limits. 200 MB per file covers model weights (.pt/.pth) for the U-Net node;
+# 200 files and 1 GB per request leave room for a YOLO dataset picked in Multi Image Input.
+MAX_UPLOAD_FILE_BYTES = 200 * 1024 * 1024
+MAX_UPLOAD_BATCH_BYTES = 1024 * 1024 * 1024
+MAX_UPLOAD_FILES = 200
+UPLOAD_CHUNK_BYTES = 1024 * 1024
+
 
 @app.middleware("http")
 async def static_nosniff(request: Request, call_next):
@@ -133,26 +140,58 @@ async def api_upload(files: list[UploadFile] = File(...)):
     # The type comes from the bytes and the server picks the extension; the bytes
     # are stored unchanged, so the image a node processes is the one uploaded.
     # Every file is checked before any is written, so a rejected batch leaves nothing behind.
-    checked = []
-    for f in files:
-        contents = await f.read()
-        try:
-            ext = checked_upload_extension(f.filename, contents)
-        except UploadRejected as exc:
-            raise HTTPException(status_code=422, detail=f"{f.filename}: {exc}") from exc
-        checked.append((f.filename, ext, contents))
-
+    # F3: each file streams to a temporary ".part" file in chunks with size limits, so memory
+    # holds one file at most; the batch is renamed into place only when every file passed.
+    if len(files) > MAX_UPLOAD_FILES:
+        raise HTTPException(status_code=413, detail=f"Upload at most {MAX_UPLOAD_FILES} files at a time")
     ensure_dirs(UPLOAD_DIR)
-    saved = []
-    for filename, ext, contents in checked:
-        path = os.path.join(UPLOAD_DIR, f"{uuid.uuid4().hex}{ext}")
-        with open(path, "wb") as out:
-            out.write(contents)
+    parts: list[tuple[str, str, str]] = []  # (client filename, temporary path, extension)
+    try:
+        total = 0
+        for f in files:
+            part = os.path.join(UPLOAD_DIR, f"{uuid.uuid4().hex}.part")
+            parts.append((f.filename, part, ""))
+            size = 0
+            with open(part, "wb") as out:
+                while chunk := await f.read(UPLOAD_CHUNK_BYTES):
+                    size += len(chunk)
+                    total += len(chunk)
+                    if size > MAX_UPLOAD_FILE_BYTES:
+                        raise HTTPException(
+                            status_code=413,
+                            detail=f"{f.filename}: each file must be {MAX_UPLOAD_FILE_BYTES // (1024 * 1024)} MB or smaller",
+                        )
+                    if total > MAX_UPLOAD_BATCH_BYTES:
+                        raise HTTPException(
+                            status_code=413,
+                            detail=f"One upload must be {MAX_UPLOAD_BATCH_BYTES // (1024 * 1024)} MB or smaller in total",
+                        )
+                    out.write(chunk)
+            with open(part, "rb") as written:
+                contents = written.read()
+            try:
+                ext = checked_upload_extension(f.filename, contents)
+            except UploadRejected as exc:
+                raise HTTPException(status_code=422, detail=f"{f.filename}: {exc}") from exc
+            parts[-1] = (f.filename, part, ext)
+    except BaseException:
+        for _, part, _ in parts:
+            if os.path.exists(part):
+                os.remove(part)
+        raise
 
+    saved = []
+    for filename, part, ext in parts:
+        path = os.path.join(UPLOAD_DIR, f"{uuid.uuid4().hex}{ext}")
+        os.replace(part, path)
+        url = static_url(path)
         saved.append({
             "name": filename,
-            "path": path,                 
-            "url": static_url(path)
+            # F13: "path" was the absolute path on the server (folders and the OS account name).
+            # Every processing route resolves /static/... to the file (resolve_image_path), and
+            # the Image Input nodes send this value as image_path, so it is the same URL now.
+            "path": url,
+            "url": url,
         })
     return {"files": saved}
 

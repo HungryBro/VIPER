@@ -34,6 +34,14 @@ def _require_file(value: str, label: str) -> Path:
     return path
 
 
+def allowed_model_roots() -> tuple[Path, Path]:
+    """Folders YOLO weights may be loaded from: bundled models and this app's training runs."""
+    return (
+        (PROJECT_ROOT / "models").resolve(),
+        (Path(utils_io.OUT) / "detection" / "train").resolve(),
+    )
+
+
 def _resolve_model(value: str) -> str:
     """Resolve local weights or keep an Ultralytics model alias unchanged."""
     model_value = (value or DEFAULT_MODEL).strip()
@@ -43,6 +51,12 @@ def _resolve_model(value: str) -> str:
         if not candidate.is_absolute():
             candidate = PROJECT_ROOT / candidate
         candidate = candidate.resolve()
+        # F1: weights load only from the bundled models folder or from this app's own
+        # training runs, never from uploads or anywhere else a client can name.
+        if not any(candidate.is_relative_to(root) for root in allowed_model_roots()):
+            raise ValueError(
+                "YOLO model must be under models/ or a training run in outputs/detection/train"
+            )
         if not candidate.is_file():
             raise FileNotFoundError(f"YOLO model not found: {candidate}")
         return str(candidate)

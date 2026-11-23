@@ -73,7 +73,7 @@ export default function SaveTemplateDialog({
                 บันทึก Template <strong>{savedName}</strong> แล้ว
               </p>
               <p>
-                ดูได้ในแท็บ "ของฉัน" ที่หน้า <Link to="/templates">Templates</Link>
+                ดูได้ในแท็บ "ของฉัน" ที่หน้า <Link to="/templates" onClick={onClose}>Templates</Link>
               </p>
             </div>
             <div className="modal-actions">

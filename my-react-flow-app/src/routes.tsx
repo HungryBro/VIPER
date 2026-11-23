@@ -40,6 +40,8 @@ export const router = createBrowserRouter([
       },
       {
         Component: Layout,
+        // F5: error ของหน้าแพลตฟอร์มแสดงในกรอบนี้แทน App ทั้งก้อน LabHost จึงยัง mount อยู่ (การตัดสินใจข้อ 9)
+        ErrorBoundary: RootErrorBoundary,
         children: [
           { index: true, Component: HomeRoute },
           {

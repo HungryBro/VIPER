@@ -12,7 +12,11 @@ type MaybeUser = AuthUser | null | undefined;
 export const canManageTemplate = (user: MaybeUser, template: TemplateSummary): boolean =>
   template.is_official ? isAdmin(user) || canTeach(user) : user?.id === template.owner_id;
 
-const isSomeoneElsesPrivate = (user: MaybeUser, template: TemplateSummary): boolean =>
+// ลบ: เหมือน canManageTemplate ยกเว้น Official ที่ seed ไว้ (มี official_key) ลบได้เฉพาะ admin (F16, server ตอบ 403)
+export const canDeleteTemplate = (user: MaybeUser, template: TemplateSummary): boolean =>
+  template.is_official && template.official_key ? isAdmin(user) : canManageTemplate(user, template);
+
+const isSomeoneElsesPrivate =(user: MaybeUser, template: TemplateSummary): boolean =>
   !template.is_official && template.visibility === 'private' && user?.id !== template.owner_id;
 
 // ไม่ส่ง template = ถามสิทธิ์ทั่วไปของบทบาท (ใช้กับปุ่มที่ไม่ผูกกับ template ใด)

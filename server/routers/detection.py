@@ -107,6 +107,11 @@ class YOLOTrainReq(BaseModel):
 
 @router.post("/train/start")
 def start_yolo_train(req: YOLOTrainReq):
+    # F1: reject a model outside the allowed folders now, not later as a failed job.
+    try:
+        yolo_adapter._resolve_model(req.model_path)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     job_id = uuid4().hex
     _update_training_job(
         job_id,

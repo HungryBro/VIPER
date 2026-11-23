@@ -326,6 +326,13 @@ def delete_template(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Only an admin or instructor can delete an Official template",
             )
+        # F16: a seeded Official (official_key set) is never recreated once deleted,
+        # so only an admin may delete one. Instructors still delete Officials they created.
+        if template.official_key and user.role != "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only an admin can delete a built-in Official template",
+            )
     elif template.owner_id != user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

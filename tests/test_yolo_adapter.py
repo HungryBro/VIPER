@@ -94,6 +94,8 @@ def test_detect_writes_viper_image_and_json(tmp_path: Path, monkeypatch):
     model = tmp_path / "best.pt"
     cv2.imwrite(str(image), np.zeros((40, 50, 3), dtype=np.uint8))
     model.write_bytes(b"fake")
+    # F1: weights load only from allowed folders; this test keeps its model in tmp_path
+    monkeypatch.setattr(yolo_adapter, "allowed_model_roots", lambda: (tmp_path.resolve(),))
     fake_model = FakeModel()
     monkeypatch.setattr(yolo_adapter, "_load_yolo", lambda _: fake_model)
 
@@ -113,7 +115,9 @@ def test_detect_writes_viper_image_and_json(tmp_path: Path, monkeypatch):
     assert result["parameters"]["class_ids"] == [0, 2]
 
 
-def test_detect_rejects_missing_model(tmp_path: Path):
+def test_detect_rejects_missing_model(tmp_path: Path, monkeypatch):
+    # F1: weights load only from allowed folders; this test keeps its model in tmp_path
+    monkeypatch.setattr(yolo_adapter, "allowed_model_roots", lambda: (tmp_path.resolve(),))
     image = tmp_path / "input.jpg"
     cv2.imwrite(str(image), np.zeros((10, 10, 3), dtype=np.uint8))
 

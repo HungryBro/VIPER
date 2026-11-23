@@ -354,3 +354,23 @@ T7 และ T12 ให้ตัวหลักตรวจ diff ทันที
 
 ### 5. อื่น ๆ
 - ปุ่ม `UserMenu` เดิมของ Lab (`src/components/UserMenu.tsx`) ไม่ถูก render ตั้งแต่ T14 (คงไฟล์ไว้ตามข้อห้ามลบ) ตัดสินว่าจะใช้ต่อหรือเลิกอย่างเป็นทางการ
+
+### 6. จากจุดตรวจสุดท้าย (23 พ.ย. 2569, ผู้ใช้สั่งย้ายมา ไม่แก้ในแผนนี้; รายละเอียดเต็มอยู่ใน `tasks/todo.md` หัวข้อ "ผลรีวิวจุดตรวจสุดท้าย")
+- **F4** ปก template ไม่จำกัดจำนวนพิกเซล (`save_reencoded_cover`): PNG 140 KB ขนาด 12000×12000 ใช้ RAM ~335 MB ต่อคำขอ ; ตรวจ `image.size` ก่อน `load()` (เช่นไม่เกิน 25 ล้านพิกเซล) ตอบ 422
+- **F7** เทสต์: เลื่อน template ที่ workflow ว่างเป็น Official ต้องได้ 422
+- **F8** เทสต์ re-encode ปก: EXIF orientation, MPO, CMYK ; และ MPO ใน `/api/upload`
+- **F9** unit test ฝั่ง frontend: `templateAccess.ts` (รวม `canDeleteTemplate` ใหม่), `permissions.ts`, ส่วน sessionStorage ของ `safeNext.ts`, `theme.ts`, `labBridge.ts`, `learningApi.ts`
+- **F10** สคริปต์ UI: เช็ก A2 ใน `ui_checks.py` ผ่านได้แม้ไม่มี guard (`time.sleep` ใน route handler) ; `ui_checks_phase3.py` exit 0 เสมอ ; จะเพิ่มทั้งสองเข้า `check.sh` หรือไม่
+- **F11** เทสต์ guard read-only ของ `verify_migration.py` ฝั่ง PostgreSQL และ branch RuntimeError ; ตัวกรอง JSON ของ `counted_run_conditions` บน PostgreSQL
+- **F12** Lab tabs (`n2n_app_tabs`) ใช้ร่วมกันทุกบัญชีในเบราว์เซอร์เดียว (มีก่อนแผน) ; key ต่อ user id หรือล้างตอน logout
+- **F14** workflow ที่โหลดจาก template ไม่ถูก sanitize ตอนโหลด (`style`/`className`, URL รูปภายนอก)
+- **F15** logout ไม่ยกเลิก session ฝั่ง server (cookie ที่หลุดใช้ได้ถึง 8 ชม.) ; `session_version` ใน users ถ้าต้องการ
+- **F17** เทสต์ย่อยของ audit log (`q` กับ `_` และ display_name, escape ของ `action_prefix`, `expose_headers`), การลบชนกัน, `pytest.raises(Exception)` กว้างไป
+- **F18** ไม่มี CSP / frame-ancestors ; `resolve_image_path` รับ absolute path ใดก็ได้ (อ่านไฟล์ภาพที่ไหนก็ได้บนเครื่อง)
+- **F19** admin แก้ `can_teach` ของตัวเองแล้ว AuthContext ไม่ refresh
+- **F20** หลังเปิด /lab หน้าอื่นมี Header 2 ชุด (ซ่อน 1)
+- **F21** skip link บน /lab ไม่มีปลายทาง `id="main"`
+- **F22** PATCH template สำเร็จแต่อัปโหลดปกล้ม การ์ดยังแสดงชื่อเดิม
+- **F23** `hasPendingNext()` ไม่มีผู้เรียก (ห้ามลบตามข้อห้าม จดไว้)
+- **ใหม่ (พบตอนแก้ F1): Ultralytics ติดตั้งแพ็กเกจเองตอนรัน** เมื่อ import ultralytics แล้ว มันแทน `PIL.Image.open` ด้วยตัวที่ `pip install pi-heif` ลง venv ทันทีที่เปิดไฟล์ที่ไม่ใช่รูปที่รู้จัก ; การตรวจอัปโหลดและปกแก้แล้วให้ใช้ `Image.open` เดิมของ Pillow (`_pillow_open` ใน `server/utils_io.py`) และเทสต์ตั้ง `YOLO_AUTOINSTALL=false` แต่ server ยังเปิด auto-install อยู่ (เส้นทางอื่นที่เปิดรูปผ่าน Pillow หลัง import ultralytics) ; ตัดสินว่าจะตั้ง `YOLO_AUTOINSTALL=false` ให้ server หรือไม่ (ต้องติดตั้ง requirement ที่ ultralytics ต้องใช้ล่วงหน้าเอง)
+- **ใหม่: `outputs/samples/legacy-images/`** (รูปเดิมจาก `Image-to-Descriptor/image` ที่ ab4e0513 ลบ คัดลอกไว้ตามที่ผู้ใช้สั่ง) ไม่ถูก git ignore (`.gitignore` ยกเว้น `outputs/samples`) ระวังอย่า `git add` ทั้งโฟลเดอร์ ; ตัดสินว่าจะเพิ่มเข้า `.gitignore` หรือไม่

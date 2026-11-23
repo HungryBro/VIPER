@@ -45,7 +45,17 @@ export async function uploadImages(files: File[], signal?: AbortSignal) {
     body: formData,
     signal,
   });
-  if (!resp.ok) throw new Error("Upload failed");
+  if (!resp.ok) {
+    // ข้อความจาก server (เช่น 413 เกินขนาด, 422 ชนิดไฟล์) บอกผู้ใช้ได้ตรงกว่า "Upload failed"
+    let detail = "";
+    try {
+      const body = await resp.json();
+      detail = typeof body?.detail === "string" ? body.detail : "";
+    } catch {
+      // body ไม่ใช่ JSON
+    }
+    throw new Error(detail ? `Upload failed (${resp.status}): ${detail}` : "Upload failed");
+  }
   return await resp.json();
 }
 

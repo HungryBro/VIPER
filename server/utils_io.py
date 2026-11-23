@@ -115,15 +115,33 @@ class UploadRejected(ValueError):
     """The uploaded bytes are not a file type this endpoint accepts."""
 
 
+def _pillow_open():
+    """PIL.Image.open as Pillow ships it.
+
+    Once ultralytics is imported it replaces PIL.Image.open with a wrapper that, when a file is
+    not an image it knows, pip-installs pi-heif into the running environment (or raises
+    ModuleNotFoundError when auto-install is off). An upload check must only ask Pillow, never
+    install packages, so it uses the original function that ultralytics keeps.
+    """
+    from PIL import Image
+
+    opener = Image.open
+    if getattr(opener, "__module__", "").startswith("ultralytics"):
+        from ultralytics.utils import patches
+
+        opener = getattr(patches, "_image_open", opener)
+    return opener
+
+
 def detect_image_format(contents: bytes) -> Optional[str]:
     """Pillow's format name for these bytes ("JPEG", "PNG", ...), or None if they are not an image."""
     from PIL import Image, UnidentifiedImageError
 
     try:
-        with Image.open(io.BytesIO(contents)) as image:
+        with _pillow_open()(io.BytesIO(contents)) as image:
             image_format = image.format
             image.verify()
-    except (UnidentifiedImageError, Image.DecompressionBombError, OSError, SyntaxError, ValueError):
+    except (UnidentifiedImageError, Image.DecompressionBombError, OSError, SyntaxError, ValueError, ImportError):
         return None
     return image_format
 
@@ -153,7 +171,7 @@ def save_reencoded_cover(contents: bytes, dst_dir: str) -> tuple[str, str]:
     from PIL import Image, ImageOps, UnidentifiedImageError
 
     try:
-        with Image.open(io.BytesIO(contents)) as image:
+        with _pillow_open()(io.BytesIO(contents)) as image:
             image_format = image.format
             if image_format not in COVER_IMAGE_FORMATS:
                 raise UploadRejected("Cover image must be a JPEG, PNG, or WebP file")
@@ -162,7 +180,7 @@ def save_reencoded_cover(contents: bytes, dst_dir: str) -> tuple[str, str]:
             pixels = ImageOps.exif_transpose(image)
     except UploadRejected:
         raise
-    except (UnidentifiedImageError, Image.DecompressionBombError, OSError, SyntaxError, ValueError) as exc:
+    except (UnidentifiedImageError, Image.DecompressionBombError, OSError, SyntaxError, ValueError, ImportError) as exc:
         raise UploadRejected("Cover image must be a JPEG, PNG, or WebP file") from exc
 
     save_format = "JPEG" if image_format == "MPO" else image_format

@@ -89,7 +89,8 @@ def run(image_path: str, out_root: str = ".", model_path: str = None, threshold=
 
     model = UNet().to(device)
     if model_path:
-        model.load_state_dict(torch.load(model_path, map_location=device))
+        # F1: a state_dict needs only tensors; weights_only=True refuses pickled code in an uploaded .pt
+        model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
 
     model.eval()
 
