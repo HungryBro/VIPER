@@ -2,6 +2,7 @@
 import { useCallback, useRef } from 'react'; 
 import { useReactFlow, type Node, type Edge } from 'reactflow';
 import type { CustomNodeData, NodeStatus } from '../types';
+import { withResult } from '../lib/nodeResult';
 
 type RFNode = Node<CustomNodeData>;
 
@@ -82,7 +83,7 @@ export function useWorkflowFile({
             throw new Error('Invalid workflow JSON structure');
           }
 
-          const loadedNodes: RFNode[] = parsed.nodes.map((n) => ({
+          const loadedNodes: RFNode[] = parsed.nodes.map((n) => withResult({
             ...n,
             data: {
               ...(n.data || ({} as CustomNodeData)),

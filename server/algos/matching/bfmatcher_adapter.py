@@ -1,10 +1,13 @@
 # server/algos/matching/bfmatcher_adapter.py
-import os, json, cv2, sys, uuid
-import hashlib 
+import os, json, cv2, sys
 import numpy as np
-from typing import Tuple, Optional, Any, Dict, List
+from typing import Optional, Any, Dict
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+from server.cache_utils import config_hash, load_cached_json
+from server.utils_io import OUT, locate_file
+
+from .features_io import image_size, load_features
+
 
 def _norm_from_str(s: Optional[str]) -> Optional[int]:
     if s is None: return None
@@ -23,66 +26,19 @@ def _norm_to_str(code: int) -> str:
     if code == cv2.NORM_HAMMING2: return "HAMMING2"
     return str(code)
 
-def _read_json(path: str) -> Dict[str, Any]:
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"JSON file not found: {path}")
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
         
-def _resolve_image_path(path: str) -> str:
-    if not path: return path
-    if os.path.exists(path): return path
-    filename = os.path.basename(path)
-    search_dirs = [
-        os.path.join(PROJECT_ROOT, "outputs", "samples"),
-        os.path.join(PROJECT_ROOT, "outputs", "uploads"),
-        os.path.join(PROJECT_ROOT, "outputs"),
-    ]
-    for d in search_dirs:
-        candidate = os.path.join(d, filename)
-        if os.path.exists(candidate): return candidate
-    rel_path = os.path.join(PROJECT_ROOT, path.lstrip("/"))
-    if os.path.exists(rel_path): return rel_path
-    return path
 
-def load_descriptor_data(json_path: str):
-    data = _read_json(json_path)
-    if "matching_tool" in data:
-        raise ValueError(f"Invalid input: Input is a '{data['matching_tool']}' result. BFMatcher requires Feature files (SIFT/SURF/ORB).")
-    if "tool" not in data and "keypoints" not in data:
-         raise ValueError("Invalid input: JSON missing 'tool' and 'keypoints'.")
-    tool_name = str(data.get("tool", "UNKNOWN")).upper()
-    keypoints_data = data.get("keypoints", [])
-    image_dict = data.get("image", {}) or {}
-    keypoints: List[cv2.KeyPoint] = []
-    descriptors_list: List[Any] = []
-    for kp in keypoints_data:
-        keypoints.append(cv2.KeyPoint(x=float(kp["x"]), y=float(kp["y"]), size=float(kp.get("size", 1.0)), angle=float(kp.get("angle", -1)), response=float(kp.get("response", 0)), octave=int(kp.get("octave", 0)), class_id=int(kp.get("class_id", -1))))
-        if kp.get("descriptor") is not None: descriptors_list.append(kp["descriptor"])
-    extra: Dict[str, Any] = {}
-    if tool_name in ("SIFT", "SURF"):
-        descriptors = np.array(descriptors_list, dtype=np.float32)
-        desc_dim = int(data.get("descriptor_dim", 128))
-        if descriptors.size == 0: descriptors = np.empty((0, desc_dim), dtype=np.float32)
-        default_norm = cv2.NORM_L2
-    elif tool_name == "ORB":
-        descriptors = np.array(descriptors_list, dtype=np.uint8)
-        if descriptors.size == 0: descriptors = np.empty((0, 32), dtype=np.uint8)
-        wta_k = None
-        try: wta_k = int(data.get("orb_parameters_used", {}).get("WTA_K"))
-        except Exception: wta_k = None
-        if wta_k in (3, 4): default_norm = cv2.NORM_HAMMING2
-        else: default_norm = cv2.NORM_HAMMING
-        extra["WTA_K"] = wta_k
-    else:
-        if descriptors_list:
-             descriptors = np.array(descriptors_list)
-             default_norm = cv2.NORM_L2
-        else: raise ValueError(f"Unsupported descriptor tool: {tool_name}")
-    img_path = image_dict.get("original_path")
-    if not img_path and image_dict.get("file_name"): img_path = image_dict.get("file_name")
-    if img_path: img_path = _resolve_image_path(img_path)
-    return keypoints, descriptors, tool_name, img_path, default_norm, extra
+
+def _default_norm(tool: str, descriptors: np.ndarray, extra: Dict[str, Any]) -> int:
+    """The distance BFMatcher uses for `tool` when the request names none."""
+    if tool in ("SIFT", "SURF"):
+        return cv2.NORM_L2
+    if tool == "ORB":
+        return cv2.NORM_HAMMING2 if extra.get("WTA_K") in (3, 4) else cv2.NORM_HAMMING
+    if descriptors.size == 0:
+        raise ValueError(f"Unsupported descriptor tool: {tool}")
+    return cv2.NORM_L2
+
 
 def _validate_norm(tool: str, norm_override: Optional[str], resolved_norm: int):
     tool = tool.upper()
@@ -94,15 +50,6 @@ def _validate_norm(tool: str, norm_override: Optional[str], resolved_norm: int):
         if "L" in norm_str or resolved_norm in (cv2.NORM_L1, cv2.NORM_L2):
              raise ValueError(f"Configuration Error: You selected '{norm_str}' (Euclidean Distance) for '{tool}' (Binary Features). ORB works best with 'HAMMING' or 'HAMMING2'.")
 
-def _image_size(img_path: Optional[str]) -> Tuple[Optional[int], Optional[int], Optional[int]]:
-    if not img_path: return None, None, None
-    real_path = _resolve_image_path(img_path)
-    if not os.path.exists(real_path): return None, None, None
-    img = cv2.imread(real_path, cv2.IMREAD_UNCHANGED)
-    if img is None: return None, None, None
-    h, w = img.shape[:2]
-    c = 1 if img.ndim == 2 else img.shape[2]
-    return w, h, c
 
 def run(
     json_a: str,
@@ -114,8 +61,10 @@ def run(
     cross_check: Optional[bool] = None,
     draw_mode: Optional[str] = "good",
 ):
-    kp1, des1, tool1, img_path1, default_norm1, extra1 = load_descriptor_data(json_a)
-    kp2, des2, tool2, img_path2, default_norm2, extra2 = load_descriptor_data(json_b)
+    kp1, des1, tool1, img_path1, extra1 = load_features(json_a, "BFMatcher")
+    kp2, des2, tool2, img_path2, extra2 = load_features(json_b, "BFMatcher")
+    default_norm1 = _default_norm(tool1, des1, extra1)
+    default_norm2 = _default_norm(tool2, des2, extra2)
 
     if tool1 != tool2:
         raise ValueError(f"Mismatch: Input 1 is '{tool1}' but Input 2 is '{tool2}'. They must be the same.")
@@ -208,7 +157,7 @@ def run(
         })
 
     if out_root is None:
-        out_root = os.path.join(PROJECT_ROOT, "outputs")
+        out_root = OUT
         
     out_dir = os.path.join(out_root, "features", "bfmatcher_outputs")
     if not os.path.exists(out_dir):
@@ -228,29 +177,24 @@ def run(
         "ransac": ransac_thresh,
         "mode": mode_in
     }
-    config_str = json.dumps(config_map, sort_keys=True, default=str)
-    param_hash = hashlib.md5(config_str.encode('utf-8')).hexdigest()[:8]
+    param_hash = config_hash(config_map)
     stem = f"bf_{param_hash}"
     
     out_json_path = os.path.join(out_dir, f"{stem}.json")
     out_vis_path = os.path.join(out_dir, f"{stem}_vis.jpg")
 
-    if os.path.exists(out_json_path) and os.path.exists(out_vis_path):
-         try:
-            with open(out_json_path, "r", encoding="utf-8") as f:
-                d = json.load(f)
-            d["json_path"] = out_json_path
-            return d
-         except:
-            pass
+    cached = load_cached_json(out_json_path, out_vis_path)
+    if cached is not None:
+        cached["json_path"] = out_json_path
+        return cached
 
-    w1, h1, c1 = _image_size(img_path1)
-    w2, h2, c2 = _image_size(img_path2)
+    w1, h1, c1 = image_size(img_path1)
+    w2, h2, c2 = image_size(img_path2)
     
     vis_path_rel = None
     if img_path1 and img_path2:
-        img1 = cv2.imread(_resolve_image_path(img_path1))
-        img2 = cv2.imread(_resolve_image_path(img_path2))
+        img1 = cv2.imread(locate_file(img_path1))
+        img2 = cv2.imread(locate_file(img_path2))
         
         if img1 is not None and img2 is not None and len(good_matches) > 0:
             draw_list = good_matches

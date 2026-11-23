@@ -1,0 +1,12 @@
+/* ส่วนเสริมของหน้า Templates (T12): ภาพปกจริงและตัวแทนเมื่อไม่มีปก (mockup วาด MiniWorkflow แทนปก) */
+.viper-platform .template-preview,
+.viper-platform .template-detail-visual {
+  align-items: center;
+  color: var(--blue);
+}
+.viper-platform .template-preview .template-cover,
+.viper-platform .template-detail-visual .template-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}

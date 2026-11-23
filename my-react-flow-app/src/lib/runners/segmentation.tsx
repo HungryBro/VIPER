@@ -1,6 +1,7 @@
 // File: my-react-flow-app/src/lib/runners/segmentation.tsx
 import { runDeepLab, runMaskRCNN, runUNET, abs } from '../api';
-import { markStartThenRunning, updateNodeStatus, findInputImage } from './utils';
+import { nodeSpec, producesNoImage } from '../nodeCatalog';
+import { findInputImage } from './utils';
 import type { Edge } from 'reactflow';
 import type { RFNode, SetNodes } from './utils';
 import type { CustomNodeData } from '../../types';
@@ -17,11 +18,10 @@ export async function runSegmentation(
   const getIncoming = (id: string) => edges.filter((e) => e.target === id);
 
   const fail = async (msg: string) => {
-    await updateNodeStatus(nodeId, 'fault', setNodes);
     setNodes((nds: RFNode[]) =>
       nds.map((n: RFNode) =>
         n.id === nodeId
-          ? { ...n, data: { ...n.data, status: 'fault', description: msg } }
+          ? { ...n, data: { ...n.data, description: msg } }
           : n
       )
     );
@@ -34,12 +34,8 @@ export async function runSegmentation(
   }
 
   const prevNode = nodes.find((n) => n.id === incoming[0].source);
-  const BAD_SOURCES = [
-    'bfmatcher', 'flannmatcher', 'psnr', 'ssim', 'brisque',       
-    'save-json', 'otsu', 'snake', 'sift', 'surf', 'orb'
-  ];
 
-  if (prevNode && BAD_SOURCES.includes(prevNode.type || '')) {
+  if (prevNode && producesNoImage(prevNode.type)) {
     const tool = prevNode.data.label || prevNode.type;
     return fail(`Invalid Input: ${nodeLabel} requires a raw Image source, not a '${tool}' result.`);
   }
@@ -52,13 +48,11 @@ export async function runSegmentation(
   let prefix = '';
   let runner: any;
 
-  switch (node.type) {
-    case 'deep':
+  switch (nodeSpec(node.type)?.type) {
     case 'deeplab':
       prefix = 'DeepLabv3+';
       runner = runDeepLab;
       break;
-    case 'mask':
     case 'maskrcnn':
       prefix = 'Mask R-CNN';
       runner = runMaskRCNN;
@@ -71,7 +65,6 @@ export async function runSegmentation(
       return fail(`Unknown Segmentation node type: ${node.type}`);
   }
 
-  await markStartThenRunning(nodeId, `Segmenting with ${prefix}...`, setNodes);
 
   try {
     const payload = node.data.payload || {};
@@ -116,7 +109,8 @@ export async function runSegmentation(
                   output_image: finalVisUrl, 
                   result_image_url: finalVisUrl,
                   
-                  json_data: resp.json_data || resp 
+                  json_data: resp.json_data || resp,
+                  result: { image: finalVisUrl, preview: finalVisUrl, json: resp.json_path ?? resp.json_url },
                 },
               } as CustomNodeData,
             }

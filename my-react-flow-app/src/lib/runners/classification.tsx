@@ -1,9 +1,10 @@
 //src/lib/runners/classification.tsx
 import React from 'react';
+import { producesNoImage } from '../nodeCatalog';
 import type { Node as RFNode, Edge } from 'reactflow';
 import type { CustomNodeData } from '../../types';
 import { runOtsuClassification, runSnake, abs } from '../api';
-import { markStartThenRunning, updateNodeStatus, findInputImage } from './utils';
+import { findInputImage } from './utils';
 
 type RF = RFNode<CustomNodeData>;
 type SetNodes = React.Dispatch<React.SetStateAction<RF[]>>;
@@ -14,12 +15,6 @@ function getNodeParams<T extends object = Record<string, any>>(node: RF): T {
   return ((node.data?.payload?.params as T) ?? ({} as T));
 }
 
-const INVALID_INPUT_TYPES = [
-  'sift', 'surf', 'orb',
-  'bfmatcher', 'flannmatcher',
-  'psnr', 'ssim', 'brisque',
-  'save-json','otsu','snake'
-];
 
 
 export async function runOtsu(
@@ -33,7 +28,6 @@ export async function runOtsu(
   const nodeName = "Otsu Threshold";
 
   const fail = async (msg: string) => {
-    await updateNodeStatus(nodeId, 'fault', setNodes);
     throw new Error(msg);
   };
 
@@ -43,12 +37,11 @@ export async function runOtsu(
   }
 
   const prevNode = nodes.find((n) => n.id === incoming[0].source);
-  if (prevNode && INVALID_INPUT_TYPES.includes(prevNode.type || '')) {
+  if (prevNode && producesNoImage(prevNode.type)) {
     const tool = prevNode.data.label || prevNode.type;
     return fail(`Invalid Input: ${nodeName} requires an Image source, not a '${tool}' result.`);
   }
 
-  await markStartThenRunning(nodeId, 'Running OTSU', setNodes);
 
   try {
     const imagePath = findInputImage(nodeId, nodes, edges);
@@ -57,16 +50,7 @@ export async function runOtsu(
       return fail('No input image found (Please check connection or run parent node).');
     }
 
-    const defaults = {
-      gaussian_blur: true,
-      blur_ksize: 5,
-      invert: false,
-      morph_open: false,
-      morph_close: false,
-      morph_kernel: 3,
-      show_histogram: false,
-    };
-    const params = { ...defaults, ...getNodeParams(node) };
+    const params = getNodeParams(node);
 
     const resp = await runOtsuClassification(imagePath, params, signal);
     const previewUrl: string | undefined = resp?.binary_url;
@@ -95,6 +79,11 @@ export async function runOtsu(
                     json_url: resp?.json_url,
                     threshold: thr,
                   },
+                  result: {
+                    image: previewUrl ? abs(previewUrl) : undefined,
+                    preview: previewUrl ? abs(previewUrl) : undefined,
+                    json: resp?.json_path ?? resp?.json_url,
+                  },
                 },
               },
             }
@@ -120,7 +109,6 @@ export async function runSnakeRunner(
   const nodeName = "Snake";
 
   const fail = async (msg: string) => {
-    await updateNodeStatus(nodeId, 'fault', setNodes);
     throw new Error(msg);
   };
 
@@ -130,12 +118,11 @@ export async function runSnakeRunner(
   }
 
   const prevNode = nodes.find((n) => n.id === incoming[0].source);
-  if (prevNode && INVALID_INPUT_TYPES.includes(prevNode.type || '')) {
+  if (prevNode && producesNoImage(prevNode.type)) {
     const tool = prevNode.data.label || prevNode.type;
     return fail(`Invalid Input: ${nodeName} requires an Image source, not a '${tool}' result.`);
   }
 
-  await markStartThenRunning(nodeId, 'Running Snake', setNodes);
 
   try {
     const imagePath = findInputImage(nodeId, nodes, edges);
@@ -149,25 +136,25 @@ export async function runSnakeRunner(
     const resp = await runSnake(
       {
         image_path: imagePath,
-        alpha: params.alpha ?? 0.2,
-        beta: params.beta ?? 0.2,
-        gamma: params.gamma ?? 0.1,
-        w_line: params.w_line ?? 0.0,
-        w_edge: params.w_edge ?? 1.0,
-        max_iterations: params.max_iterations ?? 250,
-        convergence: params.convergence ?? 0.001,
-        init_mode: params.init_mode ?? 'circle',
-        init_cx: params.init_cx ?? null,
-        init_cy: params.init_cy ?? null,
-        init_radius: params.init_radius ?? null,
-        init_points: params.init_points ?? 400,
-        from_point_x: params.from_point_x ?? null,
-        from_point_y: params.from_point_y ?? null,
-        bbox_x1: params.bbox_x1 ?? null,
-        bbox_y1: params.bbox_y1 ?? null,
-        bbox_x2: params.bbox_x2 ?? null,
-        bbox_y2: params.bbox_y2 ?? null,
-        gaussian_blur_ksize: params.gaussian_blur_ksize ?? 0,
+        alpha: params.alpha,
+        beta: params.beta,
+        gamma: params.gamma,
+        w_line: params.w_line,
+        w_edge: params.w_edge,
+        max_iterations: params.max_iterations,
+        convergence: params.convergence,
+        init_mode: params.init_mode,
+        init_cx: params.init_cx,
+        init_cy: params.init_cy,
+        init_radius: params.init_radius,
+        init_points: params.init_points,
+        from_point_x: params.from_point_x,
+        from_point_y: params.from_point_y,
+        bbox_x1: params.bbox_x1,
+        bbox_y1: params.bbox_y1,
+        bbox_x2: params.bbox_x2,
+        bbox_y2: params.bbox_y2,
+        gaussian_blur_ksize: params.gaussian_blur_ksize,
       },
       signal
     );
@@ -202,6 +189,7 @@ export async function runSnakeRunner(
                     mask_url: resp?.mask_url ? abs(resp.mask_url) : undefined,
                     json_url: resp?.json_url,
                   },
+                  result: { image: preview, preview, json: resp?.json_path ?? resp?.json_url },
                 },
               },
             }

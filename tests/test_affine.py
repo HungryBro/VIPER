@@ -192,13 +192,13 @@ def test_static_path_resolution(tmp_path, monkeypatch):
     """ทดสอบ _resolve_file_path กับ /static/"""
     fake_root = tmp_path / "app"
     fake_root.mkdir()
-    monkeypatch.setattr("server.algos.ObjectAlignment.AffineTransformEstimation.PROJECT_ROOT", str(fake_root))
+    monkeypatch.setattr("server.utils_io.OUT", str(fake_root / "outputs"))
     
     (fake_root / "outputs").mkdir()
     real_file = fake_root / "outputs" / "image.png"
     with open(real_file, "w") as f: f.write("data")
     
-    from server.algos.ObjectAlignment import AffineTransformEstimation as mod
-    resolved = mod._resolve_file_path("/static/image.png")
+    from server import utils_io as mod
+    resolved = mod.locate_file("/static/image.png")
     
     assert resolved == str(real_file)

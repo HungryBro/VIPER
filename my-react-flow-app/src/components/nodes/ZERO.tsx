@@ -5,21 +5,10 @@ import Modal from '../common/Modal';
 import { abs } from '../../lib/api';
 import { useNodeStatus } from '../../hooks/useNodeStatus'; 
 import { ParameterLoader } from '../ParameterLoader'; 
+import { SettingsSlidersIcon } from './SettingsSlidersIcon';
+import { NODE_DEFAULTS } from '../../lib/nodeDefaults';
 
-const SettingsSlidersIcon = ({ className = 'h-4 w-4' }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="black" aria-hidden="true">
-    <g strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4}>
-      <path d="M3 7h18" />
-      <circle cx="9" cy="7" r="3.4" fill="white" />
-      <path d="M3 17h18" />
-      <circle cx="15" cy="17" r="3.4" fill="white" />
-    </g>
-  </svg>
-);
-
-const DEFAULT_PARAMS = { 
-  iterations: 8 
-};
+const DEFAULT_PARAMS = { ...NODE_DEFAULTS.zeroDce };
 
 type Params = typeof DEFAULT_PARAMS;
 

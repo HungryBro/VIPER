@@ -1,41 +1,105 @@
+// หน้า Login ตามแบบ mockup (P-30) เหลือปุ่ม Google ปุ่มเดียวที่เรียก login() จริง
+// ก่อนไปหน้า Google เก็บ next (ที่ผ่าน safeNext แล้ว) ไว้ใน sessionStorage เพราะ backend redirect กลับ "/" เสมอ
+import { BookOpen, CheckCircle2, ChevronRight, GraduationCap, ShieldCheck, Workflow } from 'lucide-react';
+import { Link, Navigate, useSearchParams } from 'react-router-dom';
+
 import { useAuth } from '../auth/AuthContext';
+import '../platform/styles/index.css';
+import { rememberNext, safeNext } from '../platform/safeNext';
+import { readStoredTheme } from '../platform/theme';
+import { Badge, Button } from '../platform/ui';
 
 
 export default function LoginPage() {
-  const { error, login } = useAuth();
+  const { user, error, login } = useAuth();
+  const [params] = useSearchParams();
+  const next = safeNext(params.get('next'));
+
+  // login แล้วไม่ต้องอยู่หน้านี้
+  if (user) return <Navigate to={next} replace />;
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center px-6">
-      <section className="w-full max-w-md rounded-2xl border border-teal-500/30 bg-slate-900 p-8 shadow-2xl shadow-teal-950/40">
-        <div className="mb-7 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-500/15 text-2xl font-black text-teal-300 ring-1 ring-teal-400/30">
-            V
+    <div className="viper-platform" data-theme={readStoredTheme()}>
+      <div className="app">
+        <main id="main" className="main">
+          <div className="login-page">
+            <section className="login-story">
+              <div className="brand">
+                <span className="brand-mark">
+                  <Workflow size={24} />
+                </span>
+                <span>
+                  VIPER<small>IMAGE PROCESSING</small>
+                </span>
+              </div>
+              <Badge tone="blue">ฝึกปฏิบัติ</Badge>
+              <h1>
+                ฝึกประมวลผลภาพ
+                <br />
+                ด้วย Workflow
+              </h1>
+              <p>
+                สร้าง Workflow แล้วดูผลการทดลองในคอร์ส Image Processing
+                <br />
+                รองรับผู้เรียน ผู้สอน และผู้ดูแล
+              </p>
+              <div className="login-flow" aria-hidden="true">
+                <span>
+                  <BookOpen />
+                  เรียนรู้
+                </span>
+                <ChevronRight />
+                <span>
+                  <Workflow />
+                  ทดลอง
+                </span>
+                <ChevronRight />
+                <span>
+                  <CheckCircle2 />
+                  เข้าใจ
+                </span>
+              </div>
+              <div className="login-roles">
+                <span>
+                  <GraduationCap size={17} />
+                  ผู้เรียน
+                </span>
+                <span>
+                  <BookOpen size={17} />
+                  ผู้สอน
+                </span>
+                <span>
+                  <ShieldCheck size={17} />
+                  ผู้ดูแล
+                </span>
+              </div>
+            </section>
+            <section className="login-card">
+              <Link className="back-link login-back" to="/">
+                <ChevronRight size={14} className="back-chevron" />
+                กลับหน้าหลัก
+              </Link>
+              <h2>เข้าสู่ระบบ VIPER</h2>
+              <p>เข้าสู่ระบบด้วยบัญชี Google เพื่อใช้ Lab บันทึก Template และส่งงาน</p>
+              {error && (
+                <p className="auth-error" role="alert">
+                  {error}
+                </p>
+              )}
+              <Button
+                className="google-login full"
+                onClick={() => {
+                  rememberNext(next);
+                  login();
+                }}
+              >
+                <span className="google-g">G</span>
+                ดำเนินการต่อด้วย Google
+              </Button>
+            </section>
           </div>
-          <h1 className="text-2xl font-black tracking-wide text-teal-300">VIPER</h1>
-          <p className="mt-2 text-sm text-slate-400">
-            Image Processing Learning Platform
-          </p>
-        </div>
-
-        {error && (
-          <div className="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
-            {error}
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={login}
-          className="flex w-full items-center justify-center gap-3 rounded-xl bg-white px-4 py-3 font-bold text-slate-800 transition hover:bg-slate-100 active:scale-[0.99]"
-        >
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-sm font-black text-blue-600">G</span>
-          Sign in with Google
-        </button>
-
-        <p className="mt-5 text-center text-xs leading-relaxed text-slate-500">
-          Sign in is required to build workflows and use the VIPER platform.
-        </p>
-      </section>
-    </main>
+        </main>
+      </div>
+    </div>
   );
 }

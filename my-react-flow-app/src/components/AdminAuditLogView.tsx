@@ -18,13 +18,16 @@ const categoryOptions: Array<{ value: AuditCategory; label: string }> = [
   { value: 'processing', label: 'Processing' },
 ];
 
-const actionLabels: Record<string, string> = {
+// หน้า Platform Logs (T11) ใช้ป้ายชื่อชุดเดียวกัน
+// eslint-disable-next-line react-refresh/only-export-components
+export const actionLabels: Record<string, string> = {
   'auth.login': 'Signed in',
   'auth.logout': 'Signed out',
   'template.create': 'Created template',
   'template.update': 'Updated template',
   'template.cover_update': 'Updated template cover',
   'template.load': 'Loaded template',
+  'template.delete': 'Deleted template',
   'comment.create': 'Created comment',
   'comment.delete': 'Deleted comment',
   'ban.apply': 'Applied temporary ban',
@@ -33,6 +36,8 @@ const actionLabels: Record<string, string> = {
   'permission.role_update': 'Changed user role',
   'permission.comments_update': 'Changed comment permission',
   'permission.template_visibility_update': 'Changed template visibility',
+  'permission.can_teach_update': 'Changed instructor permission',
+  'permission.template_official_update': 'Changed official template status',
   'processing.run': 'Ran image processing',
   'processing.upload': 'Uploaded processing input',
 };

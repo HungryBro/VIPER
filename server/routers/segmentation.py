@@ -5,7 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from ..utils_io import resolve_image_path, OUT, RESULT_DIR, static_url
+from ..utils_io import resolve_image_path, OUT, static_url
 
 
 
@@ -34,14 +34,14 @@ async def api_deeplab(req: SegReq):
         raise HTTPException(status_code=404, detail="Image not found")
 
     try:
-        json_p, mask_p, vis_p = deeplab_run(img_path, RESULT_DIR, model_path=req.model_path, **(req.params or {}))
+        json_p, mask_p, vis_p = deeplab_run(img_path, OUT, model_path=req.model_path, **(req.params or {}))
         
         return {
             "status": "success",
             "tool": "DeepLabv3",
-            "json_url": static_url(json_p, OUT),
-            "vis_url": static_url(vis_p, OUT) if vis_p else None,
-            "mask_url": static_url(mask_p, OUT) if mask_p else None, 
+            "json_url": static_url(json_p),
+            "vis_url": static_url(vis_p) if vis_p else None,
+            "mask_url": static_url(mask_p) if mask_p else None, 
             "json_data": load_output_json(json_p)
         }
     except Exception as e:
@@ -54,14 +54,14 @@ async def api_unet(req: SegReq):
         raise HTTPException(status_code=404, detail="Image not found")
 
     try:
-        json_p, mask_p, vis_p = unet_run(img_path, RESULT_DIR, model_path=req.model_path, **(req.params or {}))
+        json_p, mask_p, vis_p = unet_run(img_path, OUT, model_path=req.model_path, **(req.params or {}))
         
         return {
             "status": "success",
             "tool": "U-Net",
-            "json_url": static_url(json_p, OUT),
-            "vis_url": static_url(vis_p, OUT) if vis_p else None,
-            "mask_url": static_url(mask_p, OUT) if mask_p else None,
+            "json_url": static_url(json_p),
+            "vis_url": static_url(vis_p) if vis_p else None,
+            "mask_url": static_url(mask_p) if mask_p else None,
             "json_data": load_output_json(json_p)
         }
     except Exception as e:
@@ -74,14 +74,14 @@ async def api_maskrcnn(req: SegReq):
         raise HTTPException(status_code=404, detail="Image not found")
 
     try:
-        json_p, mask_p, vis_p = maskrcnn_run(img_path, RESULT_DIR, model_path=req.model_path, **(req.params or {}))
+        json_p, mask_p, vis_p = maskrcnn_run(img_path, OUT, model_path=req.model_path, **(req.params or {}))
         
         return {
             "status": "success",
             "tool": "MaskRCNN",
-            "json_url": static_url(json_p, OUT),
-            "vis_url": static_url(vis_p, OUT) if vis_p else None,
-            "mask_url": static_url(mask_p, OUT) if mask_p else None,
+            "json_url": static_url(json_p),
+            "vis_url": static_url(vis_p) if vis_p else None,
+            "mask_url": static_url(mask_p) if mask_p else None,
             "json_data": load_output_json(json_p)
         }
     except Exception as e:

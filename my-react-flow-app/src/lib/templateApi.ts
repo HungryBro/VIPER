@@ -56,6 +56,8 @@ type TemplateCreatePayload = {
   description: string;
   visibility: TemplateVisibility;
   workflow: WorkflowDocument;
+  // true เฉพาะ admin/ผู้สอน (server ตรวจซ้ำ) บังคับ visibility = public และ workflow ต้องมีโหนด
+  is_official?: boolean;
 };
 
 type TemplateUpdatePayload = Partial<TemplateCreatePayload>;
@@ -81,6 +83,10 @@ export async function listMyTemplates(): Promise<TemplateSummary[]> {
   return readJson<TemplateSummary[]>(await apiFetch('/api/templates/mine'));
 }
 
+export async function getPlatformTemplate(templateId: number): Promise<TemplateDetail> {
+  return readJson<TemplateDetail>(await apiFetch(`/api/templates/${templateId}`));
+}
+
 export async function createPlatformTemplate(
   payload: TemplateCreatePayload,
 ): Promise<TemplateDetail> {
@@ -99,6 +105,13 @@ export async function updatePlatformTemplate(
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+  }));
+}
+
+// Soft delete ฝั่ง server (templates.deleted_at) สิทธิ์: Official = admin/ผู้สอน, template ทั่วไป = เจ้าของ
+export async function deletePlatformTemplate(templateId: number): Promise<void> {
+  await readJson<unknown>(await apiFetch(`/api/templates/${templateId}`, {
+    method: 'DELETE',
   }));
 }
 

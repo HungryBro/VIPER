@@ -3,6 +3,9 @@ import { Handle, Position, type NodeProps, useReactFlow } from 'reactflow';
 import type { CustomNodeData } from '../../types';
 import { abs, uploadImages } from '../../lib/api';
 
+// จำนวนไฟล์ต่อคำขอ /api/upload (server จำกัด 200 ไฟล์และ 1 GB ต่อคำขอ)
+const UPLOAD_BATCH_SIZE = 100;
+
 type DatasetImage = {
   name: string;
   path: string;
@@ -24,8 +27,26 @@ const MultiImageInputNode = memo(({ id, data, selected }: NodeProps<CustomNodeDa
     setUploading(true);
     setError('');
     try {
-      const response = await uploadImages(files);
-      const uploaded = await Promise.all(response.files.map(async (file: any) => {
+      // server รับไม่เกิน 200 ไฟล์ต่อคำขอ (F3) ชุดภาพ YOLO อาจมากกว่านั้น จึงส่งทีละ UPLOAD_BATCH_SIZE
+      // ไฟล์ตามลำดับ แล้วต่อผลตามลำดับเดิม ชุดใดล้มให้หยุดและแจ้งบนโหนดว่าเป็นชุดไหน (ภาพเดิมของโหนดไม่ถูกแทน)
+      const responseFiles: any[] = [];
+      const batchCount = Math.ceil(files.length / UPLOAD_BATCH_SIZE);
+      for (let batch = 0; batch < batchCount; batch += 1) {
+        const start = batch * UPLOAD_BATCH_SIZE;
+        const chunk = files.slice(start, start + UPLOAD_BATCH_SIZE);
+        try {
+          const response = await uploadImages(chunk);
+          responseFiles.push(...response.files);
+        } catch (cause: any) {
+          const detail = cause?.message || 'Upload failed';
+          throw new Error(
+            batchCount > 1
+              ? `Upload batch ${batch + 1}/${batchCount} (images ${start + 1}–${start + chunk.length}) failed: ${detail}`
+              : detail,
+          );
+        }
+      }
+      const uploaded = await Promise.all(responseFiles.map(async (file: any) => {
         const url = (abs(file.url) || file.url) as string;
         const dimensions = await new Promise<{ width: number; height: number }>((resolve) => {
           const image = new Image();

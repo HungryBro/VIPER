@@ -8,7 +8,9 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    false,
     func,
+    true,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
@@ -60,6 +62,9 @@ class User(Base):
     role = Column(String(16), nullable=False, default="user", server_default="user")
     status = Column(String(16), nullable=False, default="active", server_default="active")
     banned_until = Column(DateTime(timezone=True), nullable=True)
+    # Teaching permission is separate from role: an admin grants it to a user.
+    # Existing databases receive it through _ensure_user_columns in main.py.
+    can_teach = Column(Boolean, nullable=False, default=False, server_default=false())
     last_login_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(
@@ -100,11 +105,14 @@ class Template(Base):
     )
     workflow = Column(JSON_DOCUMENT, nullable=False)
     cover_url = Column(String(500), nullable=True)
-    comments_enabled = Column(Boolean, nullable=False, default=True, server_default="true")
+    comments_enabled = Column(Boolean, nullable=False, default=True, server_default=true())
     # Built-in VIPER workflows are public resources but not owned by a learner.
     # These fields give them a stable database record for covers and comments.
-    is_official = Column(Boolean, nullable=False, default=False, server_default="false", index=True)
+    is_official = Column(Boolean, nullable=False, default=False, server_default=false(), index=True)
     official_key = Column(String(160), nullable=True, unique=True, index=True)
+    # Soft delete (DELETE /api/templates/{id}). A deleted row keeps its data and
+    # its official_key, so the seed never recreates a deleted Official template.
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(
         DateTime(timezone=True),

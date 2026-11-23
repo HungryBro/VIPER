@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext';
 import {
   createPlatformTemplate,
   createTemplateComment,
+  deletePlatformTemplate,
   deleteTemplateComment,
   listMyTemplates,
   listOfficialTemplates,
@@ -20,6 +21,7 @@ import {
   type TemplateVisibility,
 } from '../lib/templateApi';
 import { apiUrl } from '../lib/http';
+import { canTeach } from '../platform/permissions';
 
 
 export type PlatformTemplateView = 'official' | 'public' | 'private';
@@ -28,8 +30,9 @@ type Props = {
   view: PlatformTemplateView;
   getCurrentWorkflow: () => CurrentWorkflow | null;
   onLoad: (template: TemplateDetail) => void;
-  onLoadOfficial: (officialKey: string) => void;
   onViewChange: (view: PlatformTemplateView) => void;
+  /** เปลี่ยนค่าเมื่อรายการอาจเก่า (บันทึกจาก SAVE TEMPLATE ของ Lab หรือกลับมาที่ /lab หลังแก้/ลบที่หน้า Templates) แล้วรายการจะโหลดใหม่ */
+  refreshKey?: number;
 };
 
 type SaveDraft = {
@@ -88,8 +91,8 @@ export default function TemplatePlatformLibrary({
   view,
   getCurrentWorkflow,
   onLoad,
-  onLoadOfficial,
   onViewChange,
+  refreshKey = 0,
 }: Props) {
   const { user } = useAuth();
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
@@ -155,6 +158,14 @@ export default function TemplatePlatformLibrary({
     void refresh();
   }, [refresh]);
 
+  // A4f: รีเฟรชเมื่อ refreshKey เปลี่ยน (ข้ามรอบแรก เพราะ effect ข้างบนโหลดไปแล้ว)
+  const lastRefreshKeyRef = useRef(refreshKey);
+  useEffect(() => {
+    if (lastRefreshKeyRef.current === refreshKey) return;
+    lastRefreshKeyRef.current = refreshKey;
+    void refresh();
+  }, [refresh, refreshKey]);
+
   const beginSave = () => {
     const current = getCurrentWorkflow();
     if (!current || current.workflow.nodes.length === 0) {
@@ -207,15 +218,12 @@ export default function TemplatePlatformLibrary({
     setError('');
     setNotice('');
     try {
-      const loaded = await loadPlatformTemplate(template.id);
-      if (template.is_official) {
-        if (!template.official_key) throw new Error('Official template is missing its workflow key.');
-        onLoadOfficial(template.official_key);
-      } else {
-        onLoad(loaded);
-      }
+      onLoad(await loadPlatformTemplate(template.id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unable to load template');
+      // รายการอาจเก่า (template ถูกลบหรือเปลี่ยนเป็น Private ที่หน้าอื่น): โหลดรายการใหม่แล้วค่อยแสดงข้อความ
+      const message = err instanceof Error ? err.message : 'Unable to load template';
+      await refresh();
+      setError(`${message} The template list has been refreshed.`);
     } finally {
       setBusyId(null);
     }
@@ -235,10 +243,14 @@ export default function TemplatePlatformLibrary({
     }
   };
 
-  const updateFromCanvas = async (templateId: number) => {
+  const updateFromCanvas = async (templateId: number, official = false) => {
     const current = getCurrentWorkflow();
     if (!current || current.workflow.nodes.length === 0) {
       setError('The current canvas is empty.');
+      return;
+    }
+    // A4e: Official ทุกคนใช้ร่วมกัน ต้องยืนยันก่อนเขียนทับ workflow ยกเลิกแล้วไม่ส่งคำขอ
+    if (official && !window.confirm('Replace this Official template\'s workflow with the current canvas? Everyone who opens this Official template will get the new workflow.')) {
       return;
     }
 
@@ -370,6 +382,26 @@ export default function TemplatePlatformLibrary({
       setError(err instanceof Error ? err.message : 'Unable to delete comment');
     } finally {
       setCommentDeleteBusyId(null);
+    }
+  };
+
+  const deleteSelected = async (template: TemplateSummary) => {
+    // UI ลบเต็มรูปแบบ (modal ยืนยันตาม mockup) อยู่ใน T12 รอบนี้ใช้ confirm ของเบราว์เซอร์
+    const kind = template.is_official ? 'Official template' : 'template';
+    if (!window.confirm(`Delete the ${kind} "${template.name}"? It will be removed from every list.`)) return;
+
+    setBusyId(template.id);
+    setError('');
+    setNotice('');
+    try {
+      await deletePlatformTemplate(template.id);
+      if (openCommentsIdRef.current === template.id) setOpenCommentsId(null);
+      setNotice('Template deleted.');
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to delete template');
+    } finally {
+      setBusyId(null);
     }
   };
 
@@ -548,7 +580,12 @@ export default function TemplatePlatformLibrary({
           const busy = busyId === template.id;
           const isOwner = user?.id === template.owner_id;
           const isAdmin = user?.role === 'admin';
-          const canManageSettings = template.is_official ? isAdmin : isOwner || isAdmin;
+          // ตาราง plan.md ข้อ 7: admin และผู้สอนแก้ Official ได้ ส่วนเปิดปิดความคิดเห็นเป็นของ admin เท่านั้น (server ตรวจซ้ำ)
+          const canManageOfficial = isAdmin || canTeach(user);
+          const canManageSettings = template.is_official ? canManageOfficial : isOwner || isAdmin;
+          // ลบได้: Official = admin/ผู้สอน, template ทั่วไป = เจ้าของเท่านั้น (ตรงกับ DELETE /api/templates/{id})
+          // F16: Official ที่ seed ไว้ (มี official_key) ลบได้เฉพาะ admin
+          const canDelete = template.is_official ? (template.official_key ? isAdmin : canManageOfficial) : isOwner;
           const commentsOpen = openCommentsId === template.id;
           const comments = commentsByTemplate[template.id];
           const commentsLoading = commentsLoadingId === template.id;
@@ -604,15 +641,28 @@ export default function TemplatePlatformLibrary({
 
                   {canManageSettings && openSettingsId === template.id && (
                     <div className="absolute right-0 top-full z-20 mt-1 w-32 rounded-md border border-gray-700 bg-gray-900 p-1 shadow-xl">
-                      {template.is_official && isAdmin && (
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => beginEdit(template)}
-                          className="w-full rounded px-2 py-1.5 text-left text-[8px] font-bold text-teal-300 transition-colors hover:bg-teal-500/10 disabled:opacity-50"
-                        >
-                          EDIT COVER
-                        </button>
+                      {template.is_official && canManageOfficial && (
+                        <>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => beginEdit(template)}
+                            className="w-full rounded px-2 py-1.5 text-left text-[8px] font-bold text-teal-300 transition-colors hover:bg-teal-500/10 disabled:opacity-50"
+                          >
+                            EDIT COVER
+                          </button>
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() => {
+                              setOpenSettingsId(null);
+                              void updateFromCanvas(template.id, true);
+                            }}
+                            className="w-full rounded px-2 py-1.5 text-left text-[8px] font-bold text-gray-300 transition-colors hover:bg-gray-800 disabled:opacity-50"
+                          >
+                            UPDATE CANVAS
+                          </button>
+                        </>
                       )}
                       {isOwner && !template.is_official && (
                         <>
@@ -647,6 +697,19 @@ export default function TemplatePlatformLibrary({
                             UPDATE CANVAS
                           </button>
                         </>
+                      )}
+                      {canDelete && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => {
+                            setOpenSettingsId(null);
+                            void deleteSelected(template);
+                          }}
+                          className="w-full rounded px-2 py-1.5 text-left text-[8px] font-bold text-red-300 transition-colors hover:bg-red-500/10 disabled:opacity-50"
+                        >
+                          DELETE
+                        </button>
                       )}
                       {(template.is_official || isOwner) && isAdmin && <div className="my-1 border-t border-gray-700" />}
                       {isAdmin && (

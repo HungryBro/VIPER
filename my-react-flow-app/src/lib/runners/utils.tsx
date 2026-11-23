@@ -1,8 +1,9 @@
 // File: my-react-flow-app/src/lib/runners/utils.tsx
 import { abs } from '../api';
+import { nodeResult } from '../nodeResult';
 import type { Dispatch, SetStateAction, MutableRefObject } from 'react';
 import type { Node, Edge } from 'reactflow';
-import type { CustomNodeData, NodeStatus } from '../../types';
+import type { CustomNodeData } from '../../types';
 
 export type RFNode = Node<CustomNodeData>;
 export type SetNodes = Dispatch<SetStateAction<RFNode[]>>;
@@ -20,6 +21,7 @@ export async function markStartThenRunning(
     )
   );
 
+  // Let the "start" state paint before switching to "running".
   await new Promise((r) => setTimeout(r, 200));
 
   setNodes((nds) =>
@@ -29,22 +31,6 @@ export async function markStartThenRunning(
         : x
     )
   );
-}
-
-export async function updateNodeStatus(
-  nodeId: string,
-  status: NodeStatus,
-  setNodes: SetNodes
-) {
-  setNodes((nds) =>
-    nds.map((n) => {
-      if (n.id === nodeId) {
-        return { ...n, data: { ...n.data, status: status } };
-      }
-      return n;
-    })
-  );
-  await new Promise((r) => setTimeout(r, 50));
 }
 
 export function findInputImage(
@@ -58,39 +44,8 @@ export function findInputImage(
     .filter((parent): parent is RFNode => Boolean(parent?.data));
 
   for (const parent of parents) {
-    if (parent.type === 'yolo-train') continue;
-    const p = (parent.data.payload || parent.data.output) as any;
-    if (!p) continue;
-  
-    if (typeof p.path === 'string') return p.path;
-    if (typeof p.aligned_path === 'string') return p.aligned_path;
-    if (typeof p.image_path === 'string') return p.image_path;
-    if (typeof p.output_path === 'string') return p.output_path;
-
-  
-    if (typeof p.url === 'string' && (p.url.startsWith('/static') || p.url.startsWith('http'))) {
-      return p.url;
-    }
-    if (typeof p.vis_url === 'string' && (p.vis_url.startsWith('/static') || p.vis_url.startsWith('http'))) {
-      return p.vis_url;
-    }
-    if (typeof p.result_image_url === 'string' && (p.result_image_url.startsWith('/static') || p.result_image_url.startsWith('http'))) {
-      return p.result_image_url;
-    }
-
-    if (typeof p.name === 'string' && !p.url?.startsWith('blob:')) {
-      return p.name; 
-    }
-
-    if (typeof p.output_image === 'string') return p.output_image;
-    if (typeof p.vis_url === 'string') return p.vis_url;
-    if (typeof p.url === 'string') return p.url;
-    if (typeof p.aligned_url === 'string') return p.aligned_url;
-
-    if (p.output) {
-       if (typeof p.output.aligned_image === 'string') return p.output.aligned_image;
-       if (typeof p.output.aligned_path === 'string') return p.output.aligned_path;
-    }
+    const image = nodeResult(parent)?.image;
+    if (image) return image;
   }
 
   return undefined;
@@ -108,22 +63,7 @@ export function getNodeImageUrl(n?: RFNode): string | undefined {
   if (!n) return undefined;
   const normalize = (u?: string) => u ? (/^(https?:|blob:|data:)/i.test(u) ? u : abs(u)) : undefined;
 
-  const p = n.data?.payload as any;
-
-  if (n.type === 'image-input') {
-    return normalize(p?.result_image_url) ?? normalize(p?.url) ?? normalize(p?.preview_url);
-  }
-  
-  if (['sift', 'surf', 'orb', 'bfmatcher', 'flannmatcher'].includes(n.type || '')) {
-    return normalize(p?.result_image_url) ?? normalize(p?.vis_url);
-  }
-  
-  return normalize(p?.output_image) 
-      ?? normalize(p?.vis_url) 
-      ?? normalize(p?.result_image_url)
-      ?? normalize(p?.aligned_url)
-      ?? normalize(p?.url)
-      ?? normalize(p?.output?.aligned_url);
+  return normalize(nodeResult(n)?.preview);
 }
 
 export function guard(canceledRef: MutableRefObject<boolean>) {

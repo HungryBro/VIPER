@@ -1,0 +1,442 @@
+/* คัดลอกจาก outputs/viper-learning-v2/src/Theme.css แล้วครอบทุก selector ด้วย .viper-platform (T5) */
+/* VIPER visual system: Persevere reference palette with quiet workspace surfaces.
+   The sampled reference blue is retained; darker shades make small text readable. */
+.viper-platform {
+  --bg: #f2f3f7;
+  --panel: #ffffff;
+  --subtle: #f8f9fc;
+  --canvas: #f4f5f9;
+  --ink: #252831;
+  --muted: #677080;
+  --line: #e1e4ec;
+  --blue: #4b78f5;
+  --blue-soft: #edf2ff;
+  --blue-ink: #365bc2;
+  --action: #436bdc;
+  --action-hover: #365bc2;
+  --teal: #207653;
+  --teal-soft: #edf7f1;
+  --amber: #936214;
+  --amber-soft: #fff6e4;
+  --danger: #b74646;
+  --shadow: none;
+  color-scheme: light;
+}
+.viper-platform[data-theme=dark] {
+  --bg: #151821;
+  --panel: #1c202b;
+  --subtle: #222735;
+  --canvas: #171b25;
+  --ink: #e8ebf3;
+  --muted: #a3adbf;
+  --line: #333b4d;
+  --blue: #94b0ff;
+  --blue-soft: #283653;
+  --blue-ink: #adc1ff;
+  /* T24: เดิม #526fe0 / #5a73dc (ตาม mockup) ตัวอักษรขาวบนปุ่มได้ 4.46:1 / 4.27:1 ต่ำกว่า WCAG AA 4.5:1 เข้มขึ้นเล็กน้อยให้ผ่าน */
+  --action: #506ddf;
+  --action-hover: #546fd6;
+  --teal: #8ed3ad;
+  --teal-soft: #233c32;
+  --amber: #ebc378;
+  --amber-soft: #413622;
+  --danger: #f2a1a1;
+  color-scheme: dark;
+}
+.viper-platform { font-size: 14px; line-height: 1.7; }
+.viper-platform h1 { font-size: 29px; font-weight: 700; letter-spacing: -.65px; }
+.viper-platform h2, .viper-platform h3 { font-weight: 650; }
+.viper-platform a, .viper-platform .text-btn { color: var(--blue-ink); }
+.viper-platform .eyebrow { color: var(--muted); letter-spacing: .6px; font-size:12px; font-weight: 500; }
+.viper-platform .page { max-width: 1360px; padding: 36px 40px 56px; animation: none; }
+.viper-platform .page-heading { margin-bottom: 28px; }
+.viper-platform .page-heading p { line-height: 1.9; }
+.viper-platform .panel { border-color: var(--line); border-radius: 10px; box-shadow: none; }
+.viper-platform .btn { border-radius: 6px; min-height: 37px; font-weight: 600; box-shadow: none; }
+.viper-platform .btn.primary { background: var(--action); box-shadow: none; color: #fff; }
+.viper-platform .btn.primary:hover:not(:disabled) { background: var(--action-hover); transform: none; }
+.viper-platform .btn.secondary { background: var(--panel); border-color: var(--line); }
+.viper-platform .btn.secondary:hover:not(:disabled) { background: var(--subtle); border-color: var(--blue); }
+.viper-platform .badge { border-radius: 5px; font-weight: 500; }
+.viper-platform .badge.blue, .viper-platform .course-icon.blue { color: var(--blue-ink); background: var(--blue-soft); }
+.viper-platform .badge.teal, .viper-platform .course-icon.teal { color: var(--teal); background: var(--teal-soft); }
+.viper-platform .badge.amber { color: var(--amber); background: var(--amber-soft); }
+.viper-platform .badge.violet, .viper-platform .course-icon.violet { color: var(--blue-ink); background: var(--blue-soft); }
+.viper-platform .danger { color: var(--danger); }
+.viper-platform .field input, .viper-platform .field textarea, .viper-platform .field select, .viper-platform .search-field, .viper-platform .review-course-filter select {
+  border-radius: 6px; border-color: var(--line); box-shadow: none;
+}
+.viper-platform .field input:focus, .viper-platform .field textarea:focus, .viper-platform .field select:focus { outline-color: color-mix(in srgb, var(--blue) 22%, transparent); }
+.viper-platform .field small { line-height: 1.8; }
+.viper-platform .tabs { background: var(--subtle); border-radius: 7px; padding: 3px; }
+.viper-platform .tabs button { border-radius: 5px; font-weight: 500; }
+.viper-platform .tabs button.active { color: var(--blue-ink); background: var(--panel); box-shadow: 0 1px 3px color-mix(in srgb,var(--shade) 4%,transparent); }
+.viper-platform .notice { background: var(--blue-soft); color: var(--blue-ink); border-color: var(--line); border-radius: 6px; }
+.viper-platform .site-footer { border-color: var(--line); color: var(--muted); }
+
+/* Keep the agreed compact text header and its complete English navigation. */
+.viper-platform .global-header.platform-header { border-color: var(--line); }
+.viper-platform .global-header.platform-header .global-nav button.active, .viper-platform .global-header.platform-header .global-nav a.active { color: var(--blue-ink); }
+.viper-platform .header-role-switch { background: var(--subtle); }
+.viper-platform .header-role-switch button[aria-pressed=true] { color: var(--blue-ink); }
+.viper-platform .platform-header .header-brand-caption { border-color: var(--line); }
+.viper-platform .platform-header .avatar { color: var(--blue-ink); }
+.viper-platform .demo-bar { background: var(--subtle); color: var(--muted); }
+.viper-platform .demo-dot { background: var(--amber); }
+.viper-platform .notification-popup, .viper-platform .account-menu, .viper-platform .modal { border-color: var(--line); border-radius: 10px; box-shadow: 0 12px 36px color-mix(in srgb,var(--shade) 10%,transparent); }
+.viper-platform .notification-item strong { font-size: 12px; }
+.viper-platform .notification-item p { font-size:12px; }
+.viper-platform .notification-symbol { border-radius: 6px; color: var(--blue-ink); }
+
+/* Public entry: a small product preview, without a decorative backdrop. */
+.viper-platform .guest-home .page-heading h1 { font-size: 28px; max-width: 100%; }
+.viper-platform .guest-welcome-card {
+  display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 42px;
+  background: var(--panel); padding: 36px; min-height: 340px; border-color: var(--line); border-radius: 10px;
+}
+.viper-platform .guest-welcome-card .continue-copy { width: auto; }
+.viper-platform .guest-welcome-card h2 { font-size: 32px; margin-top: 18px; line-height: 1.5; }
+.viper-platform .guest-welcome-card .continue-copy>p { font-size: 13px; line-height: 2; margin-top: 14px; }
+.viper-platform .guest-hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+.viper-platform .guest-lab-preview { min-width: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); overflow: hidden; }
+.viper-platform .guest-lab-toolbar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; font-size:12px; border-bottom: 1px solid var(--line); }
+.viper-platform .guest-lab-toolbar svg { color: var(--blue-ink); }
+.viper-platform .guest-lab-toolbar>span { margin-left: auto; font-size:12px; color: var(--muted); }
+.viper-platform .guest-lab-canvas { display: flex; align-items: center; justify-content: center; min-height: 234px; background-color: var(--canvas); background-image: radial-gradient(var(--line) .8px,transparent .8px); background-size: 15px 15px; }
+.viper-platform .guest-lab-caption { display: flex; align-items: center; gap: 7px; padding: 10px 16px; color: var(--muted); font-size:12px; border-top: 1px solid var(--line); }
+.viper-platform .guest-lab-preview .mini-note { display: none; }
+.viper-platform .guest-lesson-card { padding: 24px; }
+.viper-platform .guest-lesson-card .course-icon { background: var(--blue-soft); color: var(--blue-ink); border-radius: 7px; }
+.viper-platform .guest-lesson-card h3 { font-size: 20px; }
+.viper-platform .guest-account-callout { background: var(--panel); }
+.viper-platform .mini-node { box-shadow: none; border-color: var(--line); border-radius: 7px; }
+.viper-platform .mini-node>span, .viper-platform .mini-workflow.violet .mini-node>span { background: var(--blue-soft); color: var(--blue-ink); }
+.viper-platform .mini-node small { color: var(--muted); }
+.viper-platform .mini-lines { stroke: var(--blue); opacity: .6; }
+
+/* Dashboard: work and feedback first; totals are secondary. */
+.viper-platform .dashboard-grid { grid-template-columns: minmax(0,1fr) 300px; gap: 24px; }
+.viper-platform .dashboard-primary { gap: 24px; }
+.viper-platform .dashboard-aside { display: flex; flex-direction: column; }
+.viper-platform .dashboard-aside .feedback-panel { order: -2; background: var(--blue-soft); border-color: var(--line); }
+.viper-platform .dashboard-aside .recent-panel { order: -1; }
+.viper-platform .dashboard-aside .next-panel { order: 2; background: var(--panel); border-color: var(--line); }
+.viper-platform .progress-big strong { font-size: 35px; }
+.viper-platform .progress-track { height: 5px; background: var(--line); }
+.viper-platform .progress-panel, .viper-platform .recent-panel, .viper-platform .feedback-panel { padding: 22px; }
+.viper-platform .stat-pair { gap: 14px; }
+.viper-platform .stat-pair strong { font-size: 19px; }
+.viper-platform .dashboard .continue-card { background: var(--panel); border-color: var(--line); min-height: 256px; padding: 26px; border-radius: 10px; }
+.viper-platform .dashboard .continue-copy h2 { font-size: 25px; }
+.viper-platform .dashboard .continue-visual { transform: none; top: 22px; right: 5px; opacity: .85; }
+.viper-platform .dashboard .continue-copy .course-code { margin-top: 17px; }
+.viper-platform .dashboard .continue-copy .lesson-meta { margin: 12px 0 18px; }
+.viper-platform .learning-timeline { padding: 24px; }
+.viper-platform .learning-timeline .section-title { margin-bottom: 20px; }
+.viper-platform .learning-timeline>button { padding: 17px 0; }
+.viper-platform .learning-timeline strong { font-size: 13px; font-weight: 600; }
+.viper-platform .learning-timeline small { font-size:12px; }
+.viper-platform .learning-timeline>button:hover>div strong { color: var(--blue-ink); }
+.viper-platform .learning-path { background: var(--panel); }
+.viper-platform .step-number, .viper-platform .step-number.highlight { background: var(--subtle); color: var(--muted); border: 1px solid var(--line); }
+.viper-platform .path-step:after { background: var(--line); }
+.viper-platform .related-card { border-color: var(--line); border-radius: 8px; box-shadow: none; }
+.viper-platform .related-card:hover { border-color: var(--blue); }
+
+/* Lesson reading uses a quiet index and a comfortably sized reading column. */
+.viper-platform .subject-heading { padding-bottom: 15px; margin-bottom: 24px; }
+.viper-platform .subject-heading>span { color: var(--blue-ink); font-size: 12px; }
+.viper-platform .outline-intro { padding: 24px; background: var(--panel); }
+.viper-platform .outline-intro h2 { font-size: 17px; }
+.viper-platform .outline-lesson { padding: 25px; }
+.viper-platform .outline-lesson h2 { font-size: 21px; }
+.viper-platform .outline-lesson .course-icon { background: var(--blue-soft); color: var(--blue-ink); border-radius: 7px; }
+.viper-platform .outline-activities { border-radius: 7px; }
+.viper-platform .outline-activities>button:hover { background: var(--subtle); }
+.viper-platform .lesson-page-layout { grid-template-columns: 220px minmax(0,1fr); gap: 30px; }
+.viper-platform .lesson-index { background: transparent; border: 0; border-right: 1px solid var(--line); border-radius: 0; padding: 12px 18px 12px 0; }
+.viper-platform .lesson-index>button { border-radius: 6px; padding: 12px; }
+.viper-platform .lesson-index>button.active { color: var(--blue-ink); background: var(--blue-soft); }
+.viper-platform .lesson-index>button:hover { color: var(--blue-ink); }
+.viper-platform .lesson-content { max-width: 960px; }
+.viper-platform .lesson-content .page-heading h1 { font-size: 28px; }
+.viper-platform .lesson-reading { padding: 32px 36px; }
+.viper-platform .lesson-reading>p, .viper-platform .reading-node-list p { font-size: 14px; line-height: 2; }
+.viper-platform .lesson-reading>h3 { font-size: 15px; margin-top: 30px; }
+.viper-platform .reading-node-list>div { padding: 20px 0; }
+.viper-platform .reading-node-list>div>span { border-radius: 5px; background: var(--subtle); color: var(--muted); }
+.viper-platform .lesson-reading>.notice { padding: 16px; line-height: 1.9; }
+.viper-platform .lesson-submission-status { border: 1px solid var(--line); border-radius: 7px; gap: 20px; padding: 20px; }
+.viper-platform .lesson-submission-status>span { font-size:12px; }
+.viper-platform .lesson-submission-status strong { font-size: 12px; font-weight: 500; }
+.viper-platform .lesson-teacher { padding: 28px; }
+
+/* Lab: compact controls, neutral node cards, and room for the visual result. */
+.viper-platform .lab-heading { height: 60px; min-height: 60px; padding: 0 20px; }
+.viper-platform .lab-breadcrumb strong { font-size: 13px; }
+.viper-platform .lab-actions .btn { min-height: 33px; font-size:12px; padding: 7px 11px; }
+.viper-platform .canvas-toolbar { background: var(--panel); border-color: var(--line); }
+.viper-platform .learning-node, .viper-platform[data-theme=dark] .learning-node { border-color: var(--line); border-radius: 7px; box-shadow: 0 2px 5px color-mix(in srgb,var(--shade) 3%,transparent); }
+.viper-platform .learning-node.selected, .viper-platform[data-theme=dark] .learning-node.selected { border-color: var(--blue); box-shadow: 0 0 0 2px color-mix(in srgb,var(--blue) 16%,transparent); }
+.viper-platform .learning-node.starter { border-color: color-mix(in srgb,var(--teal) 42%,var(--line)); }
+.viper-platform .learning-node { width: 250px; }
+.viper-platform .node-parameters { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 11px; text-align: left; }
+.viper-platform .node-parameter { margin-bottom: 10px; }
+.viper-platform .node-parameter:last-child { margin-bottom: 0; }
+.viper-platform .node-parameter>label { display: block; font-size:12px; color: var(--ink); font-weight: 500; margin-bottom: 6px; }
+.viper-platform .node-parameter select, .viper-platform .node-parameter input[type=number] { width: 100%; min-height: 30px; border: 1px solid var(--line); border-radius: 5px; padding: 5px 7px; background: var(--subtle); font-size:12px; color: var(--ink); }
+.viper-platform .node-range-controls { display: flex; align-items: center; gap: 9px; }
+.viper-platform .node-range-controls input[type=range] { min-width: 0; width: 100%; flex: 1; accent-color: var(--action); }
+.viper-platform .node-range-controls input[type=number] { width: 65px; flex: none; padding-right: 3px; }
+.viper-platform .node-parameter>small { display: block; font-size:12px; color: var(--muted); line-height: 1.65; margin-top: 7px; }
+.viper-platform .node-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-top: 10px; margin-top: 10px; border-top: 1px solid var(--line); }
+.viper-platform .node-actions>button { display: inline-flex; align-items: center; gap: 4px; font-size:12px; color: var(--blue-ink); padding: 4px; border-radius: 4px; }
+.viper-platform .node-actions>button:hover:not(:disabled) { background: var(--blue-soft); }
+.viper-platform .node-actions>.node-delete { margin-left: auto; color: var(--muted); }
+.viper-platform .node-actions>.node-delete:hover:not(:disabled) { color: var(--danger); background: color-mix(in srgb,var(--danger) 8%,var(--panel)); }
+.viper-platform .lab-guide-title { min-height: 45px; display: flex; align-items: center; gap: 8px; padding: 0 22px; font-size: 12px; color: var(--ink); border-bottom: 1px solid var(--line); }
+.viper-platform .lab-guide-title svg { color: var(--blue-ink); }
+.viper-platform .inline-list-node { display: block; padding: 16px; background: var(--panel); border-color: var(--line); border-radius: 7px; }
+.viper-platform .list-node-heading { display: flex; align-items: center; gap: 12px; padding: 0; width: 100%; text-align: left; }
+.viper-platform .list-node-heading>span:last-child { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.viper-platform .list-node-heading strong { font-size: 13px; }
+.viper-platform .list-node-heading small { font-size:12px; color: var(--muted); }
+.viper-platform .inline-list-node .node-parameter>label { font-size: 12px; }
+.viper-platform .inline-list-node .node-parameter select, .viper-platform .inline-list-node .node-parameter input[type=number] { min-height: 36px; font-size: 13px; }
+.viper-platform .inline-list-node .node-parameter>small { font-size:12px; }
+.viper-platform .inline-list-node .node-actions>button { font-size:12px; min-height: 32px; }
+.viper-platform .node-icon, .viper-platform .node-icon.model { border-radius: 5px; background: var(--blue-soft); color: var(--blue-ink); }
+.viper-platform .node-category, .viper-platform .node-ports, .viper-platform .learning-node>small { color: var(--muted); }
+.viper-platform .node-library { background: var(--panel); border-color: var(--line); }
+.viper-platform .inspector { width: 310px; min-width: 310px; }
+.viper-platform .inspector-tabs button.active, .viper-platform .result-tabs button.active { color: var(--blue-ink); }
+.viper-platform .inspector-scroll { padding: 24px 22px; }
+.viper-platform .guide-head h2 { font-size: 17px; }
+.viper-platform .guide-head p { line-height: 1.9; }
+.viper-platform .guide-step { gap: 11px; }
+.viper-platform .result-metrics strong { color: var(--ink); }
+.viper-platform .results-panel { flex-basis: 290px; }
+.viper-platform .scene { border-radius: 6px; }
+.viper-platform .hint-box { background: var(--subtle); border-color: var(--line); border-radius: 6px; }
+
+/* Collections, reviews, and administrative data share the same surface rules. */
+.viper-platform .template-preview, .viper-platform .template-preview.teal, .viper-platform .template-preview.violet, .viper-platform[data-theme=dark] .template-preview.teal, .viper-platform[data-theme=dark] .template-preview.violet { background: var(--subtle); border-bottom: 1px solid var(--line); }
+.viper-platform .template-card { border-radius: 9px; overflow: hidden; }
+.viper-platform .template-body h2 { font-size: 19px; }
+.viper-platform .template-description { font-size: 12px; line-height: 1.95; }
+.viper-platform .template-actions .btn { min-height: 35px; }
+.viper-platform .template-visibility-control select { border-color: var(--line); }
+.viper-platform .template-detail-visual, .viper-platform .template-detail-visual.teal, .viper-platform .template-detail-visual.violet, .viper-platform[data-theme=dark] .template-detail-visual.violet { background: var(--subtle); border-color: var(--line); }
+.viper-platform .comment-item p { line-height: 1.9; }
+.viper-platform .review-controls { display: flex; gap: 20px; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.viper-platform .review-controls .review-filter { margin: 0; }
+.viper-platform .review-controls .review-course-filter { margin: 0; }
+.viper-platform .review-layout { grid-template-columns: 220px minmax(0,1fr) 280px; gap: 20px; }
+.viper-platform .review-list { padding: 6px; }
+.viper-platform .review-list>button { border-radius: 6px; padding: 16px 13px; }
+.viper-platform .review-list>button.active { background: var(--blue-soft); }
+.viper-platform .review-list>button.active strong { color: var(--blue-ink); }
+.viper-platform .review-snapshot { padding: 24px; }
+.viper-platform .rubric-panel { padding: 24px; }
+.viper-platform .rubric-total strong { color: var(--blue-ink); font-size: 27px; }
+.viper-platform .submission-metrics>span { background: var(--subtle); border-radius: 6px; }
+.viper-platform .snapshot-nodes>div { border-radius: 6px; }
+.viper-platform .table-scroll { padding: 0; border-radius: 9px; }
+/* T24: App.css (สร้างจาก mockup) ใส่สี #7b91ae ตายตัว ธีมสว่างได้ 2.91:1 ใช้ token --muted แทนเพื่อให้อ่านได้ทั้งสองธีม */
+.viper-platform .brand-small { color: var(--muted); }
+/* T24: ให้กล่องเลื่อนเป็น containing block ของ .sr-only (position:absolute) ในหัวตาราง ไม่อย่างนั้นหลุดกล่องแล้วทำให้หน้ากว้างเกินจอ 375px (/logs) */
+.viper-platform .table-scroll { position: relative; }
+.viper-platform table { font-size: 12px; width: 100%; }
+.viper-platform th { font-size:12px; font-weight: 600; padding: 14px 18px; background: var(--subtle); }
+.viper-platform td { padding: 18px; font-size: 12px; }
+.viper-platform tbody tr:hover { background: var(--subtle); }
+.viper-platform .grade-feedback { min-width: 220px; }
+.viper-platform .platform-log-table th, .viper-platform .platform-log-table td { padding: 16px 18px; }
+.viper-platform .platform-log-table code { color: var(--blue-ink); }
+
+/* Account pages and forms retain their existing tabs and center alignment. */
+.viper-platform .profile-hero { padding: 26px 28px; }
+.viper-platform .profile-avatar, .viper-platform .account-circle, .viper-platform .mini-avatar { background: var(--blue-soft); color: var(--blue-ink); }
+.viper-platform .profile-hero-copy h2 { font-size: 22px; }
+.viper-platform .profile-hero-stats strong { font-size: 24px; }
+.viper-platform .expanded-profile-form { width: 100%; max-width: 900px; margin: 0 auto; padding: 30px; }
+.viper-platform .mail-profile-panel { background: var(--subtle); border-color: var(--line); border-radius: 7px; }
+.viper-platform .profile-experiment-note { border: 1px solid var(--line); border-radius: 6px; }
+.viper-platform .profile-work-card>p { line-height: 1.9; }
+.viper-platform .login-page { max-width: 1080px; gap: 64px; padding: 48px; }
+.viper-platform .login-story, .viper-platform[data-theme=dark] .login-story { border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 36px; }
+.viper-platform .login-story:after { display: none; }
+.viper-platform .login-story>h1 { font-size: 31px; font-weight: 650; letter-spacing: -.6px; }
+.viper-platform .login-story>p, .viper-platform[data-theme=dark] .login-story>p { color: var(--muted); }
+.viper-platform .login-story>.brand { margin-bottom: 40px; }
+.viper-platform .login-story .brand-mark { background: var(--action); box-shadow: none; border-radius: 7px; }
+.viper-platform .login-flow>span, .viper-platform[data-theme=dark] .login-flow>span { background: var(--subtle); border-color: var(--line); color: var(--blue-ink); border-radius: 7px; }
+.viper-platform .login-flow>svg, .viper-platform .login-roles, .viper-platform[data-theme=dark] .login-roles { color: var(--muted); }
+.viper-platform .login-card h2 { font-size: 25px; }
+.viper-platform .google-login { border-radius: 6px; }
+.viper-platform .auth-error { color: var(--danger); background: color-mix(in srgb,var(--danger) 10%,var(--panel)); }
+.viper-platform .login-note { background: var(--subtle); border-color: var(--line); }
+
+@media(max-width:1199px) {
+  .viper-platform .page { padding: 30px 28px 48px; }
+  .viper-platform .review-layout { grid-template-columns: 200px minmax(0,1fr); }
+  .viper-platform .rubric-panel { grid-column: 2; position: static; }
+  .viper-platform .guest-welcome-card { gap: 28px; padding: 28px; }
+  .viper-platform .guest-welcome-card h2 { font-size: 28px; }
+  .viper-platform .dashboard-grid { grid-template-columns: minmax(0,1fr) 270px; gap: 20px; }
+  .viper-platform .dashboard .continue-visual { right: -65px; opacity: .4; }
+  .viper-platform .dashboard .continue-copy { width: 80%; }
+}
+@media(max-width:979px) {
+  .viper-platform .dashboard-grid { grid-template-columns: 1fr; }
+  .viper-platform .dashboard-aside { display: grid; grid-template-columns: 1fr 1fr; }
+  .viper-platform .dashboard-aside .recent-panel { grid-column: auto; }
+  .viper-platform .dashboard-aside .recent-item { display: flex; width: 100%; padding: 13px 0; }
+  .viper-platform .lesson-page-layout { grid-template-columns: 180px minmax(0,1fr); gap: 22px; }
+  .viper-platform .lesson-reading { padding: 26px; }
+  .viper-platform .guest-welcome-card { grid-template-columns: 1fr; }
+  .viper-platform .guest-lab-preview { width: 100%; }
+  .viper-platform .guest-welcome-card .continue-copy { width: 100%; }
+  .viper-platform .login-page { gap: 30px; padding: 30px; }
+  .viper-platform .login-story { padding: 28px; }
+  .viper-platform .login-story>h1 { font-size: 27px; }
+}
+@media(max-width:699px) {
+  .viper-platform .page { padding: 25px 18px 38px; }
+  .viper-platform h1, .viper-platform .page-heading h1, .viper-platform .guest-home .page-heading h1 { font-size: 24px; }
+  .viper-platform .page-heading { gap: 14px; margin-bottom: 22px; }
+  .viper-platform .subject-heading { margin-bottom: 20px; }
+  .viper-platform .subject-links { flex-wrap: wrap; }
+  .viper-platform .guest-welcome-card { padding: 24px; gap: 24px; min-height: 0; }
+  .viper-platform .guest-welcome-card h2 { font-size: 26px; margin-top: 14px; }
+  .viper-platform .guest-welcome-card .continue-copy>p { font-size: 12px; }
+  .viper-platform .guest-welcome-card .continue-copy>p br { display: none; }
+  .viper-platform .guest-lab-toolbar { padding: 10px 12px; }
+  .viper-platform .guest-lab-canvas { min-height: 220px; }
+  .viper-platform .guest-lab-preview .mini-workflow { transform: scale(.85); margin: -10px -20px; }
+  .viper-platform .guest-lab-caption { padding: 10px 12px; font-size:12px; }
+  .viper-platform .guest-lesson-card { padding: 22px; }
+  .viper-platform .dashboard-primary { gap: 20px; }
+  .viper-platform .learning-timeline { padding: 21px; }
+  .viper-platform .learning-timeline>button { gap: 9px; flex-wrap: wrap; align-items: flex-start; }
+  .viper-platform .learning-timeline>button>div { min-width: 190px; }
+  .viper-platform .learning-timeline>button>.badge { margin-left: 25px; }
+  .viper-platform .learning-timeline strong { font-size: 12px; }
+  .viper-platform .dashboard .continue-card { padding: 24px; min-height: 0; }
+  .viper-platform .dashboard .continue-copy { width: 100%; }
+  .viper-platform .dashboard .continue-copy h2 { font-size: 24px; }
+  .viper-platform .dashboard .continue-visual { display: none; }
+  .viper-platform .dashboard-aside { display: flex; }
+  .viper-platform .outline-intro, .viper-platform .outline-lesson { padding: 21px; }
+  .viper-platform .outline-lesson h2 { font-size: 20px; }
+  .viper-platform .outline-lesson>header>div:nth-child(2) { min-width: 180px; }
+  .viper-platform .outline-activities>button>span:nth-child(2) { min-width: 180px; }
+  .viper-platform .lesson-page-layout { grid-template-columns: 1fr; gap: 24px; }
+  .viper-platform .lesson-index { border: 1px solid var(--line); border-radius: 7px; background: var(--panel); padding: 9px; }
+  .viper-platform .lesson-index>button { min-width: 95px; padding: 10px 8px; }
+  .viper-platform .lesson-content .page-heading h1 { font-size: 25px; }
+  .viper-platform .lesson-reading { padding: 24px; }
+  .viper-platform .lesson-reading>p, .viper-platform .reading-node-list p { font-size: 13px; }
+  .viper-platform .lesson-submission-status { grid-template-columns: 1fr; padding: 17px; gap: 17px; }
+  .viper-platform .lesson-teacher { padding: 24px; }
+  .viper-platform .lesson-pagination { gap: 10px; }
+  .viper-platform .review-controls { flex-direction: column; align-items: stretch; gap: 14px; }
+  .viper-platform .review-controls .review-course-filter { display: flex; flex-wrap: wrap; }
+  .viper-platform .review-layout { grid-template-columns: 1fr; }
+  .viper-platform .rubric-panel { grid-column: auto; }
+  .viper-platform .review-snapshot, .viper-platform .rubric-panel { padding: 22px; }
+  .viper-platform .review-list>button { min-width: 190px; }
+  .viper-platform .lab-heading { height: auto; min-height: 100px; padding: 13px 17px; }
+  .viper-platform .inspector { width: 100%; min-width: 0; }
+  .viper-platform .results-panel { flex-basis: auto; }
+  .viper-platform .inspector-scroll { padding: 24px; }
+  .viper-platform .learning-node { width: 210px; }
+  .viper-platform .expanded-profile-form { padding: 23px; }
+  .viper-platform .profile-hero { padding: 23px; }
+  .viper-platform .login-page { display: block; padding: 22px 20px 35px; }
+  .viper-platform .login-story, .viper-platform[data-theme=dark] .login-story { padding: 25px; }
+  .viper-platform .login-story>h1 { font-size: 25px; }
+  .viper-platform .login-story>.brand { margin-bottom: 23px; }
+}
+
+/* Lab workspace reference: scoped to the editable canvas and library only. */
+.viper-platform .lab-workspace-tabs{display:flex;flex-shrink:0;min-height:36px;background:var(--subtle);border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:thin}
+.viper-platform .lab-workspace-tabs>button{display:flex;align-items:center;gap:7px;min-width:165px;max-width:240px;padding:8px 15px;border-right:1px solid var(--line);border-top:2px solid transparent;color:var(--muted);font-size:12px;white-space:nowrap;text-align:left}
+.viper-platform .lab-workspace-tabs>button[aria-selected=true]{border-top-color:var(--blue);background:var(--panel);color:var(--blue-ink)}
+.viper-platform .lab-workspace-tabs>button span{overflow:hidden;text-overflow:ellipsis}
+.viper-platform .lab-run-toggle{min-width:82px}
+.viper-platform .lab-run-toggle.is-running{background:var(--danger)}
+.viper-platform .lab-run-toggle.is-running:hover:not(:disabled){background:var(--danger);filter:brightness(.95)}
+.viper-platform .real-node-library{width:240px;min-width:240px;display:flex;flex-direction:column;padding:0;background:var(--panel);overflow:hidden}
+.viper-platform .real-library-title{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:15px 14px;border-bottom:1px solid var(--line)}
+.viper-platform .real-library-title h3{font-size:12px;letter-spacing:1px;color:var(--blue-ink)}
+.viper-platform .real-library-tabs{display:flex;gap:5px;padding:8px;border-bottom:1px solid var(--line)}
+.viper-platform .real-library-tabs>button{display:flex;align-items:center;justify-content:center;gap:6px;flex:1;border-radius:5px;padding:9px 4px;font-size:12px;color:var(--muted);border:1px solid transparent}
+.viper-platform .real-library-tabs>button.active{background:var(--blue-soft);border-color:color-mix(in srgb,var(--blue) 30%,var(--line));color:var(--blue-ink)}
+.viper-platform .real-library-scroll{padding:12px 10px;overflow-y:auto;flex:1;min-height:0}
+.viper-platform .real-group-tools{display:flex;gap:7px;margin-bottom:13px}
+.viper-platform .real-group-tools>button{flex:1;border:1px solid var(--line);border-radius:5px;font-size:12px;padding:7px;background:var(--subtle);color:var(--muted)}
+.viper-platform .real-node-group{--group-color:var(--blue-ink);border:1px solid var(--line);border-radius:6px;overflow:hidden;margin-bottom:9px;background:var(--subtle)}
+.viper-platform .real-node-group.group-input{--group-color:var(--teal)}
+.viper-platform .real-node-group.group-evaluation{--group-color:var(--amber)}
+.viper-platform .real-group-heading{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:13px 11px;font-size:12px;font-weight:600;color:var(--group-color);text-transform:uppercase}
+.viper-platform .real-node-group>div{display:flex;flex-direction:column;gap:7px;padding:0 8px 9px}
+.viper-platform .real-add-node{display:flex;align-items:center;justify-content:space-between;gap:5px;border:1px solid color-mix(in srgb,var(--group-color) 35%,var(--line));border-radius:5px;padding:10px 9px;background:color-mix(in srgb,var(--group-color) 11%,var(--panel));color:var(--group-color);font-size:12px;text-align:left}
+.viper-platform .real-add-node:disabled{opacity:.45}
+.viper-platform .real-library-footer{padding:11px;border-top:1px solid var(--line);font-size:12px;letter-spacing:1px;color:var(--muted);text-align:center}
+.viper-platform .lab-template-item{width:100%;display:flex;align-items:flex-start;flex-direction:column;gap:9px;text-align:left;border:1px solid var(--line);border-radius:6px;padding:12px;margin-bottom:10px;background:var(--subtle)}
+.viper-platform .lab-template-item strong{font-size:12px}
+.viper-platform .lab-template-item small{font-size:12px;line-height:1.8;color:var(--muted);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.viper-platform .canvas-file-actions{position:absolute;right:12px;top:10px;z-index:5;display:flex;gap:7px}
+.viper-platform .canvas-file-actions>button{display:inline-flex;align-items:center;gap:5px;background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:7px 9px;font-size:12px;box-shadow:0 1px 3px color-mix(in srgb,var(--shade) 3%,transparent)}
+.viper-platform .canvas-file-actions>button.danger{border-color:color-mix(in srgb,var(--danger) 35%,var(--line))}
+.viper-platform .real-lab-node{padding:0;overflow:visible;border-radius:8px;width:260px;--node-accent:var(--blue-ink)}
+.viper-platform .real-lab-node.node-kind-input{--node-accent:var(--teal)}
+.viper-platform .real-lab-node.node-kind-evaluation{--node-accent:var(--amber)}
+.viper-platform .real-node-heading{display:flex;align-items:center;gap:7px;padding:10px 12px;background:var(--subtle);border-radius:7px 7px 0 0;border-bottom:1px solid var(--line);color:var(--node-accent)}
+.viper-platform .real-node-heading strong{font-size:12px;line-height:1.4;flex:1;min-width:0}
+.viper-platform .real-node-heading .starter-label{font-size:12px}
+.viper-platform .real-node-description{padding:11px 12px 0}
+.viper-platform .real-node-description>small{font-size:12px;color:var(--muted)}
+.viper-platform .real-node-description>p{font-size:12px;line-height:1.65;margin-top:4px;color:var(--muted)}
+.viper-platform .real-lab-node .node-parameters{margin:10px 12px 0;padding-top:10px;border-top:0}
+.viper-platform .real-lab-node .node-parameter>label{font-size:12px;color:var(--muted)}
+.viper-platform .real-lab-node .node-parameter select,.viper-platform .real-lab-node .node-parameter input[type=number]{background:var(--canvas);min-height:31px}
+.viper-platform .real-lab-node .node-actions{margin:10px 12px 0;padding-top:7px}
+.viper-platform .real-lab-node .node-ports{margin:0 12px;padding:8px 0;font-size:12px}
+.viper-platform .real-lab-node.selected{outline:1px solid var(--blue);outline-offset:2px}
+@media(max-width:979px){.viper-platform .real-node-library{width:215px;min-width:215px}.viper-platform .real-library-title h3{font-size:12px}.viper-platform .real-library-tabs>button{font-size:12px}}
+@media(max-width:699px){.viper-platform .real-node-library{position:absolute;inset:0 auto 0 0;width:235px;min-width:235px;z-index:12;box-shadow:8px 0 20px color-mix(in srgb,var(--shade) 7%,transparent)}.viper-platform .lab-workspace-tabs{min-height:34px}.viper-platform .lab-workspace-tabs>button{min-width:155px;font-size:12px;padding:7px 12px}.viper-platform .canvas-file-actions{gap:5px;right:8px;top:8px}.viper-platform .canvas-file-actions>button{padding:6px 8px;font-size:12px}.viper-platform .real-lab-node{width:260px}}
+@media(min-width:700px){.viper-platform .real-node-library{position:relative;left:auto;top:auto;bottom:auto;flex-shrink:0;box-shadow:none}}
+
+/* Resizable Lab: the Library spans the full workspace height. */
+.viper-platform .lab-heading .compact-lab-title{display:flex;align-items:center;gap:13px;min-width:0}
+.viper-platform .lab-heading .compact-lab-title strong{white-space:nowrap;flex-shrink:0}
+.viper-platform .lab-heading .compact-lab-title small{display:block;margin:0;border-left:1px solid var(--line);padding-left:13px;max-width:360px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.viper-platform .lab-heading{height:44px;min-height:44px}
+.viper-platform .lab-heading .lab-actions .btn{min-height:31px;padding:5px 10px}
+.viper-platform .lab-workspace-tabs{min-height:30px}
+.viper-platform .lab-workspace-tabs>button{padding:6px 13px;font-size:12px}
+.viper-platform .resizable-lab-workspace{display:grid;grid-template-columns:min(var(--lab-left),28vw) var(--lab-left-handle) minmax(0,1fr) var(--lab-right-handle) min(var(--lab-right),31vw);grid-template-rows:minmax(0,1fr);gap:0;min-height:0;min-width:0;overflow:hidden;flex:1}
+.viper-platform .resizable-lab-workspace>.real-node-library{grid-column:1;grid-row:1;position:relative;inset:auto;width:100%;min-width:0;height:100%;max-height:100%;border-right:0;box-shadow:none}
+.viper-platform .resizable-lab-workspace>.workspace-left{grid-column:3;grid-row:1;min-width:0;min-height:0;height:100%;overflow:hidden;display:flex;flex-direction:column}
+.viper-platform .resizable-lab-workspace>.inspector{grid-column:5;grid-row:1;width:100%;min-width:0;height:100%;overflow:hidden;border-left:0}
+.viper-platform .resizable-lab-workspace .canvas-toolbar{height:34px;min-height:34px;padding:0 9px}
+.viper-platform .resizable-lab-workspace .canvas-row{flex:1;min-height:140px;height:auto}
+.viper-platform .resizable-lab-workspace .flow-area{min-height:140px}
+.viper-platform .resizable-lab-workspace .results-panel{flex:0 0 var(--lab-bottom);height:var(--lab-bottom);min-height:100px;max-height:calc(100% - 180px);border-top:0}
+.viper-platform .resizable-lab-workspace .results-panel.collapsed{height:39px;min-height:39px;flex-basis:39px;max-height:39px}
+.viper-platform .resizable-lab-workspace .results-header{height:39px;min-height:39px}
+.viper-platform .resizable-lab-workspace .results-content{flex:1;min-height:0;overflow:auto}
+.viper-platform .panel-resize-handle{position:relative;touch-action:none;user-select:none;background:var(--subtle);flex-shrink:0;z-index:15;outline-offset:-2px}
+.viper-platform .panel-resize-handle.vertical{width:6px;cursor:col-resize;border-left:1px solid var(--line);border-right:1px solid var(--line)}
+.viper-platform .panel-resize-handle.horizontal{height:6px;cursor:row-resize;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.viper-platform .panel-resize-handle.vertical>span{position:absolute;left:1px;right:1px;top:calc(50% - 18px);height:36px;background:var(--muted);opacity:.35;border-radius:3px}
+.viper-platform .panel-resize-handle.horizontal>span{position:absolute;top:1px;bottom:1px;left:calc(50% - 20px);width:40px;background:var(--muted);opacity:.35;border-radius:3px}
+.viper-platform .panel-resize-handle:hover,.viper-platform .panel-resize-handle:focus-visible,.viper-platform .panel-resize-handle:active{background:var(--blue-soft)}
+.viper-platform .panel-resize-handle:hover>span,.viper-platform .panel-resize-handle:focus-visible>span,.viper-platform .panel-resize-handle:active>span{background:var(--blue);opacity:1}
+.viper-platform .resize-library{grid-column:2;grid-row:1}
+.viper-platform .resize-guide{grid-column:4;grid-row:1}
+@media(min-width:700px){.viper-platform .lab-app{min-height:0}.viper-platform .lab-heading .lab-breadcrumb{flex:1;overflow:hidden}.viper-platform .lab-heading .lab-actions{flex-shrink:0}.viper-platform .lab-heading .compact-lab-title small{max-width:min(360px,25vw)}}
+@media(max-width:979px) and (min-width:700px){.viper-platform .lab-heading .lab-subject-label,.viper-platform .lab-heading .lab-breadcrumb>.badge{display:none}.viper-platform .lab-heading .compact-lab-title{gap:8px}.viper-platform .lab-heading .compact-lab-title small{max-width:180px;font-size:12px;padding-left:8px}}
+@media(max-width:699px){.viper-platform .lab-heading{height:auto;min-height:80px;padding:10px 16px;gap:8px}.viper-platform .lab-heading .compact-lab-title{flex:1;gap:8px}.viper-platform .lab-heading .compact-lab-title strong{font-size:12px}.viper-platform .lab-heading .compact-lab-title small{font-size:12px;padding-left:8px;max-width:130px}.viper-platform .lab-heading .lab-breadcrumb{gap:7px}.viper-platform .resizable-lab-workspace{display:flex;flex-direction:column;overflow:visible;position:relative}.viper-platform .resizable-lab-workspace>.real-node-library{position:absolute;left:0;top:34px;bottom:auto;width:min(var(--lab-left),85vw);height:460px;max-height:460px;z-index:18;border-right:1px solid var(--line)}.viper-platform .resizable-lab-workspace>.workspace-left{height:auto;overflow:visible;flex:none}.viper-platform .resizable-lab-workspace .canvas-row{height:430px;min-height:430px;flex:none}.viper-platform .resizable-lab-workspace .canvas-row.list-mode{height:auto}.viper-platform .resizable-lab-workspace .results-panel{max-height:none;min-height:100px;overflow:hidden}.viper-platform .resizable-lab-workspace>.inspector{height:auto;min-height:300px}.viper-platform .panel-resize-handle.vertical{display:none}.viper-platform .resizable-lab-workspace .flow-area{min-height:430px}}

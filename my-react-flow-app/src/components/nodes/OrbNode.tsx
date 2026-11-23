@@ -6,27 +6,10 @@ import Modal from '../common/Modal';
 import { abs } from '../../lib/api'; 
 import { useNodeStatus } from '../../hooks/useNodeStatus';
 import { ParameterLoader } from '../ParameterLoader'; 
+import { SettingsSlidersIcon } from './SettingsSlidersIcon';
+import { NODE_DEFAULTS } from '../../lib/nodeDefaults';
 
-const SettingsSlidersIcon = ({ className = 'h-4 w-4' }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="black" aria-hidden="true">
-    <g strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4}>
-      <path d="M3 7h18" /><circle cx="9" cy="7" r="3.4" fill="white" />
-      <path d="M3 17h18" /><circle cx="15" cy="17" r="3.4" fill="white" />
-    </g>
-  </svg>
-);
-
-const DEFAULT_ORB = {
-  nfeatures: 500,
-  scaleFactor: 1.2,
-  nlevels: 8,
-  edgeThreshold: 31,
-  firstLevel: 0,
-  WTA_K: 2,
-  scoreType: 'FAST' as 'FAST' | 'HARRIS',
-  patchSize: 31,
-  fastThreshold: 20,
-};
+const DEFAULT_ORB = { ...NODE_DEFAULTS.orb };
 
 type Params = typeof DEFAULT_ORB;
 

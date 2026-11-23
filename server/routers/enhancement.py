@@ -5,7 +5,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from ..utils_io import resolve_image_path, OUT, RESULT_DIR, static_url
+from ..utils_io import resolve_image_path, OUT, static_url
 
 from server.algos.enchancement.Clahe import run as clahe_run
 from server.algos.enchancement.Msrcr import run as msrcr_run
@@ -35,7 +35,7 @@ async def api_clahe(req: EnhancementReq):
         raise HTTPException(status_code=404, detail=f"Image not found at: {img_path}")
 
     try:
-        json_p, vis_p = clahe_run(img_path, RESULT_DIR, **(req.params or {}))
+        json_p, vis_p = clahe_run(img_path, OUT, **(req.params or {}))
         
         with open(json_p, 'r', encoding='utf-8') as f:
             json_content = json.load(f)
@@ -45,8 +45,8 @@ async def api_clahe(req: EnhancementReq):
         return {
             "status": "success",
             "tool": "CLAHE",
-            "json_url": static_url(json_p, OUT),
-            "vis_url": static_url(vis_p, OUT),
+            "json_url": static_url(json_p),
+            "vis_url": static_url(vis_p),
             "image_shape": shape,  
             "json_data": json_content 
         }
@@ -60,7 +60,7 @@ async def api_msrcr(req: EnhancementReq):
         raise HTTPException(status_code=404, detail=f"Image not found at: {img_path}")
 
     try:
-        json_p, vis_p = msrcr_run(img_path, RESULT_DIR, **(req.params or {}))
+        json_p, vis_p = msrcr_run(img_path, OUT, **(req.params or {}))
         
         with open(json_p, 'r', encoding='utf-8') as f:
             json_content = json.load(f)
@@ -70,8 +70,8 @@ async def api_msrcr(req: EnhancementReq):
         return {
             "status": "success",
             "tool": "MSRCR",
-            "json_url": static_url(json_p, OUT),
-            "vis_url": static_url(vis_p, OUT),
+            "json_url": static_url(json_p),
+            "vis_url": static_url(vis_p),
             "image_shape": shape,
             "json_data": json_content
         }
@@ -85,7 +85,7 @@ async def api_zero_dce(req: EnhancementReq):
         raise HTTPException(status_code=404, detail="Image not found")
 
     try:
-        json_p, vis_p = zero_run(img_path, RESULT_DIR, **(req.params or {}))
+        json_p, vis_p = zero_run(img_path, OUT, **(req.params or {}))
         
         with open(json_p, 'r', encoding='utf-8') as f:
             json_content = json.load(f)
@@ -95,8 +95,8 @@ async def api_zero_dce(req: EnhancementReq):
         return {
             "status": "success",
             "tool": "ZERO_DCE",
-            "json_url": static_url(json_p, OUT),
-            "vis_url": static_url(vis_p, OUT),
+            "json_url": static_url(json_p),
+            "vis_url": static_url(vis_p),
             "image_shape": shape,
             "json_data": json_content
         }

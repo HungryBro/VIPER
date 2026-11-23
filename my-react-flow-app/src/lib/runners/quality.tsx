@@ -1,6 +1,7 @@
 //src/lib/runners/quality.tsx
 import { runBrisque, runPsnr, runSsim } from '../api';
-import { markStartThenRunning, getNodeImageUrl, updateNodeStatus, findInputImage } from './utils';
+import { producesNoImage } from '../nodeCatalog';
+import { getNodeImageUrl, findInputImage } from './utils';
 import type { Edge } from 'reactflow';
 import type { RFNode, SetNodes } from './utils';
 import type { CustomNodeData } from '../../types';
@@ -17,17 +18,9 @@ export async function runQuality(
   const nodeName = node.data.label || node.type?.toUpperCase() || 'Quality Node';
 
   const fail = async (msg: string) => {
-    await updateNodeStatus(nodeId, 'fault', setNodes);
     throw new Error(msg); 
   };
 
-  const BAD_SOURCES = [
-    'sift', 'surf', 'orb', 
-    'bfmatcher', 'flannmatcher', 
-    'otsu', 'snake', 
-    'save-json',
-    'brisque', 'psnr', 'ssim' 
-  ];
 
 
   if (node.type === 'brisque') {
@@ -36,7 +29,7 @@ export async function runQuality(
 
     const prevNode = nodes.find((n) => n.id === incoming[0].source);
     
-    if (prevNode && BAD_SOURCES.includes(prevNode.type || '')) {
+    if (prevNode && producesNoImage(prevNode.type)) {
       const toolName = prevNode.data.label || prevNode.type;
       return fail(`Invalid Input: ${nodeName} requires an Image source, not a '${toolName}' result.`);
     }
@@ -45,7 +38,6 @@ export async function runQuality(
 
     if (!imgUrl) return fail('No input image found (Please check connection or run parent node).');
 
-    await markStartThenRunning(nodeId, `Running ${nodeName}`, setNodes);
 
     try {
       const resp = await runBrisque(imgUrl);
@@ -93,10 +85,10 @@ export async function runQuality(
 
     const badInputs: string[] = [];
     
-    if (BAD_SOURCES.includes(typeA)) {
+    if (producesNoImage(typeA)) {
         badInputs.push(`'${nodeA?.data.label || typeA}'`);
     }
-    if (BAD_SOURCES.includes(typeB)) {
+    if (producesNoImage(typeB)) {
         badInputs.push(`'${nodeB?.data.label || typeB}'`);
     }
 
@@ -109,7 +101,6 @@ export async function runQuality(
 
     if (!urlA || !urlB) return fail('No input image found (Please check connection or run parent node).');
 
-    await markStartThenRunning(nodeId, `Running ${nodeName}`, setNodes);
 
     try {
       const runner = node.type === 'psnr' ? runPsnr : runSsim;

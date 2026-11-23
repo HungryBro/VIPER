@@ -4,16 +4,13 @@ import os
 import cv2
 import json
 import sys
-import hashlib 
-from datetime import datetime 
 from typing import Tuple, Dict, Any, Optional
 import numpy as np
 
+from server.algos.inputs import image_input
+from server.cache_utils import config_hash, load_cached_json
+from server.utils_io import OUT, ensure_dirs
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
-
-def _ensure_dir(d: str):
-    os.makedirs(d, exist_ok=True)
 
 def _drop_alpha(img: np.ndarray) -> np.ndarray:
     if img is None or img.ndim != 3:
@@ -57,62 +54,14 @@ def _to_luma(img: np.ndarray) -> np.ndarray:
         return ycrcb[:, :, 0]
     raise ValueError(f"Unsupported image format for luma: shape={img.shape}")
 
-def _resolve_path(path: str) -> str:
-    if path.lower().endswith(".json"):
-        try:
-            with open(path, 'r', encoding='utf-8') as f:
-                meta = json.load(f)
-            
-            tool = meta.get("tool") or meta.get("matching_tool") or meta.get("alignment_tool")
-            if tool and tool not in ["HomographyAlignment", "AffineAlignment"]: 
-                 pass
-
-            extracted = (
-                meta.get("image", {}).get("original_path") or 
-                meta.get("output", {}).get("aligned_image") or
-                meta.get("output", {}).get("result_image_url") or
-                meta.get("result_image_url") 
-            )
-            if extracted:
-                return extracted
-        except (json.JSONDecodeError, FileNotFoundError, PermissionError):
-            pass
-    
-    if os.path.exists(path):
-        return path
-    
-    rel_path = os.path.join(PROJECT_ROOT, path.lstrip("/"))
-    if os.path.exists(rel_path):
-        return rel_path
-        
-    return path 
-
-
-def _validate_is_image(path: str, label: str):
-    if path.lower().endswith(".json"):
-        try:
-            with open(path, 'r', encoding='utf-8') as f:
-                meta = json.load(f)
-            tool = meta.get("tool") or meta.get("matching_tool")
-            if tool in ["SIFT", "SURF", "ORB", "BFMatcher", "FLANNBasedMatcher"]: 
-                raise ValueError(
-                    f"Invalid Input for '{label}': Received a '{tool}' result file. "
-                    "PSNR requires an Image file, not a Feature/Matcher JSON."
-                )
-        except (json.JSONDecodeError, FileNotFoundError, PermissionError):
-            pass
-
 
 def run(original_path: str,
         processed_path: str,
         out_root: Optional[str] = None,
         use_luma: bool = True) -> Tuple[str, Dict[str, Any]]:
     
-    real_orig_path = _resolve_path(original_path)
-    real_proc_path = _resolve_path(processed_path)
-
-    _validate_is_image(original_path, "Input 1 (Original)")
-    _validate_is_image(processed_path, "Input 2 (Processed)")
+    real_orig_path = image_input(original_path, "PSNR")
+    real_proc_path = image_input(processed_path, "PSNR")
 
     img1 = cv2.imread(real_orig_path, cv2.IMREAD_UNCHANGED)
     img2 = cv2.imread(real_proc_path, cv2.IMREAD_UNCHANGED)
@@ -150,18 +99,17 @@ def run(original_path: str,
             score = 10.0 * np.log10((R * R) / mse)
 
     if out_root is None:
-        out_root = os.path.join(PROJECT_ROOT, "outputs")
+        out_root = OUT
         
     out_dir = os.path.join(out_root, "features", "psnr_outputs")
-    _ensure_dir(out_dir)
+    ensure_dirs(out_dir)
 
     config_map = {
         "img1": os.path.basename(real_orig_path),
         "img2": os.path.basename(real_proc_path),
         "luma": use_luma
     }
-    config_str = json.dumps(config_map, sort_keys=True)
-    param_hash = hashlib.md5(config_str.encode('utf-8')).hexdigest()[:8]
+    param_hash = config_hash(config_map)
     
     stem1 = os.path.splitext(os.path.basename(real_orig_path))[0]
     stem2 = os.path.splitext(os.path.basename(real_proc_path))[0]
@@ -169,13 +117,9 @@ def run(original_path: str,
 
     interpretation = "Higher is better. Infinity for identical images given the same dynamic range."
 
-    if os.path.exists(out_json):
-         try:
-            with open(out_json, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            return out_json, data
-         except:
-            pass
+    cached = load_cached_json(out_json)
+    if cached is not None:
+        return out_json, cached
 
     data: Dict[str, Any] = {
         "tool": "PSNR",

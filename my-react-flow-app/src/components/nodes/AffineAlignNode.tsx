@@ -6,15 +6,8 @@ import Modal from '../common/Modal';
 import { abs } from '../../lib/api';
 import { useNodeStatus } from '../../hooks/useNodeStatus';
 import { ParameterLoader } from '../ParameterLoader'; 
-
-const SettingsSlidersIcon = ({ className = 'h-4 w-4' }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="black" aria-hidden="true">
-    <g strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4}>
-      <path d="M3 7h18" /><circle cx="9" cy="7" r="3.4" fill="white" />
-      <path d="M3 17h18" /><circle cx="15" cy="17" r="3.4" fill="white" />
-    </g>
-  </svg>
-);
+import { SettingsSlidersIcon } from './SettingsSlidersIcon';
+import { NODE_DEFAULTS } from '../../lib/nodeDefaults';
 
 type Params = {
   model: 'affine' | 'partial';
@@ -25,14 +18,7 @@ type Params = {
   refine_iters: number;
 };
 
-const DEFAULT_PARAMS: Params = {
-  model: 'affine',
-  warp_mode: 'image2_to_image1',
-  blend: false,
-  ransac_thresh: 3.0,
-  confidence: 0.99,
-  refine_iters: 10,
-};
+const DEFAULT_PARAMS: Params = { ...NODE_DEFAULTS['affine-align'] } as Params;
 
 const ALLOWED_AFFINE_KEYS = [
   'model', 

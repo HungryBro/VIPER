@@ -1,9 +1,10 @@
 // src/lib/runners/alignment.tsx
 import { runHomographyAlignment, runAffineAlignment, abs } from '../api';
-import { markStartThenRunning, updateNodeStatus } from './utils';
+import { nodeSpec } from '../nodeCatalog';
 import type { Edge } from 'reactflow';
 import type { Node as RFNode } from 'reactflow'; 
 import type { CustomNodeData } from '../../types';
+import { nodeResult } from '../nodeResult';
 
 type RF = RFNode<CustomNodeData>;
 type SetNodes = React.Dispatch<React.SetStateAction<RF[]>>;
@@ -13,12 +14,8 @@ function getIncoming(edges: Edge[], id: string) {
 }
 
 function pickMatchJsonFromNode(matchNode?: RF): string | null {
-  if (!matchNode) return null;
-  const p = (matchNode.data as CustomNodeData | undefined)?.payload;
-  const matchPath = p?.output?.match_json || p?.json?.json_path || p?.json_path;
-  
-  if (!matchPath || typeof matchPath !== 'string' || !matchPath.endsWith('.json')) return null;
-  return matchPath;
+  const matchPath = nodeResult(matchNode)?.json;
+  return matchPath?.endsWith('.json') ? matchPath : null;
 }
 
 function getNodeParams<T extends object = Record<string, any>>(node: RF): T {
@@ -37,18 +34,15 @@ export async function runAlignment(
   const incoming = getIncoming(edges, nodeId);
   if (!incoming.length) {
     const msg = 'No input connection. Please connect a Matcher node (BF/FLANN).';
-    await updateNodeStatus(nodeId, 'fault', setNodes);
     throw new Error(msg);
   }
 
   const srcEdge = incoming[0];
   const matchNode = nodes.find((n) => n.id === srcEdge.source);
 
-  const allowedTypes = ['bfmatcher', 'flannmatcher'];
-  if (!matchNode || !allowedTypes.includes(matchNode.type || '')) {
+  if (!matchNode || nodeSpec(matchNode.type)?.output !== 'match') {
     const label = matchNode?.data?.label || matchNode?.type || 'Unknown Node';
     const msg = `Invalid Input: Alignment requires a Matcher node, not a '${label}' result.`;
-    await updateNodeStatus(nodeId, 'fault', setNodes);
     setNodes(nds => nds.map(n => n.id === nodeId ? { ...n, data: { ...n.data, description: msg } } : n));
     throw new Error(msg);
   }
@@ -56,7 +50,6 @@ export async function runAlignment(
   const matchJson = pickMatchJsonFromNode(matchNode);
   if (!matchJson) {
     const msg = 'Matcher output not ready. Please Run the Matcher node first.';
-    await updateNodeStatus(nodeId, 'fault', setNodes);
     setNodes(nds => nds.map(n => n.id === nodeId ? { ...n, data: { ...n.data, description: msg } } : n));
     throw new Error(msg);
   }
@@ -68,10 +61,6 @@ export async function runAlignment(
       confidence: Number(rawParams.confidence) || 0.99,
       refine_iters: rawParams.refine_iters !== undefined ? Number(rawParams.refine_iters) : 10 
   };
-
-  const label = kind === 'affine-align' ? 'Running Affine...' : 'Running Homography...';
-
-  await markStartThenRunning(nodeId, label, setNodes);
 
   try {
     let resp: any;
@@ -116,6 +105,7 @@ export async function runAlignment(
                   json_path: resp?.json_path,
                   aligned_path: alignedPath,
                   output: resp, 
+                  result: { image: alignedPath ?? alignedUrl, preview: alignedUrl, json: resp?.json_path },
                 },
               } as CustomNodeData,
             }
@@ -124,7 +114,6 @@ export async function runAlignment(
     );
   } catch (err: any) {
     console.error("Alignment Error:", err);
-    await updateNodeStatus(nodeId, 'fault', setNodes);
     const errMsg = err.response?.data?.detail || err.message || "Alignment Failed";
     setNodes((nds) => nds.map(n => n.id === nodeId ? {
         ...n, data: { ...n.data, description: errMsg }

@@ -1,0 +1,6 @@
+/* ลำดับ import ตาม mockup (App.jsx): App, Platform, Theme, Density แล้ว Learning ทุกไฟล์ครอบด้วย .viper-platform */
+@import './App.css';
+@import './Platform.css';
+@import './Theme.css';
+@import './Density.css';
+@import './Learning.css';

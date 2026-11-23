@@ -3,42 +3,11 @@ import cv2
 import numpy as np
 import json
 import os
-import hashlib
 from typing import Dict, Any
 
-PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+from server.cache_utils import config_hash, load_cached_json
+from server.utils_io import OUT, ensure_dirs, locate_file, read_json
 
-def _ensure_dir(d: str):
-    os.makedirs(d, exist_ok=True)
-
-def _read_json(path: str):
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"JSON file not found: {path}")
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-def _resolve_file_path(path: str) -> str:
-    if not path: return path
-    if os.path.exists(path): return path
-    if path.startswith("/static/"):
-        clean_path = path.replace("/static/", "", 1).lstrip("/")
-        candidate_outputs = os.path.join(PROJECT_ROOT, "outputs", clean_path)
-        if os.path.exists(candidate_outputs): return candidate_outputs
-        candidate_static = os.path.join(PROJECT_ROOT, "static", clean_path)
-        if os.path.exists(candidate_static): return candidate_static
-    filename = os.path.basename(path)
-    search_dirs = [
-        os.path.join(PROJECT_ROOT, "outputs", "samples", "json", "matching"),
-        os.path.join(PROJECT_ROOT, "outputs", "samples", "json", "alignment"),
-        os.path.join(PROJECT_ROOT, "outputs", "samples"),
-        os.path.join(PROJECT_ROOT, "outputs", "uploads"),
-        os.path.join(PROJECT_ROOT, "outputs"),
-        os.path.join(PROJECT_ROOT, "features", "affine_outputs"), 
-    ]
-    for d in search_dirs:
-        candidate = os.path.join(d, filename)
-        if os.path.exists(candidate): return candidate
-    return path
 
 def run(
     match_json_path: str, 
@@ -50,8 +19,8 @@ def run(
     confidence: float = 0.99,
     refine_iters: int = 10
 ):
-    real_match_json = _resolve_file_path(match_json_path)
-    data = _read_json(real_match_json)
+    real_match_json = locate_file(match_json_path)
+    data = read_json(real_match_json)
 
     if "matching_tool" not in data:
         raise ValueError("Invalid input: Input file is not a Matcher result.")
@@ -63,8 +32,8 @@ def run(
     raw_path1 = img1_info.get("original_path") or img1_info.get("file_name")
     raw_path2 = img2_info.get("original_path") or img2_info.get("file_name")
 
-    path1 = _resolve_file_path(raw_path1)
-    path2 = _resolve_file_path(raw_path2)
+    path1 = locate_file(raw_path1)
+    path2 = locate_file(raw_path2)
 
     if not path1 or not os.path.exists(path1):
         raise FileNotFoundError(f"Cannot find image 1: {raw_path1} (Resolved: {path1})")
@@ -129,10 +98,10 @@ def run(
          raise ValueError(f"Affine estimation failed ({tool_used}). Try adjusting RANSAC threshold.")
 
     if out_root is None:
-        out_root = os.path.join(PROJECT_ROOT, "outputs")
+        out_root = OUT
         
     out_dir = os.path.join(out_root, "features", "affine_outputs")
-    _ensure_dir(out_dir)
+    ensure_dirs(out_dir)
     
     t_match = os.path.getmtime(real_match_json) if os.path.exists(real_match_json) else 0
     t_img1 = os.path.getmtime(path1) if os.path.exists(path1) else 0
@@ -150,8 +119,7 @@ def run(
         "conf": confidence,
         "iters": refine_iters
     }
-    config_str = json.dumps(config_map, sort_keys=True)
-    param_hash = hashlib.md5(config_str.encode('utf-8')).hexdigest()[:8]
+    param_hash = config_hash(config_map)
     
     base_match = os.path.splitext(os.path.basename(match_json_path))[0]
     stem = f"affine_{base_match}_{param_hash}"
@@ -162,14 +130,10 @@ def run(
     out_img_path = os.path.join(out_dir, out_img_name)
     out_json_path = os.path.join(out_dir, out_json_name)
 
-    if os.path.exists(out_json_path) and os.path.exists(out_img_path):
-         try:
-            with open(out_json_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            data["json_path"] = out_json_path
-            return data
-         except:
-            pass
+    cached = load_cached_json(out_json_path, out_img_path)
+    if cached is not None:
+        cached["json_path"] = out_json_path
+        return cached
 
     h, w = target_img.shape[:2]
     aligned = cv2.warpAffine(source_img, M, (w, h))

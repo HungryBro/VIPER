@@ -1,21 +1,14 @@
 # project_n2n/server/algos/Classification/otsu_adapter.py
 import os
 import json
-import hashlib 
 from typing import Dict, Any, Tuple, Optional
 
 import cv2
 import numpy as np
 
-
-def _ensure_dir(d: str):
-    os.makedirs(d, exist_ok=True)
-
-def _read_json(path: str) -> Dict[str, Any]:
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"JSON file not found: {path}")
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+from server.algos.inputs import image_input
+from server.cache_utils import config_hash
+from server.utils_io import ensure_dirs
 
 
 def _to_gray(img: np.ndarray) -> np.ndarray:
@@ -72,24 +65,10 @@ def run(
     **kwargs
 ) -> Tuple[str, Optional[str]]:
     
-    if image_path.lower().endswith(".json"):
-        try:
-            data = _read_json(image_path)
-            if "matching_tool" in data:
-                 raise ValueError(f"Invalid Input: Otsu cannot run on '{data.get('matching_tool')}' result JSON.")
-            if "tool" in data and data["tool"] in ["SIFT", "SURF", "ORB"]:
-                 raise ValueError(f"Invalid Input: Otsu cannot run on '{data['tool']}' feature JSON.")
-
-            image_path = (
-                data.get("image", {}).get("original_path") or 
-                data.get("output", {}).get("aligned_image") or
-                image_path
-            )
-        except (json.JSONDecodeError, FileNotFoundError):
-            pass 
+    image_path = image_input(image_path, "Otsu")
 
     out_dir = os.path.join(out_root, "features", "otsu_outputs")
-    _ensure_dir(out_dir)
+    ensure_dirs(out_dir)
     
     config_map = {
         "img": os.path.basename(image_path),
@@ -99,8 +78,7 @@ def run(
         "hist": show_histogram
     }
     
-    config_str = json.dumps(config_map, sort_keys=True, default=str)
-    param_hash = hashlib.md5(config_str.encode('utf-8')).hexdigest()[:8]
+    param_hash = config_hash(config_map)
     
     base_name = os.path.splitext(os.path.basename(image_path))[0]
     stem = f"otsu_{base_name}_{param_hash}"

@@ -1,9 +1,10 @@
 // File: src/lib/runners/matching.tsx
 import { runBfmatcher, runFlannmatcher, abs } from '../api';
-import { markStartThenRunning, updateNodeStatus } from './utils';
+import { nodeSpec } from '../nodeCatalog';
 import type { Edge } from 'reactflow';
 import type { RFNode, SetNodes } from './utils';
 import type { CustomNodeData } from '../../types';
+import { nodeResult } from '../nodeResult';
 
 export async function runMatcher(
   node: RFNode,
@@ -11,18 +12,13 @@ export async function runMatcher(
   nodes: RFNode[],
   edges: Edge[]
 ) {
-  const nodeId = node.id;
   const getIncoming = (id: string) => edges.filter((e) => e.target === id);
 
   const fail = async (msg: string) => {
-    await updateNodeStatus(nodeId, 'fault', setNodes);
     throw new Error(msg);
   };
 
-  const findFeatureJson = (n?: RFNode): string | undefined => {
-    const p = (n?.data as CustomNodeData | undefined)?.payload;
-    return (p as any)?.json_path ?? (p as any)?.json_url;
-  };
+  const findFeatureJson = (n?: RFNode): string | undefined => nodeResult(n)?.json;
 
   const getInputMeta = (n?: RFNode) => {
     const p = (n?.data as CustomNodeData | undefined)?.payload;
@@ -45,11 +41,10 @@ export async function runMatcher(
   const n1 = nodes.find(n => n.id === e1!.source);
   const n2 = nodes.find(n => n.id === e2!.source);
   
-  const allowedTypes = ['sift', 'surf', 'orb'];
   const type1 = n1?.type || 'unknown';
   const type2 = n2?.type || 'unknown';
 
-  if (!allowedTypes.includes(type1) || !allowedTypes.includes(type2)) {
+  if (nodeSpec(type1)?.output !== 'feature' || nodeSpec(type2)?.output !== 'feature') {
      await fail(`Invalid input: Requires SIFT/SURF/ORB nodes.`);
   }
 
@@ -80,7 +75,6 @@ export async function runMatcher(
   }
 
   const kind = node.type as 'bfmatcher' | 'flannmatcher';
-  await markStartThenRunning(node.id, `Running ${kind.toUpperCase()}`, setNodes);
 
   try {
     const params = ((node.data as CustomNodeData)?.payload?.params || {}) as Record<string, any>;
@@ -165,7 +159,12 @@ export async function runMatcher(
                     match_json: resp.json_path,
                     vis_url: fullVisUrl,
                     json_url: resp.json_url
-                  }
+                  },
+                  result: {
+                    image: fullVisUrl,
+                    preview: fullVisUrl,
+                    json: typeof resp.json_path === 'string' && resp.json_path.endsWith('.json') ? resp.json_path : undefined,
+                  },
                 },
               } as CustomNodeData,
             }

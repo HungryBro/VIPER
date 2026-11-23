@@ -2,7 +2,7 @@
 import type { Node, Edge } from 'reactflow';
 import type { CustomNodeData } from '../../types';
 import { abs } from '../api'; 
-import { updateNodeStatus, findInputImage } from './utils';
+import { findInputImage } from './utils';
 
 function triggerBrowserDownload(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob);
@@ -59,7 +59,6 @@ export async function runSaveImage(
   edges: Edge[]
 ) {
   const nodeId = node.id;
-  await updateNodeStatus(nodeId, 'running', setNodes);
 
   try {
     const imageUrlPath = findInputImage(nodeId, nodes, edges);
@@ -112,7 +111,6 @@ export async function runSaveImage(
     );
   } catch (err: any) {
     console.error("❌ Save Image Error:", err);
-    await updateNodeStatus(nodeId, 'fault', setNodes);
     throw new Error(err.message || "Failed to download image"); 
   }
 }
@@ -124,7 +122,6 @@ export async function runSaveJson(
   edges: Edge[]
 ) {
   const nodeId = node.id;
-  await updateNodeStatus(nodeId, 'running', setNodes);
 
   try {
     const payload = findInputPayload(nodeId, nodes, edges);
@@ -189,7 +186,6 @@ export async function runSaveJson(
     );
   } catch (err: any) {
     console.error("❌ Save JSON Error:", err.message);
-    await updateNodeStatus(nodeId, 'fault', setNodes);
     throw err;
   }
 }

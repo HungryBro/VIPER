@@ -1,0 +1,206 @@
+/* คัดลอกจาก outputs/viper-learning-v2/src/Density.css แล้วครอบทุก selector ด้วย .viper-platform (T5) */
+/* Product density: 4px grid, content-first pages. Lab geometry stays in Theme.css. */
+.viper-platform{--space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:20px;--space-6:24px;--space-8:32px;--page-gutter:32px;--page-top:20px;--panel-padding:20px;--section-gap:20px}
+.viper-platform .main>.page{padding:var(--page-top) var(--page-gutter) var(--space-8)}
+.viper-platform .page .subject-heading{gap:var(--space-4);padding-bottom:var(--space-2);margin-bottom:var(--space-4)}
+.viper-platform .subject-heading+.page-heading .eyebrow{display:none}
+.viper-platform .page .page-heading{gap:var(--space-4);margin-bottom:var(--space-4)}
+.viper-platform .page .page-heading>div{min-width:0}
+.viper-platform .page .page-heading h1{font-size:26px;line-height:1.4;letter-spacing:-.5px;text-wrap:balance}
+.viper-platform .page .page-heading p{margin-top:var(--space-2);font-size:13px;line-height:1.65}
+.viper-platform .page .eyebrow{margin-bottom:var(--space-2)}
+.viper-platform .page .section-title{gap:var(--space-3);margin-bottom:var(--space-4)}
+.viper-platform .page .section-title p{margin-top:var(--space-1);line-height:1.65}
+.viper-platform .page .panel{padding:var(--panel-padding)}
+.viper-platform .page .panel.table-scroll,.viper-platform .page .panel.template-card,.viper-platform .page .panel.platform-log-table{padding:0}
+.viper-platform .page .table-scroll th{padding:var(--space-3) var(--space-4)}
+.viper-platform .page .table-scroll td{padding:var(--space-3) var(--space-4);line-height:1.65}
+.viper-platform .page .table-scroll td small{margin-top:var(--space-1)}
+.viper-platform table,.viper-platform .result-metrics,.viper-platform .submission-metrics,.viper-platform .profile-hero-stats,.viper-platform .progress-big,.viper-platform .stat-pair,.viper-platform .rubric-total,.viper-platform .badge{font-variant-numeric:tabular-nums}
+.viper-platform .page .grade-note{margin-top:var(--space-3);line-height:1.7}
+.viper-platform .page .filter-toolbar{gap:var(--space-4);margin-bottom:var(--space-4)}
+.viper-platform .page .template-tab-note{margin:0 0 var(--space-4);line-height:1.7}
+.viper-platform .page .course-grid,.viper-platform .page .profile-work-grid{gap:var(--space-4)}
+.viper-platform .page .template-body{padding:var(--space-5)}
+.viper-platform .page .template-author{margin-bottom:var(--space-3)}
+.viper-platform .page .template-comment-meta{margin-top:var(--space-3);padding-top:var(--space-3)}
+.viper-platform .page .template-actions{margin-top:var(--space-3);padding-top:var(--space-3)}
+.viper-platform .page .dashboard-grid,.viper-platform .page .profile-history-grid{gap:var(--section-gap)}
+.viper-platform .page .dashboard-primary,.viper-platform .page .dashboard-aside{gap:var(--section-gap)}
+.viper-platform .page .learning-timeline>button{padding:var(--space-3) 0}
+.viper-platform .page .continue-card{padding:var(--space-6);min-height:240px}
+.viper-platform .page .overview-stats{gap:var(--space-4);margin-bottom:var(--section-gap)}
+.viper-platform .page .overview-stat>strong{font-size:30px;margin-top:var(--space-2)}
+.viper-platform .page .outline-intro{gap:var(--space-5);margin-bottom:var(--space-4)}
+.viper-platform .page .lesson-outline{gap:var(--space-4)}
+.viper-platform .page .outline-lesson>header{gap:var(--space-3);margin-bottom:var(--space-4)}
+.viper-platform .page .outline-activities>button{padding:var(--space-3) var(--space-4)}
+.viper-platform .page .outline-lesson>footer{margin-top:var(--space-4)}
+.viper-platform .page .back-link{margin-bottom:var(--space-4)}
+.viper-platform .page .lesson-page-layout{gap:var(--space-6)}
+.viper-platform .page .lesson-content-tabs{margin-bottom:var(--space-4)}
+.viper-platform .page .lesson-reading{padding:var(--space-6)}
+.viper-platform .page .lesson-reading>h2{margin:var(--space-4) 0 var(--space-3)}
+.viper-platform .page .lesson-reading>h3{margin:var(--space-6) 0 var(--space-3)}
+.viper-platform .page .reading-node-list{margin:var(--space-3) 0 var(--space-4)}
+.viper-platform .page .reading-node-list>div{padding:var(--space-4) 0}
+.viper-platform .page .lesson-reading>p,.viper-platform .page .reading-node-list p{line-height:1.85}
+.viper-platform .page .lesson-reading>.btn{margin-top:var(--space-4)}
+.viper-platform .page .lesson-pagination,.viper-platform .page .lesson-teacher{margin-top:var(--space-4)}
+.viper-platform .page .review-controls{gap:var(--space-4);margin-bottom:var(--space-4)}
+.viper-platform .page .review-layout,.viper-platform .page .history-layout{gap:var(--space-4)}
+.viper-platform .page .review-list{padding:var(--space-1)}
+.viper-platform .page .review-list>button{padding:var(--space-3)}
+.viper-platform .page .rubric-panel h2{margin-bottom:var(--space-4)}
+.viper-platform .page .rubric-field{margin-bottom:var(--space-4)}
+.viper-platform .page .profile-hero{padding:var(--space-5);gap:var(--space-5);margin-bottom:var(--space-4)}
+.viper-platform .page .profile-hero>.profile-avatar{width:64px;height:64px;font-size:22px}
+.viper-platform .page .profile-hero-copy>.profile-bio{margin-top:var(--space-2)}
+.viper-platform .page .profile-tabs,.viper-platform .page .admin-tabs{margin-bottom:var(--space-4)}
+.viper-platform .page .expanded-profile-form{padding:var(--space-6)}
+.viper-platform .page .mail-profile-panel{padding:var(--space-4);margin-bottom:var(--space-5)}
+.viper-platform .page .profile-history-row,.viper-platform .page .profile-latest-work{padding:var(--space-3) 0}
+.viper-platform .page .profile-fields{gap:0 var(--space-5)}
+.viper-platform .page .field{margin-bottom:var(--space-4)}
+.viper-platform .page .form-footer{margin-top:var(--space-5)}
+.viper-platform .page .guest-welcome-card{padding:var(--space-6);min-height:300px;gap:var(--space-8)}
+.viper-platform .page .guest-welcome-card h2{font-size:28px;line-height:1.4}
+.viper-platform .page .guest-hero-actions{margin-top:var(--space-5)}
+.viper-platform .page .guest-account-callout{margin-top:var(--space-5)}
+.viper-platform .page .guest-lesson-card>p{min-height:0;line-height:1.8}
+.viper-platform .page .guest-profile-card{padding:var(--space-8)}
+.viper-platform button:focus-visible,.viper-platform a:focus-visible,.viper-platform input:focus-visible,.viper-platform select:focus-visible,.viper-platform textarea:focus-visible,.viper-platform [role=separator]:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.viper-platform button,.viper-platform a,.viper-platform input,.viper-platform select,.viper-platform textarea{touch-action:manipulation;-webkit-tap-highlight-color:color-mix(in srgb,var(--blue) 15%,transparent)}
+.viper-platform .modal,.viper-platform .notification-list,.viper-platform .account-menu,.viper-platform .real-library-scroll{overscroll-behavior:contain}
+.viper-platform .page h1,.viper-platform .page h2,.viper-platform .page h3{scroll-margin-top:var(--space-4)}
+@media(max-width:1199px){.viper-platform{--page-gutter:24px;--panel-padding:20px}.viper-platform .page .page-heading h1{font-size:25px}}
+@media(max-width:699px){.viper-platform{--page-gutter:16px;--page-top:16px;--panel-padding:16px;--section-gap:16px}.viper-platform .page .page-heading{gap:var(--space-3)}.viper-platform .page .page-heading h1{font-size:24px}.viper-platform .page .subject-heading{margin-bottom:var(--space-3)}.viper-platform .page .page-heading p{font-size:13px}.viper-platform .page .continue-card{min-height:0;padding:var(--space-5)}.viper-platform .page .lesson-page-layout{gap:var(--space-4)}.viper-platform .page .lesson-reading,.viper-platform .page .expanded-profile-form{padding:var(--space-5)}.viper-platform .page .guest-welcome-card{padding:var(--space-5);gap:var(--space-5);min-height:0}.viper-platform .page .profile-hero{gap:var(--space-4)}.viper-platform .page .guest-profile-card{padding:var(--space-6)}.viper-platform .page .table-scroll td{padding:var(--space-3)}.viper-platform .page .table-scroll th{padding:var(--space-3)}.viper-platform .page button:not(.icon-btn):not(.template-preview){min-height:36px}.viper-platform .page input:not([type=checkbox]):not([type=radio]):not([type=range]),.viper-platform .page select{min-height:40px;font-size:16px}}
+
+/* Continue learning: information and one action, without workflow artwork. */
+.viper-platform .page.dashboard .continue-card-compact{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:20px;min-height:0;background:var(--panel)}
+.viper-platform .continue-summary{min-width:0;flex:1}
+.viper-platform .continue-context{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin-bottom:12px}
+.viper-platform .continue-card-compact h2{font-size:24px;line-height:1.4;overflow-wrap:anywhere}
+.viper-platform .continue-summary>p{font-size:13px;color:var(--muted);margin-top:4px;line-height:1.7}
+.viper-platform .continue-card-compact .lesson-meta{margin-top:12px;gap:16px}
+.viper-platform .continue-card-compact>.btn{flex-shrink:0;align-self:center}
+@media(max-width:979px){.viper-platform .page.dashboard .continue-card-compact{align-items:flex-start;flex-direction:column;gap:16px}.viper-platform .continue-card-compact>.btn{align-self:flex-start}}
+@media(max-width:699px){.viper-platform .page.dashboard .continue-card-compact{padding:16px}.viper-platform .continue-card-compact h2{font-size:22px}.viper-platform .continue-card-compact .lesson-meta{gap:12px}.viper-platform .continue-context{gap:8px}.viper-platform .continue-card-compact>.btn{width:100%}}
+
+/* Submissions and grades share one navigation destination. */
+.viper-platform .submissions-hub-tabs { margin-bottom: 16px; }
+.viper-platform .submission-hub-content { min-width: 0; }
+.viper-platform .submission-hub-content > .page-heading .eyebrow { display: none; }
+
+/* Separate course cards, keeping the existing lesson content accessible. */
+.viper-platform .course-catalog-toolbar { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+.viper-platform .course-catalog-toolbar .search-field { width: min(100%, 320px); }
+.viper-platform .course-catalog-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.viper-platform .course-catalog-grid .outline-lesson { display: flex; flex-direction: column; min-width: 0; }
+.viper-platform .course-catalog-grid .outline-lesson > header { flex-wrap: wrap; align-items: flex-start; }
+.viper-platform .course-catalog-grid .outline-lesson > header > div { flex: 1; min-width: 160px; }
+.viper-platform .course-catalog-grid .outline-lesson > header .course-code { display: none; }
+.viper-platform .course-catalog-grid .outline-lesson > header > .badge { margin-left: 0; }
+.viper-platform .course-catalog-grid .outline-activities { display: flex; flex-direction: column; margin-top: auto; }
+.viper-platform .course-catalog-grid .outline-activities > button { width: 100%; min-width: 0; flex-wrap: wrap; }
+.viper-platform .course-catalog-grid .outline-lesson footer { flex-wrap: wrap; gap: 12px; }
+@media (max-width: 1100px) { .viper-platform .course-catalog-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 699px) { .viper-platform .course-catalog-grid { grid-template-columns: 1fr; } }
+
+.viper-platform .catalog-course { display: flex; flex-direction: column; min-width: 0; gap: 16px; }
+.viper-platform .catalog-course h2, .viper-platform .catalog-course p { margin: 0; }
+.viper-platform .catalog-course p { color: var(--muted); line-height: 1.7; }
+.viper-platform .catalog-course-actions { margin-top: auto; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+.viper-platform .course-heading-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.viper-platform .course-heading-actions .search-field { width: 280px; }
+.viper-platform .course-heading-actions .btn { white-space: nowrap; }
+@media (max-width: 899px) { .viper-platform .course-heading-actions { flex-wrap: wrap; flex-shrink: 1; } .viper-platform .course-heading-actions .search-field { width: min(280px, 100%); } }
+@media (max-width: 599px) { .viper-platform .course-heading-actions { width: 100%; } .viper-platform .course-heading-actions .search-field { flex: 1; min-width: 160px; } }
+
+.viper-platform .page .lesson-page-layout { grid-template-columns: minmax(0, 1fr); }
+.viper-platform .page .lesson-page-layout .lesson-content { min-width: 0; width: 100%; }
+
+.viper-platform .course-reading-details { margin-top: 16px; }
+.viper-platform .course-reading-details > summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+.viper-platform .course-reading-details > summary:focus-visible { outline: 2px solid var(--blue); outline-offset: 4px; }
+.viper-platform .course-reading-details > .lesson-reading { border: 0; box-shadow: none; padding: 16px 0 0; margin: 0; }
+
+.viper-platform .submission-view-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.viper-platform .submission-view-toolbar .history-lesson-filter { margin: 0; width: min(100%, 400px); }
+.viper-platform .submission-view-toolbar .submissions-hub-tabs { width: auto; flex-shrink: 0; margin: 0; }
+@media (max-width: 599px) { .viper-platform .submission-view-toolbar { flex-wrap: wrap; } .viper-platform .submission-view-toolbar .history-lesson-filter { width: 100%; } }
+
+.viper-platform .template-edit-fields { border: 0; padding: 0; margin: 0; min-width: 0; }
+.viper-platform .template-delete-section { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.viper-platform .template-delete-section [role="alert"] .btn { margin-right: 8px; }
+
+/* Mobile header: top row 52px + nav row 40px, no dead band between them */
+@media(max-width:699px){
+  .viper-platform .global-header.platform-header{height:96px!important;min-height:96px!important;padding:6px 16px 42px;gap:8px;align-items:center}
+  .viper-platform .global-header.platform-header.guest-header{height:92px!important;min-height:92px!important;padding:6px 16px 42px}
+  .viper-platform .global-header.platform-header .global-nav{left:8px;right:8px;bottom:3px;height:36px;max-width:none;gap:2px;justify-content:flex-start}
+  .viper-platform .global-header.platform-header .global-nav button,.viper-platform .global-header.platform-header .global-nav a{height:32px;padding:0 10px;font-size:12px}
+  .viper-platform .platform-header .notification-popup,.viper-platform .platform-header .account-menu{top:50px}
+}
+
+/* Admin overview: links fill the full width as a 3-up grid */
+.viper-platform .admin-links{max-width:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.viper-platform .admin-links>h2{grid-column:1/-1;margin-bottom:0}
+.viper-platform .admin-links>button{padding:20px;border:1px solid var(--line);border-radius:10px;background:var(--subtle);align-items:flex-start;transition:border-color .15s,background-color .15s}
+.viper-platform .admin-links>button:hover{border-color:var(--blue);background:var(--panel)}
+.viper-platform .admin-links>button>svg:last-child{align-self:center}
+@media(max-width:899px){.viper-platform .admin-links{grid-template-columns:1fr}}
+
+/* Platform logs: clickable rows + detail dialog */
+.viper-platform .log-row{cursor:pointer;transition:background-color .15s}
+.viper-platform .log-row:hover,.viper-platform .log-row:focus-visible{background:var(--subtle);outline:none}
+.viper-platform .log-row:focus-visible{box-shadow:inset 0 0 0 2px var(--blue)}
+.viper-platform .log-open{width:64px;text-align:right}
+.viper-platform .log-detail-summary{display:grid;gap:6px;margin-bottom:12px}
+.viper-platform .log-detail-summary h3{font-size:16px;margin:0;overflow-wrap:anywhere}
+.viper-platform .log-detail-summary p{margin:0;color:var(--muted);font-size:13px;line-height:1.6}
+.viper-platform .log-detail dl{margin:0;display:grid;border-top:1px solid var(--line)}
+.viper-platform .log-detail dl>div{display:flex;justify-content:space-between;gap:16px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+.viper-platform .log-detail dt{color:var(--muted);flex-shrink:0}
+.viper-platform .log-detail dd{margin:0;text-align:right;overflow-wrap:anywhere}
+.viper-platform .log-code{margin-top:12px;border:1px solid var(--line);border-radius:8px;background:var(--subtle)}
+.viper-platform .log-code>summary{cursor:pointer;padding:9px 12px;font-size:12px;font-weight:500;color:var(--muted);list-style:none}
+.viper-platform .log-code>summary::-webkit-details-marker{display:none}
+.viper-platform .log-code>summary:before{content:'▸';display:inline-block;margin-right:6px;transition:transform .15s}
+.viper-platform .log-code[open]>summary:before{transform:rotate(90deg)}
+.viper-platform .log-code pre{margin:0;padding:10px 12px;border-top:1px solid var(--line);max-height:220px;overflow:auto;font-size:12px;line-height:1.6}
+.viper-platform .log-code code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* tokens for shadows + touch targets */
+.viper-platform{--shade:#0f1b3a}
+.viper-platform[data-theme=dark]{--shade:#000}
+@media(max-width:699px){.viper-platform .page button:not(.icon-btn):not(.template-preview){min-height:44px}.viper-platform .global-header.platform-header .global-nav button,.viper-platform .global-header.platform-header .global-nav a{height:44px}.viper-platform .icon-btn{min-width:44px;min-height:44px}}
+@media(pointer:coarse){.viper-platform .btn,.viper-platform .lab-actions .btn,.viper-platform .node-actions>button{min-height:44px}.viper-platform .global-header.platform-header .global-nav button,.viper-platform .global-header.platform-header .global-nav a{height:40px}}
+
+/* Lab บนมือถือ: หัวข้อบรรทัดเดียว, คลังโหนดไม่ทับแผงผลลัพธ์ */
+@media(max-width:699px){
+.viper-platform .lab-heading{min-height:56px!important;height:56px!important;padding:6px 12px!important;gap:8px;flex-wrap:nowrap}
+.viper-platform .lab-heading .lab-breadcrumb{flex:1;min-width:0;overflow:hidden}
+.viper-platform .lab-heading .lab-subject-label,.viper-platform .lab-heading .lab-breadcrumb>.badge,.viper-platform .lab-heading .compact-lab-title small{display:none}
+.viper-platform .lab-heading .compact-lab-title{min-width:0}
+.viper-platform .lab-heading .compact-lab-title strong{font-size:14px;overflow:hidden;text-overflow:ellipsis;flex-shrink:1}
+.viper-platform .lab-heading .lab-actions{flex:0 0 auto;width:auto;margin-left:auto;justify-content:flex-end;gap:6px}
+.viper-platform .lab-heading .lab-breadcrumb{flex:1 1 auto;align-items:center;align-self:center}
+.viper-platform .lab-heading{align-items:center!important}
+.viper-platform .lab-heading .lab-actions{align-items:center;align-self:center}
+.viper-platform .lab-heading .lab-actions .btn{padding:0;width:30px;height:30px;min-width:30px;min-height:30px;border-radius:7px}
+.viper-platform .lab-heading .lab-actions .btn span{display:none}
+.viper-platform .resizable-lab-workspace .canvas-toolbar{height:44px;min-height:44px;box-sizing:border-box;padding-top:0;padding-bottom:0;align-items:center}
+.viper-platform .resizable-lab-workspace .canvas-toolbar .icon-btn{min-width:36px;min-height:36px;width:36px;height:36px}
+.viper-platform .resizable-lab-workspace>.real-node-library{top:44px;height:430px;max-height:430px;bottom:auto}
+.viper-platform .resizable-lab-workspace>.real-node-library .real-library-footer{margin-top:auto}
+}
+
+/* Notification popup: กระชับขึ้น, จุดแดงที่แท็บยังไม่อ่าน */
+.viper-platform .notification-popup>header{padding:10px 12px 10px 16px}
+.viper-platform .notification-popup h2{font-size:14px}
+.viper-platform .notification-popup>header .icon-btn{width:28px;height:28px;min-width:28px;min-height:28px;padding:0;border-radius:6px}
+.viper-platform .notification-toolbar{padding:8px 12px;gap:4px}
+.viper-platform .notification-toolbar>button:not(.text-btn){display:inline-flex;align-items:center;gap:6px;min-height:28px!important;padding:4px 8px}
+.viper-platform .unread-dot{display:inline-grid;place-items:center;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#d96763;color:#fff;font-size:11px;font-weight:700;line-height:1}

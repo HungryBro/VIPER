@@ -1,12 +1,14 @@
 # project_n2n/server/algos/Classification/snake_adapter.py
 import os
 import json
-import uuid
-import hashlib 
 from typing import Dict, Any, Tuple, Optional, List
 
 import cv2
 import numpy as np
+
+from server.algos.inputs import image_input
+from server.cache_utils import config_hash
+from server.utils_io import ensure_dirs
 
 try:
     from skimage.segmentation import active_contour
@@ -15,15 +17,6 @@ try:
 except ImportError:
     HAS_SKIMAGE = False
 
-
-def _ensure_dir(d: str):
-    os.makedirs(d, exist_ok=True)
-
-def _read_json(path: str) -> Dict[str, Any]:
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"JSON file not found: {path}")
-    with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
 
 def _to_gray(img: np.ndarray) -> np.ndarray:
     if img.ndim == 2:
@@ -106,13 +99,13 @@ def run(
     image_path: str,
     out_root: str,
     *,
-    alpha: float = 0.015,
-    beta: float = 10.0,
-    gamma: float = 0.001,
+    alpha: float = 0.2,
+    beta: float = 0.2,
+    gamma: float = 0.1,
     w_line: float = 0.0,
     w_edge: float = 1.0,
     max_iterations: int = 250,
-    convergence: float = 0.1,
+    convergence: float = 0.001,
     
     init_mode: str = "circle",
     init_cx: Optional[int] = None,
@@ -128,22 +121,10 @@ def run(
     bbox_x2: Optional[float] = None,
     bbox_y2: Optional[float] = None,
     
-    gaussian_blur_ksize: int = 5,
+    gaussian_blur_ksize: int = 0,
 ) -> Tuple[str, Optional[str], Optional[str]]:
     
-    if image_path.lower().endswith(".json"):
-        try:
-            data = _read_json(image_path)
-            if "matching_tool" in data:
-                raise ValueError("Invalid Input: Snake cannot run on Matcher Result JSON.")
-            
-            image_path = (
-                data.get("image", {}).get("original_path") or 
-                data.get("output", {}).get("aligned_image") or
-                image_path
-            )
-        except (json.JSONDecodeError, FileNotFoundError):
-            pass
+    image_path = image_input(image_path, "Snake", accept_features=True)
 
     img = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
     if img is None:
@@ -191,7 +172,7 @@ def run(
         snake_rc = snake0
 
     out_dir = os.path.join(out_root, "features", "snake_outputs")
-    _ensure_dir(out_dir)
+    ensure_dirs(out_dir)
     
     config_to_hash = {
         "image_filename": os.path.basename(image_path), 
@@ -211,8 +192,7 @@ def run(
         }
     }
     
-    config_str = json.dumps(config_to_hash, sort_keys=True)
-    param_hash = hashlib.md5(config_str.encode('utf-8')).hexdigest()[:8]
+    param_hash = config_hash(config_to_hash)
     
     base_name = os.path.splitext(os.path.basename(image_path))[0]
     

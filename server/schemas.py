@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, field_validator, model_validator
 
 
 class UserPublic(BaseModel):
@@ -14,6 +14,7 @@ class UserPublic(BaseModel):
     role: str
     status: str
     banned_until: datetime | None
+    can_teach: bool = False
 
 
 class AdminUserPublic(UserPublic):
@@ -28,6 +29,7 @@ class AdminUserUpdate(BaseModel):
     role: Literal["admin", "user"] | None = None
     status: Literal["active", "banned"] | None = None
     banned_until: datetime | None = None
+    can_teach: StrictBool | None = None
 
 
 class AdminAuditActorPublic(BaseModel):
@@ -53,6 +55,11 @@ class AdminAuditLogPublic(BaseModel):
     created_at: datetime
 
 
+class AdminAuditActionCount(BaseModel):
+    action: str
+    count: int
+
+
 class WorkflowDocument(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -76,6 +83,8 @@ class TemplateCreate(BaseModel):
     description: str = Field(default="", max_length=2000)
     visibility: Literal["private", "public"] = "private"
     workflow: WorkflowDocument
+    # Only an admin or a user with can_teach may send true (403 otherwise).
+    is_official: StrictBool = False
 
     @field_validator("name")
     @classmethod
@@ -98,6 +107,8 @@ class TemplateUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=2000)
     visibility: Literal["private", "public"] | None = None
     workflow: WorkflowDocument | None = None
+    # true marks an owned template as Official; false on an Official is rejected.
+    is_official: StrictBool | None = None
 
     @field_validator("name")
     @classmethod
@@ -173,3 +184,51 @@ class AdminTemplateCommentsUpdate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     comments_enabled: bool
+
+
+class YOLOAnnotation(BaseModel):
+    """One labelled box, as fractions of the image: centre x/y, width and height."""
+    class_id: int = Field(ge=0)
+    x: float = Field(ge=0.0, le=1.0)
+    y: float = Field(ge=0.0, le=1.0)
+    width: float = Field(gt=0.0, le=1.0)
+    height: float = Field(gt=0.0, le=1.0)
+
+
+# ---- ข้อมูลของผู้ใช้เอง (/api/me/*) ----
+# คีย์ใน metadata ของ audit log ที่ผู้ใช้เห็นได้ในประวัติของตัวเอง
+# (ไม่รวม owner_id, deleted_by, ชื่อผู้ใช้อื่น หรือ from/to ของการเปลี่ยนสิทธิ์)
+ME_ACTIVITY_DETAIL_KEYS = frozenset(
+    {"category", "operation", "method", "duration_ms", "success", "visibility", "is_official", "template_id", "provider"}
+)
+
+
+class MeActivityPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    action: str
+    target_type: str | None
+    target_id: str | None
+    details: dict[str, Any]
+    request_path: str | None
+    status_code: int | None
+    created_at: datetime
+
+    @field_validator("details", mode="before")
+    @classmethod
+    def _only_safe_details(cls, value: Any) -> dict[str, Any]:
+        if not isinstance(value, dict):
+            return {}
+        return {k: v for k, v in value.items() if k in ME_ACTIVITY_DETAIL_KEYS}
+
+
+class MeSummary(BaseModel):
+    template_count: int
+    public_template_count: int
+    run_count: int
+    activity_count: int
+    last_run_at: datetime | None
+    last_activity_at: datetime | None
+    last_login_at: datetime | None
+    member_since: datetime

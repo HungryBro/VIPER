@@ -19,6 +19,8 @@ export type AuthUser = {
   role: 'admin' | 'user';
   status: 'active' | 'banned';
   banned_until: string | null;
+  // สิทธิ์ผู้สอน (users.can_teach) admin เป็นคนเปิดให้ อ่านผ่าน canTeach() ใน platform/permissions.ts
+  can_teach: boolean;
 };
 
 type AuthContextValue = {

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../auth/AuthContext';
 import AdminUserPanel from './AdminUserPanel';
@@ -6,6 +7,7 @@ import AdminUserPanel from './AdminUserPanel';
 
 export default function UserMenu() {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [adminPanelOpen, setAdminPanelOpen] = useState(false);
   if (!user) return null;
 
@@ -40,7 +42,12 @@ export default function UserMenu() {
       )}
       <button
         type="button"
-        onClick={() => void logout()}
+        // ออกจากระบบแล้วกลับหน้าแรกเหมือนปุ่มใน header ของแพลตฟอร์ม (src/platform/Header.tsx)
+        // ไป "/" ก่อนล้าง user เพื่อไม่ให้ RequireAuth พาไป /login?next= (เหมือน Header.tsx)
+        onClick={() => {
+          navigate('/', { replace: true, flushSync: true });
+          void logout().catch(() => undefined);
+        }}
         aria-label="Log out"
         className="flex h-9 touch-manipulation items-center justify-center rounded-md border border-slate-700 bg-slate-800 px-2 text-[10px] font-bold text-slate-300 hover:border-red-500/50 hover:text-red-300"
       >

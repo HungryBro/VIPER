@@ -7,23 +7,14 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-import { nodeTypes, defaultEdgeOptions } from './lib/flowConfig';
+import { defaultEdgeOptions } from './lib/flowConfig';
 import type { CustomNodeData, LogEntry, NodeStatus } from './types';
 
-// ---------- Runners ----------
-import { runFeature } from './lib/runners/features';
-import { runQuality } from './lib/runners/quality';
-import { runMatcher } from './lib/runners/matching';
-import { runAlignment } from './lib/runners/alignment';
-import { runOtsu, runSnakeRunner } from './lib/runners/classification';
-import { runSaveImage, runSaveJson } from './lib/runners/saver';
+// ---------- Nodes ----------
+import { nodeSpec } from './lib/nodeCatalog';
+import { nodeRunner, nodeTypes } from './lib/nodeRegistry';
+import { defaultParams } from './lib/nodeDefaults';
 import { markStartThenRunning } from './lib/runners/utils';
-import { runEnhancement } from './lib/runners/enhancement';
-import { runRestoration } from './lib/runners/restoration';
-import { runSegmentation } from './lib/runners/segmentation';
-import { runDetectionNode } from './lib/runners/detection';
-import { runYOLODatasetNode } from './lib/runners/yoloDataset';
-import { runClassificationEvaluationNode, runDetectionEvaluationNode } from './lib/runners/evaluation';
 import { cancelYOLOTrainJob } from './lib/api';
 
 // ---------- Hooks / Utils ----------
@@ -32,10 +23,12 @@ import { useFlowHistory } from './hooks/useFlowHistory';
 import { useWorkflowFile } from './hooks/useWorkflowFile';
 import { validateNodeInput, validateConnection } from './lib/validation';
 import LogPanel from './components/LogPanel';
+import { withResult } from './lib/nodeResult';
 
 export interface FlowCanvasHandle {
   getSnapshot: () => { nodes: RFNode[]; edges: Edge[]; viewport: Viewport };
-  restoreSnapshot: (nodes: RFNode[], edges: Edge[], viewport: Viewport) => void;
+  /** Show these nodes and edges. `'fit'` fits them to the canvas once they have been measured. */
+  restoreSnapshot: (nodes: RFNode[], edges: Edge[], viewport: Viewport | 'fit') => void;
   fitView: () => void;
   addNode: (nodeType: string) => void;
 }
@@ -45,6 +38,8 @@ interface FlowCanvasProps {
   onPipelineDone: () => void;
   onFlowChange?: (changes: { nodes: RFNode[]; edges: Edge[]; viewport: Viewport }) => void;
   currentTabName: string;
+  /** false while LabPage is kept mounted but hidden behind another route: hotkeys are off, everything else keeps running. */
+  active?: boolean;
 }
 
 const getId = () => `node_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
@@ -81,7 +76,7 @@ function getDownstreamNodes(sourceId: string, edges: Edge[]): Set<string> {
 }
 
 const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
-  ({ isRunning, onPipelineDone, onFlowChange, currentTabName }, ref) => {
+  ({ isRunning, onPipelineDone, onFlowChange, currentTabName, active = true }, ref) => {
 
     const { screenToFlowPosition, fitView, getViewport, setViewport, getNodes, getEdges } = useReactFlow();
 
@@ -186,53 +181,34 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       await markStartThenRunning(nodeId, node.type.toUpperCase(), setNodes);
 
       try {
-        const typeKey = node.type.toLowerCase();
         const freshNodes = getNodes();
         const freshEdges = getEdges();
 
-        switch (typeKey) {
-          case 'image-input':
-            if (!node.data.payload?.url) throw new Error("No image uploaded yet.");
-            setNodes(nds => nds.map(n => n.id === nodeId ? { ...n, data: { ...n.data, status: 'success' as NodeStatus } } : n));
-            await new Promise(r => setTimeout(r, 100));
-            break;
+        // A node never opened in its settings dialog has no saved params; it
+        // runs with the defaults the dialog shows.
+        const savedParams = node.data.payload?.params ?? node.data.params ?? {};
+        const nodeToRun = {
+          ...node,
+          data: { ...node.data, payload: { ...node.data.payload, params: { ...defaultParams(node.type), ...savedParams } } },
+        };
 
-          case 'multi-image-input':
-            if (!node.data.payload?.dataset_images?.length) throw new Error('No images uploaded yet.');
-            setNodes(nds => nds.map(n => n.id === nodeId ? { ...n, data: { ...n.data, status: 'success' as NodeStatus } } : n));
-            break;
-
-          case 'yolo-dataset': await runYOLODatasetNode(node as any, setNodes as any, freshNodes as any, freshEdges); break;
-
-          case 'sift': case 'surf': case 'orb': await runFeature(node, setNodes, freshNodes, freshEdges); break;
-          case 'brisque': case 'psnr': case 'ssim': await runQuality(node, setNodes, freshNodes, freshEdges); break;
-          case 'bfmatcher': case 'flannmatcher': await runMatcher(node, setNodes, freshNodes, freshEdges); break;
-          case 'homography-align': case 'affine-align': await runAlignment(node as any, setNodes as any, freshNodes, freshEdges); break;
-          case 'otsu': await runOtsu(node as any, setNodes as any, freshNodes, freshEdges); break;
-          case 'snake': await runSnakeRunner(node as any, setNodes as any, freshNodes, freshEdges); break;
-          case 'classification-evaluation': await runClassificationEvaluationNode(node as any, setNodes as any, freshNodes as any, freshEdges, undefined); break;
-          case 'detection-evaluation': await runDetectionEvaluationNode(node as any, setNodes as any, freshNodes as any, freshEdges, undefined); break;
-          case 'yolo-train': case 'yolo-detect': case 'yolo-gradcam': await runDetectionNode(node, setNodes, freshNodes, freshEdges); break;
-          case 'clahe': case 'msrcr': case 'zero': case 'zerodce': case 'zero-dce': case 'zero_dce': await runEnhancement(node as any, setNodes as any, freshNodes, freshEdges); break;
-          case 'dcnn': case 'dncnn': case 'swinir': case 'real': case 'realesrgan': await runRestoration(node as any, setNodes as any, freshNodes, freshEdges); break;
-          case 'deep': case 'deeplab': case 'mask': case 'maskrcnn': case 'unet': await runSegmentation(node as any, setNodes as any, freshNodes, freshEdges); break;
-          case 'save-image': await runSaveImage(node as any, setNodes as any, freshNodes, freshEdges); break;
-          case 'save-json': await runSaveJson(node as any, setNodes as any, freshNodes, freshEdges); break;
-          default: console.warn(`Unknown type: ${node.type}`);
-        }
+        const run = nodeRunner(node.type);
+        if (run) await run(nodeToRun, setNodes, freshNodes, freshEdges);
+        else console.warn(`Unknown type: ${node.type}`);
 
         const downstreamIds = getDownstreamNodes(nodeId, freshEdges);
         if (downstreamIds.size > 0) {
           setNodes((nds) => nds.map((n) => {
             if (downstreamIds.has(n.id)) {
               const params = n.data.payload?.params;
-              if (n.type === 'yolo-dataset') {
+              const note = nodeSpec(n.type)?.upstreamChangeNote;
+              if (note) {
                 return {
                   ...n,
                   data: {
                     ...n.data,
                     status: 'idle',
-                    description: 'Images updated — annotations ready to build.',
+                    description: note,
                     payload: { ...(n.data.payload || {}) },
                   },
                 };
@@ -421,22 +397,29 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
     useImperativeHandle(ref, () => ({
       getSnapshot: () => ({ nodes, edges, viewport: getViewport() }),
       restoreSnapshot: (newNodes, newEdges, newViewport) => {
-        if (isApplyingHistoryRef.current) (isApplyingHistoryRef.current as any) = true;
-        const nodesWithFunc = newNodes.map(n => ({
+        const nodesWithFunc = newNodes.map(withResult).map(n => ({
           ...n, data: { ...n.data, onRunNode: (id: string) => runNodeById(id), onCancelNode: (id: string) => cancelNodeById(id) }
         }));
         setNodes(nodesWithFunc);
         setEdges(newEdges);
-        setTimeout(() => {
-          setViewport(newViewport);
-          if (isApplyingHistoryRef.current) (isApplyingHistoryRef.current as any) = false;
-        }, 50);
+        if (newViewport === 'fit') fitPendingRef.current = true;
+        else setViewport(newViewport);
       },
       fitView: fitWorkflowToCanvas,
       addNode: addNodeFromLibrary,
-    }), [addNodeFromLibrary, cancelNodeById, edges, fitWorkflowToCanvas, getViewport, runNodeById, setEdges, setNodes, setViewport, nodes, isApplyingHistoryRef]);
+    }), [addNodeFromLibrary, cancelNodeById, edges, fitWorkflowToCanvas, getViewport, runNodeById, setEdges, setNodes, setViewport, nodes]);
 
-    useFlowHotkeys({ getPastePosition: () => lastMousePosRef.current, runNodeById, undo, redo });
+    // A restore with 'fit' waits until React Flow has measured every node:
+    // fitting earlier would use the wrong bounds.
+    const fitPendingRef = useRef(false);
+    useEffect(() => {
+      if (!fitPendingRef.current) return;
+      if (nodes.some((n) => !n.width || !n.height)) return;
+      fitPendingRef.current = false;
+      fitWorkflowToCanvas();
+    }, [nodes, fitWorkflowToCanvas]);
+
+    useFlowHotkeys({ getPastePosition: () => lastMousePosRef.current, runNodeById, undo, redo, enabled: active });
 
     useEffect(() => {
       setNodes((nds) => {
@@ -474,45 +457,20 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
             return;
           }
 
-          const executionPriority: Record<string, number> = {
-            'image-input': 1, 'multi-image-input': 1, 'yolo-dataset': 2,
-            'dcnn': 10, 'dncnn': 10, 'swinir': 10, 'real': 10, 'realesrgan': 10,
-            'clahe': 20, 'msrcr': 20, 'zero': 20, 'zerodce': 20, 'zero_dce': 20,
-            'otsu': 30, 'snake': 30,
-            'yolo-train': 5, 'yolo-detect': 25, 'yolo-gradcam': 30,
-            'deep': 35, 'deeplab': 35, 'unet': 35, 'mask': 35, 'maskrcnn': 35,
-            'sift': 40, 'surf': 40, 'orb': 40,
-            'bfmatcher': 50, 'flannmatcher': 50,
-            'homography-align': 60, 'affine-align': 60, 
-            'brisque': 90, 'psnr': 90, 'ssim': 90,
-            'classification-evaluation': 90,
-            'detection-evaluation': 90,
-            'save-image': 99,
-            'save-json': 99
-          };
-
-          const sortedNodes = allNodes.sort((a, b) => {
-            return (executionPriority[a.type?.toLowerCase() || ''] || 100) - (executionPriority[b.type?.toLowerCase() || ''] || 100);
-          });
+          const sortedNodes = allNodes.sort((a, b) => (nodeSpec(a.type)?.order ?? 100) - (nodeSpec(b.type)?.order ?? 100));
 
           for (const node of sortedNodes) {
             if (isCanceledRef.current) { addLog('Pipeline stopped.', 'warning'); break; }
             if (!node?.id || !node?.type) continue;
 
-            if (node.type.startsWith('save-')) continue;
+            const spec = nodeSpec(node.type);
+            if (spec?.runsInPipeline === false) continue;
 
             try {
-              setNodes((nds) => nds.map(n => n.id === node.id ? { ...n, data: { ...n.data, status: 'running' as NodeStatus } } : n));
-
-              await new Promise(r => setTimeout(r, 50));
-
               await runNodeById(node.id);
 
 
-              const isHeavyNode = ['deep', 'deeplab', 'mask', 'maskrcnn', 'unet'].includes(node.type?.toLowerCase() || '');
-              const delayTime = isHeavyNode ? 500 : 100;
-
-              await new Promise(r => setTimeout(r, delayTime));
+              await new Promise(r => setTimeout(r, spec?.settleMs ?? 100));
 
             } catch (error) {
               console.warn(`Node ${node.id} failed.`, error);
@@ -579,6 +537,9 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
             onNodeDragStop={() => (isDraggingRef.current = false)}
             isValidConnection={onValidateConnection}
             onEdgesDelete={onEdgesDelete}
+            // A1: React Flow's own Backspace delete listens on the whole document; turn it off while
+            // the editor is hidden or a Lab dialog is open (active is false then), as useFlowHotkeys does.
+            deleteKeyCode={active ? 'Backspace' : null}
           >
             <MiniMap
               position="bottom-left"

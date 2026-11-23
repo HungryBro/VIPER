@@ -6,15 +6,8 @@ import Modal from '../common/Modal';
 import { getNodeImageUrl } from '../../lib/runners/utils';
 import { useNodeStatus } from '../../hooks/useNodeStatus'; 
 import { ParameterLoader } from '../ParameterLoader'; 
-
-const SettingsSlidersIcon = ({ className = 'h-4 w-4' }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" className={className} fill="none" stroke="black" aria-hidden="true">
-    <g strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.4}>
-      <path d="M3 7h18" /><circle cx="9" cy="7" r="3.4" fill="white" />
-      <path d="M3 17h18" /><circle cx="15" cy="17" r="3.4" fill="white" />
-    </g>
-  </svg>
-);
+import { SettingsSlidersIcon } from './SettingsSlidersIcon';
+import { NODE_DEFAULTS } from '../../lib/nodeDefaults';
 
 const stopAll = (e: React.SyntheticEvent) => e.stopPropagation();
 const stopKeys: React.KeyboardEventHandler<HTMLInputElement | HTMLSelectElement> = (e) => {
@@ -104,13 +97,7 @@ const Select = ({ label, value, onChange, options }: SelectProps) => (
   </label>
 );
 
-const DEFAULT_PARAMS: Params = {
-  alpha: 0.2, beta: 0.2, gamma: 0.1, w_line: 0.0, w_edge: 1.0,
-  max_iterations: 250, gaussian_blur_ksize: 0, convergence: 0.001,
-  init_mode: 'circle', init_cx: null, init_cy: null, init_radius: null, init_points: 400,
-  from_point_x: null, from_point_y: null,
-  bbox_x1: null, bbox_y1: null, bbox_x2: null, bbox_y2: null
-};
+const DEFAULT_PARAMS: Params = { ...NODE_DEFAULTS.snake } as Params;
 
 const ALLOWED_SNAKE_KEYS = [
   'alpha', 'beta', 'gamma', 'w_line', 'w_edge', 

@@ -31,6 +31,10 @@ class Settings:
         "SESSION_SECRET",
         "viper-local-development-session-secret-change-me",
     )
+    database_url: str = os.getenv(
+        "DATABASE_URL",
+        "postgresql://viper_user:viper_password@localhost:5432/viper_db",
+    )
     admin_emails: frozenset[str] = _admin_emails()
     auto_create_tables: bool = _env_bool("AUTO_CREATE_TABLES", True)
 
