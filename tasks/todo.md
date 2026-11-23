@@ -31,17 +31,18 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
 - ขนาด: XS
 - ผลตรวจ: CHECK PASS · เบราว์เซอร์: ป้ายตรงกับจำนวนโหนดจริง (6→7→6 ตอนเพิ่ม/ลบ, อัปเดตช้าไม่เกิน ~1 วินาทีเพราะ onFlowChange ของ FlowCanvas เป็น debounce) fit view เปลี่ยน scale 0.08→0.32
 
-### [ ] T3 กรอบคลังโหนดแบบ mockup
+### [x] T3 กรอบคลังโหนดแบบ mockup
 - เกณฑ์รับ
-  - [ ] หัว "VIPER LIBRARY" มีปุ่มพับคลังเหมือนเดิม และมีปุ่ม Open all / Close all เปิดหรือปิดทุกกลุ่ม
-  - [ ] แต่ละกลุ่ม (INPUT ฯลฯ) พับได้ และปุ่มโหนดยังเป็นสีเขียวน้ำทะเลแบบเดิม (ภาพ 5)
-  - [ ] footer เป็น "ALL NODES"
-  - [ ] ปุ่ม NODES/TEMPLATES ถูกซ่อนด้วย `SHOW_LAB_TEMPLATES_TAB = false` โค้ด templates, เมนูคลิกขวา, About Algorithm และ `SHOW_LEGACY_TEMPLATE_LIST` ยังอยู่ครบ
-  - [ ] เมื่อลองตั้ง `SHOW_LAB_TEMPLATES_TAB = true` ในเบราว์เซอร์ (ไม่แก้ไฟล์จริง) แท็บ templates กลับมาใช้ได้
-  - [ ] จำนวนชนิดโหนดในคลังยังเท่าเดิม (22) และกลุ่มที่ซ่อนอยู่ยังเปิดกลับได้ด้วย `enabled` ใน `NODE_GROUPS`
+  - [x] หัว "VIPER LIBRARY" มีปุ่มพับคลังเหมือนเดิม และมีปุ่ม Open all / Close all เปิดหรือปิดทุกกลุ่ม
+  - [x] แต่ละกลุ่ม (INPUT ฯลฯ) พับได้ และปุ่มโหนดยังเป็นสีเขียวน้ำทะเลแบบเดิม (ภาพ 5)
+  - [x] footer เป็น "ALL NODES"
+  - [x] ปุ่ม NODES/TEMPLATES ถูกซ่อนด้วย `SHOW_LAB_TEMPLATES_TAB = false` โค้ด templates, เมนูคลิกขวา, About Algorithm และ `SHOW_LEGACY_TEMPLATE_LIST` ยังอยู่ครบ
+  - [x] เมื่อลองตั้ง `SHOW_LAB_TEMPLATES_TAB = true` ในเบราว์เซอร์ (ไม่แก้ไฟล์จริง) แท็บ templates กลับมาใช้ได้
+  - [x] จำนวนชนิดโหนดในคลังยังเท่าเดิม (22) และกลุ่มที่ซ่อนอยู่ยังเปิดกลับได้ด้วย `enabled` ใน `NODE_GROUPS`
 - ตรวจ: เบราว์เซอร์ นับปุ่มโหนด กด Open all/Close all แล้วเพิ่มโหนดจากคลัง
 - ไฟล์: `components/sidebar.tsx`
 - ขนาด: S
+- ผลตรวจ: CHECK PASS · เบราว์เซอร์: ไม่มีปุ่ม NODES/TEMPLATES, Open all เปิด 10 กลุ่ม = 22 ปุ่มโหนด, Close all เหลือ 0, footer "All Nodes", ลากโหนดจากคลังลง canvas ได้ (6→7) ลองตั้ง `SHOW_LAB_TEMPLATES_TAB = true` ชั่วคราวแล้วแท็บ templates กลับมาและแสดงรายการ Official (แล้วตั้งกลับเป็น false) · หมายเหตุ: คลังเดิมมี Open all/Close all และกลุ่มพับได้อยู่แล้ว งานจริงของ T3 จึงเหลือซ่อนแท็บและเปลี่ยน footer
 
 ### [ ] T4 System Logs เป็นแผงด้านล่าง
 - เกณฑ์รับ

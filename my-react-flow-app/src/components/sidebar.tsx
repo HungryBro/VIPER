@@ -28,6 +28,10 @@ const COMPACT_MOBILE_QUERY = '(max-width: 767px), (max-height: 560px) and (point
 // ใส่ type เป็น boolean เพื่อให้ TypeScript ยังตรวจโค้ดในบล็อกนี้เหมือนโค้ดที่ทำงานจริง
 const SHOW_LEGACY_TEMPLATE_LIST: boolean = false;
 
+// ปุ่ม NODES/TEMPLATES ในคลังถูกซ่อนตาม mockup v2 (เปิด template ได้จากหน้า /templates ด้วย "เปิดใน Lab")
+// โค้ด TemplatePlatformLibrary ยังอยู่ครบ ตั้งเป็น true เพื่อเปิดแท็บ TEMPLATES กลับมา
+const SHOW_LAB_TEMPLATES_TAB: boolean = false;
+
 // --- Icons ---
 const Icons: Record<string, React.FC<{ className?: string }>> = {
   Input: (p) => (
@@ -220,7 +224,7 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templa
           </button>
         </div>
 
-        {!collapsed && (
+        {SHOW_LAB_TEMPLATES_TAB && !collapsed && (
           <div className="flex gap-1 border-b border-gray-800 p-2">
             <button type="button" onClick={() => setActiveTab('nodes')} className={`flex min-h-10 flex-1 touch-manipulation items-center justify-center gap-1 rounded-md py-1.5 text-xs font-bold transition-all ${activeTab === 'nodes' ? 'border border-teal-500/50 bg-teal-600/20 text-teal-400' : 'text-gray-500 hover:bg-gray-800'}`}>
               <Icons.Input className="w-3 h-3" /> NODES
@@ -328,7 +332,7 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templa
           </div>
         ) : <div className="flex-1" />}
 
-        {!collapsed && <div className="p-3 text-[9px] text-center text-gray-600 border-t border-gray-800 font-mono tracking-widest uppercase">VIPER Framework</div>}
+        {!collapsed && <div className="p-3 text-[9px] text-center text-gray-600 border-t border-gray-800 font-mono tracking-widest uppercase">All Nodes</div>}
       </aside>
 
       {contextMenu.visible && (
