@@ -61,6 +61,7 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
 - [x] `CHECK PASS`
 - [x] ภาพ `/lab` ใหม่วางเทียบกับภาพ mockup และภาพจาก T0 (`outputs/lab-layout/t0-*.jpg` เทียบ `cp1-*.jpg`)
 - [ ] **ให้ผู้ใช้ดูก่อน T5**
+- เรื่องแท็บที่ 3 ว่างตอน HMR (สอบสวนแล้ว ไม่แก้): login ใหม่แล้ว LS แท็บ 1–2 ครบ (0 / 6 โหนด 5 เส้น) แท็บ 3 ยังว่างอยู่ จึงกู้จาก `outputs/lab-backup/n2n_tabs_2026-11-23_before-logout.json` แล้ว reload: แท็บ 3 อยู่ครบ (6 โหนด 5 เส้น) ลองจำลอง HMR ซ้ำ 4 แบบ (แก้ FlowCanvas.tsx, แก้ LabPage.tsx ตอนแท็บ 2 active, ตอนแท็บ 3 active, และ reload ที่ 375px แล้วแก้ LabPage แล้วกลับ desktop) ไม่ทำให้แท็บว่าง จึงยังไม่รู้สาเหตุ อ่านโค้ดแล้วจังหวะที่แท็บ active ถูกเขียนทับเป็นว่างได้คือ FlowCanvas ส่ง onFlowChange (debounce 1 วินาที) ด้วย nodes ว่างเมื่อ restoreSnapshot ไม่ทำงาน (`LabPage.tsx` layout effect ข้ามถ้า `canvasRef.current` ว่าง) หลังพ้น isInitializing 500ms เกิดได้เฉพาะตอน canvas ถูก remount โดย LabPage ไม่รู้ (เช่น HMR ของ FlowCanvas) ยังไม่พบทางเกิดตอน mount ปกติ
 - แก้หลังดูรอบแรก: เอาปุ่ม fit view ออกจากแถวเครื่องมือ, `fitWorkflowToCanvas` เว้นที่ให้ MiniMap+Controls (ตรวจ 800px/1440px/375px: โหนดไม่ทับและไม่ล้นพื้นที่), ป้าย Image Processing เป็นตัวหนังสือเทาเล็กไม่มีกรอบ
 
 ### [ ] T5 ตรวจรวม
