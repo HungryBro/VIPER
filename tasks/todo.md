@@ -64,16 +64,23 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
 - เรื่องแท็บที่ 3 ว่างตอน HMR (สอบสวนแล้ว ไม่แก้): login ใหม่แล้ว LS แท็บ 1–2 ครบ (0 / 6 โหนด 5 เส้น) แท็บ 3 ยังว่างอยู่ จึงกู้จาก `outputs/lab-backup/n2n_tabs_2026-11-23_before-logout.json` แล้ว reload: แท็บ 3 อยู่ครบ (6 โหนด 5 เส้น) ลองจำลอง HMR ซ้ำ 4 แบบ (แก้ FlowCanvas.tsx, แก้ LabPage.tsx ตอนแท็บ 2 active, ตอนแท็บ 3 active, และ reload ที่ 375px แล้วแก้ LabPage แล้วกลับ desktop) ไม่ทำให้แท็บว่าง จึงยังไม่รู้สาเหตุ อ่านโค้ดแล้วจังหวะที่แท็บ active ถูกเขียนทับเป็นว่างได้คือ FlowCanvas ส่ง onFlowChange (debounce 1 วินาที) ด้วย nodes ว่างเมื่อ restoreSnapshot ไม่ทำงาน (`LabPage.tsx` layout effect ข้ามถ้า `canvasRef.current` ว่าง) หลังพ้น isInitializing 500ms เกิดได้เฉพาะตอน canvas ถูก remount โดย LabPage ไม่รู้ (เช่น HMR ของ FlowCanvas) ยังไม่พบทางเกิดตอน mount ปกติ
 - แก้หลังดูรอบแรก: เอาปุ่ม fit view ออกจากแถวเครื่องมือ, `fitWorkflowToCanvas` เว้นที่ให้ MiniMap+Controls (ตรวจ 800px/1440px/375px: โหนดไม่ทับและไม่ล้นพื้นที่), ป้าย Image Processing เป็นตัวหนังสือเทาเล็กไม่มีกรอบ
 
-### [ ] T5 ตรวจรวม
+### [~] T5 ตรวจรวม
 - เกณฑ์รับ
-  - [ ] จอ 375px และโทรศัพท์แนวนอน: ไม่มีอะไรล้นออกด้านข้าง ปุ่มไม่ทับกัน canvas ยังใช้งานได้
-  - [ ] ธีมสว่างและธีมมืด: ตัวหนังสือในหัว Lab แถวเครื่องมือ และแผงล่างอ่านได้
-  - [ ] hotkey (undo, redo, copy, paste, delete) ใช้ได้บน canvas และไม่ทำงานตอนพิมพ์ในช่องหรือตอน dialog เปิด
+  - [x] จอ 375px และโทรศัพท์แนวนอน: ไม่มีอะไรล้นออกด้านข้าง ปุ่มไม่ทับกัน canvas ยังใช้งานได้
+  - [x] ธีมสว่างและธีมมืด: ตัวหนังสือในหัว Lab แถวเครื่องมือ และแผงล่างอ่านได้
+  - [x] hotkey (undo, redo, copy, paste, delete) ใช้ได้บน canvas และไม่ทำงานตอนพิมพ์ในช่องหรือตอน dialog เปิด
   - [ ] รันงานที่ใช้เวลาหลายนาที (เทรน Shapes) แล้วออกจาก `/lab` และกลับมา: งานรันต่อ log ครบ ปุ่ม "หยุด" ใช้ได้
-  - [ ] `scripts/ui_checks.py` และ `scripts/ui_checks_phase3.py` ผ่าน (แก้ selector ที่เปลี่ยนเท่านั้น)
-  - [ ] อัปเดตแถวที่เกี่ยวกับ Lab ใน `tasks/parity.md`
+  - [x] `scripts/ui_checks.py` และ `scripts/ui_checks_phase3.py` ผ่าน (แก้ selector ที่เปลี่ยนเท่านั้น)
+  - [x] อัปเดตแถวที่เกี่ยวกับ Lab ใน `tasks/parity.md`
 - skill: `webapp-testing`
 - ขนาด: S
+- ผลตรวจ (23 พ.ย.):
+  - 375px: ไม่มี scroll ข้าง (scrollWidth=375) หัว/แถว/แผงล่างไม่ทับกัน; แนวนอน 844x390 touch: ผ่านใน `ui_checks.py` (B7b: ซ่อน header แพลตฟอร์ม ไม่ overflow)
+  - ธีม: ปุ่มสลับธีมเปลี่ยนเฉพาะ header แพลตฟอร์ม editor คงธีมมืด (ผู้ใช้ตัดสิน B7a) ตัวหนังสือหัว Lab/แถวเครื่องมือ/แผง log อ่านได้ทั้งสองธีม
+  - hotkey (กดจริงใน browser): Ctrl+C/V เพิ่มโหนด 6→7, Ctrl+Z 7→6, Ctrl+Shift+Z 6→7, Delete 7→6; ปิดตอน dialog เปิด (ui_checks A1 ผ่าน, ทดสอบเองแล้วโหนดไม่ลบ)
+  - `ui_checks_phase3.py` ผ่าน 23/23; `ui_checks.py` แก้ selector เดียว (`SAVE TEMPLATE` → `เก็บ Template`) แล้วผ่านทุกข้อ **ยกเว้น A4e/A4f ที่ต้องกดแท็บ "Templates" ในคลัง ซึ่งถูกซ่อนด้วย `SHOW_LAB_TEMPLATES_TAB = false`** (timeout) ตั้งเป็น true ชั่วคราวแล้วรันซ้ำ: ผ่านทุกข้อ (แล้วตั้งคืน false) → ต้องให้ผู้ใช้ตัดสินว่าจะให้สคริปต์ข้ามสองข้อนี้ หรือเปิดแท็บ templates กลับ
+  - **ยังไม่ได้ทำ:** รันงานหลายนาที (เทรน Shapes) แล้วออกจาก /lab กลับมา (ทดสอบแทนด้วย Homography ตอน T4: ออกไป /templates ระหว่างรัน กลับมา log ครบ ปุ่มหยุดใช้ได้) เพราะเทรนจะเขียนไฟล์/ฐานข้อมูลจริง
+  - `tasks/parity.md` แถว P-13 อัปเดตแล้ว
 
 ### จุดตรวจสุดท้าย
 - [ ] `CHECK PASS` และสคริปต์ UI ผ่าน

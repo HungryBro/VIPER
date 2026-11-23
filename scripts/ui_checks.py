@@ -223,7 +223,7 @@ def run():
         page.wait_for_selector(".react-flow__node")
         node = page.locator(".react-flow__node").first
         node.click()
-        page.get_by_role("button", name="SAVE TEMPLATE").click()
+        page.get_by_role("button", name="เก็บ Template").click()
         page.wait_for_selector("[aria-modal='true']")
         for key in ("Backspace", "Delete", "Control+z", "Meta+z", "Control+v"):
             page.keyboard.press(key)
@@ -267,7 +267,7 @@ def run():
         page.wait_for_timeout(800)
         official_gets = lambda: sum(1 for c in api.calls if c[0] == "GET" and c[1] == "/api/templates/official")
         before_save = official_gets()
-        page.get_by_role("button", name="SAVE TEMPLATE").click()
+        page.get_by_role("button", name="เก็บ Template").click()
         dialog = page.locator("[aria-modal='true']")
         dialog.locator("input").first.fill("From Lab")
         dialog.get_by_role("button", name="บันทึก").last.click()
