@@ -3,9 +3,10 @@
 ตรวจทุกงาน: `scripts/check.sh` ต้องได้ `CHECK PASS` · อ้างอิงภาพ mockup: เปิด `outputs/viper-learning-platform-v2.html` หน้า Lab
 skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementation`, `agent-skills:frontend-ui-engineering`, `anthropic-skills:built-in-browser`
 
-### [ ] T0 เตรียม
-- [ ] สร้าง branch `lab-layout` จาก `main` ล่าสุด
-- [ ] ถ่ายภาพ `/lab` ปัจจุบันไว้เทียบ ทั้งเดสก์ท็อปและ 375px (เก็บใน `outputs/`)
+### [x] T0 เตรียม
+- [x] สร้าง branch `lab-layout` จาก `main` ล่าสุด
+- [x] ถ่ายภาพ `/lab` ปัจจุบันไว้เทียบ ทั้งเดสก์ท็อปและ 375px (เก็บใน `outputs/`)
+- ผล: `outputs/lab-layout/t0-desktop.jpg`, `outputs/lab-layout/t0-mobile375.jpg` (ถ่ายด้วย browser pane กว้าง ~800px ในฐานะ "เดสก์ท็อป") login เป็น admin ยืนยันด้วย /api/auth/me แล้ว
 - ขนาด: XS
 
 ### [ ] T1 หัว Lab แบบ mockup และย้ายปุ่มรัน
