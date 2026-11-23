@@ -22,13 +22,14 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
 - ขนาด: S
 - ผลตรวจ: CHECK PASS · เบราว์เซอร์ (admin): รัน Homography จนจบ (6 โหนด Completed) และหยุดกลางทางได้, เก็บ Template ถูก disable ตอนรัน, dialog ? และเก็บ Template เปิดแล้วกด Delete ไม่ลบโหนด (6=6), 375px หัวไม่ล้น · แก้เพิ่ม `LabHelpDialog.tsx` (ข้อความ "กด Start" → "กด รัน") ไม่มีสคริปต์ UI อ้างปุ่ม Start/Stop
 
-### [ ] T2 แถบเครื่องมือเหนือ canvas
+### [x] T2 แถบเครื่องมือเหนือ canvas
 - เกณฑ์รับ
-  - [ ] แถวใต้แถบแท็บแสดงป้าย "N โหนด" ที่ตรงกับจำนวนโหนดบน canvas และอัปเดตตอนเพิ่มหรือลบโหนด
-  - [ ] ปุ่ม fit view เรียก `canvasRef.current.fitView()` เดิม
+  - [x] แถวใต้แถบแท็บแสดงป้าย "N โหนด" ที่ตรงกับจำนวนโหนดบน canvas และอัปเดตตอนเพิ่มหรือลบโหนด
+  - [x] ปุ่ม fit view เรียก `canvasRef.current.fitView()` เดิม
 - ตรวจ: เพิ่มหรือลบโหนดแล้วดูตัวเลข กด fit view
 - ไฟล์: `pages/LabPage.tsx` (ใช้ `handleFlowChange` ที่มีอยู่แล้วเพื่อรู้จำนวนโหนด)
 - ขนาด: XS
+- ผลตรวจ: CHECK PASS · เบราว์เซอร์: ป้ายตรงกับจำนวนโหนดจริง (6→7→6 ตอนเพิ่ม/ลบ, อัปเดตช้าไม่เกิน ~1 วินาทีเพราะ onFlowChange ของ FlowCanvas เป็น debounce) fit view เปลี่ยน scale 0.08→0.32
 
 ### [ ] T3 กรอบคลังโหนดแบบ mockup
 - เกณฑ์รับ

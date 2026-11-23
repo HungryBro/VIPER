@@ -405,6 +405,18 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
       </div>
       <WorkflowControls isRunning={isRunning} />
       <WorkflowTabs tabs={tabs.map(t => ({ id: t.id, name: t.name }))} activeTabId={activeTabId} onSwitch={handleSwitchTab} onAdd={handleAddTab} onClose={handleCloseTab} onRename={handleRenameTab} />
+      <div className="viper-canvas-toolbar flex items-center justify-between border-b border-gray-700 bg-gray-800/60 px-3 py-1">
+        <span className="rounded-md border border-slate-700 bg-slate-800 px-2 py-0.5 text-[11px] font-semibold text-slate-300">{activeTab?.nodes.length ?? 0} โหนด</span>
+        <button
+          type="button"
+          onClick={() => canvasRef.current?.fitView()}
+          aria-label="แสดงโหนดทั้งหมด"
+          title="Fit view"
+          className="flex h-7 w-7 touch-manipulation items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-xs text-slate-300 hover:border-teal-500/50 hover:text-teal-300"
+        >
+          ⤢
+        </button>
+      </div>
       <div className="flex flex-grow overflow-hidden relative">
         <ReactFlowProvider>
           <Sidebar
