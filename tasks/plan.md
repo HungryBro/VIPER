@@ -373,4 +373,4 @@ T7 และ T12 ให้ตัวหลักตรวจ diff ทันที
 - **F22** PATCH template สำเร็จแต่อัปโหลดปกล้ม การ์ดยังแสดงชื่อเดิม
 - **F23** `hasPendingNext()` ไม่มีผู้เรียก (ห้ามลบตามข้อห้าม จดไว้)
 - **ใหม่ (พบตอนแก้ F1): Ultralytics ติดตั้งแพ็กเกจเองตอนรัน** เมื่อ import ultralytics แล้ว มันแทน `PIL.Image.open` ด้วยตัวที่ `pip install pi-heif` ลง venv ทันทีที่เปิดไฟล์ที่ไม่ใช่รูปที่รู้จัก ; การตรวจอัปโหลดและปกแก้แล้วให้ใช้ `Image.open` เดิมของ Pillow (`_pillow_open` ใน `server/utils_io.py`) และเทสต์ตั้ง `YOLO_AUTOINSTALL=false` แต่ server ยังเปิด auto-install อยู่ (เส้นทางอื่นที่เปิดรูปผ่าน Pillow หลัง import ultralytics) ; ตัดสินว่าจะตั้ง `YOLO_AUTOINSTALL=false` ให้ server หรือไม่ (ต้องติดตั้ง requirement ที่ ultralytics ต้องใช้ล่วงหน้าเอง)
-- **ใหม่: `outputs/samples/legacy-images/`** (รูปเดิมจาก `Image-to-Descriptor/image` ที่ ab4e0513 ลบ คัดลอกไว้ตามที่ผู้ใช้สั่ง) ไม่ถูก git ignore (`.gitignore` ยกเว้น `outputs/samples`) ระวังอย่า `git add` ทั้งโฟลเดอร์ ; ตัดสินว่าจะเพิ่มเข้า `.gitignore` หรือไม่
+- รูปเดิมจาก `Image-to-Descriptor/image` (ab4e0513) เก็บไว้ที่ `outputs/legacy-images/` (ถูก git ignore, ไม่ commit)
