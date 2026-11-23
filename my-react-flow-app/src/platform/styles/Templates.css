@@ -11,3 +11,4 @@
   object-fit: cover;
 }
 .viper-platform .template-card .template-preview { height: auto; aspect-ratio: 16 / 9; }
+.viper-platform .template-detail-visual:has(.template-cover) { height: auto; aspect-ratio: 16 / 9; }
