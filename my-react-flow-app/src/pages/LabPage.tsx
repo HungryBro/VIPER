@@ -352,7 +352,7 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
       {/* หัวของแพลตฟอร์ม (Header) แสดงอยู่เหนือ editor ใน LabHost แล้ว (ชื่อผู้ใช้ แผงจัดการผู้ใช้ของ admin และ Log out อยู่ที่นั่น) */}
       <div className="viper-header relative z-30 flex min-h-12 items-center gap-2 border-b-2 border-teal-500 bg-gray-900 px-3 shadow-lg sm:gap-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="hidden shrink-0 rounded-md border border-teal-500/40 bg-teal-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-teal-300 sm:inline">Image Processing</span>
+          <span className="hidden shrink-0 text-xs text-gray-400 sm:inline">Image Processing</span>
           <button
             type="button"
             onClick={() => navigate('/')}
@@ -405,17 +405,8 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
       </div>
       <WorkflowControls isRunning={isRunning} />
       <WorkflowTabs tabs={tabs.map(t => ({ id: t.id, name: t.name }))} activeTabId={activeTabId} onSwitch={handleSwitchTab} onAdd={handleAddTab} onClose={handleCloseTab} onRename={handleRenameTab} />
-      <div className="viper-canvas-toolbar flex items-center justify-between border-b border-gray-700 bg-gray-800/60 px-3 py-1">
+      <div className="viper-canvas-toolbar flex items-center border-b border-gray-700 bg-gray-800/60 px-3 py-1">
         <span className="rounded-md border border-slate-700 bg-slate-800 px-2 py-0.5 text-[11px] font-semibold text-slate-300">{activeTab?.nodes.length ?? 0} โหนด</span>
-        <button
-          type="button"
-          onClick={() => canvasRef.current?.fitView()}
-          aria-label="แสดงโหนดทั้งหมด"
-          title="Fit view"
-          className="flex h-7 w-7 touch-manipulation items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-xs text-slate-300 hover:border-teal-500/50 hover:text-teal-300"
-        >
-          ⤢
-        </button>
       </div>
       <div className="flex flex-grow overflow-hidden relative">
         <ReactFlowProvider>

@@ -296,8 +296,8 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       const isCompactMobile = document.querySelector('.viper-app')?.classList.contains('compact-mobile');
       const flowPane = document.querySelector('.react-flow');
 
-      // Fit inside the visible canvas on every breakpoint. The sidebar overlay is
-      // excluded from the fit area; the log panel sits below the canvas, outside .react-flow.
+      // Fit inside the visible canvas on every breakpoint. The sidebar overlay and the
+      // MiniMap/Controls (bottom-left) are excluded from the fit area; the log panel sits below the canvas, outside .react-flow.
       if (flowPane instanceof HTMLElement && nodes.length > 0) {
         const paneRect = flowPane.getBoundingClientRect();
         const sidebarRect = document.querySelector('.viper-sidebar')?.getBoundingClientRect();
@@ -323,6 +323,28 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           right: contentRight,
           bottom: contentBottom,
         }];
+
+        // MiniMap and Controls sit side by side at the bottom-left: treat them as one obstacle
+        // and pick the larger safe rectangle, above it or to its right (MiniMap is hidden on compact mobile).
+        const obstacleRects = ['.react-flow__minimap', '.react-flow__controls']
+          .map((selector) => document.querySelector(selector)?.getBoundingClientRect())
+          .filter((rect): rect is DOMRect => !!rect && rect.width > 0 && rect.height > 0);
+        if (obstacleRects.length > 0) {
+          const obstacle = {
+            left: Math.min(...obstacleRects.map((rect) => rect.left)),
+            top: Math.min(...obstacleRects.map((rect) => rect.top)),
+            right: Math.max(...obstacleRects.map((rect) => rect.right)),
+          };
+          const base = fitAreas[0];
+          const overlaps = obstacle.right > base.left && obstacle.left < base.right && obstacle.top < base.bottom;
+          if (overlaps) {
+            const around = [
+              { ...base, bottom: obstacle.top - 12 },
+              { ...base, left: Math.max(base.left, obstacle.right + 12) },
+            ].filter((area) => area.bottom - area.top > 1 && area.right - area.left > 1);
+            if (around.length > 0) fitAreas.splice(0, fitAreas.length, ...around);
+          }
+        }
 
         const nodeBounds = getNodesBounds(nodes);
         const minZoom = isCompactMobile ? 0.12 : 0.08;
