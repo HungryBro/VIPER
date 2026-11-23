@@ -1,5 +1,6 @@
 // project_n2n/my-react-flow-app/src/components/LogPanel.tsx
 import { useEffect, useRef, useState } from 'react';
+import type React from 'react';
 import type { LogEntry } from '../types';
 
 interface LogPanelProps {
@@ -7,11 +8,18 @@ interface LogPanelProps {
   onClear: () => void;
 }
 
+const COMPACT_MOBILE_QUERY = '(max-width: 767px), (max-height: 560px) and (pointer: coarse)';
+const MIN_HEIGHT = 96;
+const DEFAULT_HEIGHT = 224;
+const MAX_HEIGHT_RATIO = 0.6;
+
 export default function LogPanel({ logs, onClear }: LogPanelProps) {
   const endRef = useRef<HTMLDivElement>(null);
   
   const [isVisible, setIsVisible] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false); 
+  // บนจอแคบเริ่มแบบย่อเพื่อให้ canvas มีที่
+  const [isMinimized, setIsMinimized] = useState(() => typeof window !== 'undefined' && window.matchMedia(COMPACT_MOBILE_QUERY).matches);
+  const [height, setHeight] = useState(DEFAULT_HEIGHT);
   
   const prevLogsLength = useRef(logs.length);
 
@@ -28,15 +36,44 @@ export default function LogPanel({ logs, onClear }: LogPanelProps) {
     prevLogsLength.current = logs.length;
   }, [logs, isVisible, isMinimized]);
 
+  // ลากขอบบนเพื่อปรับความสูง (ค่าไม่ถูกจำข้าม reload)
+  const startResize = (event: React.PointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const startY = event.clientY;
+    const startHeight = height;
+    const maxHeight = Math.max(MIN_HEIGHT, window.innerHeight * MAX_HEIGHT_RATIO);
+    const target = event.currentTarget;
+    target.setPointerCapture(event.pointerId);
+    const onMove = (e: PointerEvent) => {
+      setHeight(Math.min(maxHeight, Math.max(MIN_HEIGHT, startHeight + startY - e.clientY)));
+    };
+    const onUp = () => {
+      target.removeEventListener('pointermove', onMove);
+      target.removeEventListener('pointerup', onUp);
+      target.removeEventListener('pointercancel', onUp);
+    };
+    target.addEventListener('pointermove', onMove);
+    target.addEventListener('pointerup', onUp);
+    target.addEventListener('pointercancel', onUp);
+  };
+
   if (!isVisible) return null;
 
   return (
-    <div 
-      className={`viper-log-panel absolute bottom-2 left-2 right-2 z-50 flex w-auto flex-col overflow-hidden rounded-xl border border-gray-700 bg-gray-900/95 font-mono text-xs shadow-2xl backdrop-blur-sm transition-all duration-300 ease-in-out sm:bottom-4 sm:left-auto sm:right-4 sm:w-96
-        ${isMinimized ? 'h-10' : 'h-[min(16rem,48dvh)]'}
-      `}
+    <div
+      className="viper-log-panel relative z-10 flex shrink-0 flex-col overflow-hidden border-t border-gray-700 bg-gray-900 font-mono text-xs"
+      style={{ height: isMinimized ? 40 : height }}
     >
-      
+      {!isMinimized && (
+        <div
+          role="separator"
+          aria-orientation="horizontal"
+          aria-label="ปรับความสูง System Logs"
+          onPointerDown={startResize}
+          className="viper-log-resize absolute inset-x-0 top-0 z-10 h-1.5 cursor-row-resize touch-none hover:bg-teal-500/40"
+        />
+      )}
+
       <div className="flex justify-between items-center px-3 py-2 bg-gray-800/90 border-b border-gray-700 select-none">
         <div className="flex items-center gap-2">
           <span className="text-gray-300 font-bold flex items-center gap-2">

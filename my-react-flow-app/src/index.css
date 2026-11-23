@@ -134,8 +134,9 @@ textarea {
 }
 
 .compact-mobile .viper-log-panel {
-  bottom: 0.5rem;
   max-height: 44dvh;
+  /* ไม่ให้ sidebar ที่ลอยทับ (w-14) บังหัวแผง */
+  padding-left: 3.5rem;
 }
 
 

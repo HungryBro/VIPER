@@ -296,12 +296,11 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       const isCompactMobile = document.querySelector('.viper-app')?.classList.contains('compact-mobile');
       const flowPane = document.querySelector('.react-flow');
 
-      // Fit inside the visible canvas on every breakpoint. Overlay panels are
-      // excluded from the fit area so nodes remain readable and unobscured.
+      // Fit inside the visible canvas on every breakpoint. The sidebar overlay is
+      // excluded from the fit area; the log panel sits below the canvas, outside .react-flow.
       if (flowPane instanceof HTMLElement && nodes.length > 0) {
         const paneRect = flowPane.getBoundingClientRect();
         const sidebarRect = document.querySelector('.viper-sidebar')?.getBoundingClientRect();
-        const logRect = document.querySelector('.viper-log-panel')?.getBoundingClientRect();
 
         let contentLeft = paneRect.left;
         const contentTop = paneRect.top;
@@ -313,11 +312,6 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           && sidebarRect.left < paneRect.right
           && sidebarRect.top < paneRect.bottom
           && sidebarRect.bottom > paneRect.top;
-        const logOverlapsPane = logRect
-          && logRect.right > paneRect.left
-          && logRect.left < paneRect.right
-          && logRect.top < paneRect.bottom
-          && logRect.bottom > paneRect.top;
 
         if (sidebarOverlapsPane && sidebarRect.left <= paneRect.left + 1) {
           contentLeft = Math.min(paneRect.right, sidebarRect.right + 12);
@@ -329,37 +323,6 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           right: contentRight,
           bottom: contentBottom,
         }];
-
-        if (logOverlapsPane) {
-          const areasAroundLog = [] as typeof fitAreas;
-          const spaceAboveLog = logRect.top - 12;
-          const spaceLeftOfLog = logRect.left - 12;
-
-          // A bottom-right log panel leaves two safe rectangles. Choose the
-          // one that produces the larger workflow: above it on a tablet, or
-          // to its left on desktop and landscape mobile.
-          if (spaceAboveLog > contentTop) {
-            areasAroundLog.push({
-              left: contentLeft,
-              top: contentTop,
-              right: contentRight,
-              bottom: spaceAboveLog,
-            });
-          }
-
-          if (spaceLeftOfLog > contentLeft) {
-            areasAroundLog.push({
-              left: contentLeft,
-              top: contentTop,
-              right: spaceLeftOfLog,
-              bottom: contentBottom,
-            });
-          }
-
-          if (areasAroundLog.length > 0) {
-            fitAreas.splice(0, fitAreas.length, ...areasAroundLog);
-          }
-        }
 
         const nodeBounds = getNodesBounds(nodes);
         const minZoom = isCompactMobile ? 0.12 : 0.08;
@@ -525,7 +488,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleFileChange} />
         </div>
 
-        <div className="flex-1 relative">
+        <div className="flex-1 relative min-h-0">
           <ReactFlow
             nodes={nodes} edges={edges}
             onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
