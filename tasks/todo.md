@@ -9,17 +9,18 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
 - ผล: `outputs/lab-layout/t0-desktop.jpg`, `outputs/lab-layout/t0-mobile375.jpg` (ถ่ายด้วย browser pane กว้าง ~800px ในฐานะ "เดสก์ท็อป") login เป็น admin ยืนยันด้วย /api/auth/me แล้ว
 - ขนาด: XS
 
-### [ ] T1 หัว Lab แบบ mockup และย้ายปุ่มรัน
+### [x] T1 หัว Lab แบบ mockup และย้ายปุ่มรัน
 - เกณฑ์รับ
-  - [ ] ด้านซ้ายเป็นป้าย "Image Processing" ปุ่มย้อนกลับ (ไป `/`) และชื่อแท็บที่เปิดอยู่ ชื่อเปลี่ยนตามแท็บและตอน rename
-  - [ ] ด้านขวาเป็นปุ่ม ? (`LabHelpDialog` เดิม), "เก็บ Template" (`SaveTemplateDialog` เดิม) และปุ่มสลับ "รัน/หยุด" ที่เรียก `handleStart`/`handleStop` เดิม
-  - [ ] "เก็บ Template" กดไม่ได้ระหว่างรันหรือตอน canvas ว่าง
-  - [ ] ปุ่มเมนูแพลตฟอร์มบนจอแคบ (`platformMenu`) ยังอยู่และใช้ได้
-  - [ ] แถว Status แสดงไฟสถานะกับ Running/Stopped เท่านั้น ไม่มีปุ่ม Start/Stop แล้ว
-  - [ ] ปุ่ม "รัน" ตอน canvas ว่างยังเตือนแบบเดิม
+  - [x] ด้านซ้ายเป็นป้าย "Image Processing" ปุ่มย้อนกลับ (ไป `/`) และชื่อแท็บที่เปิดอยู่ ชื่อเปลี่ยนตามแท็บและตอน rename
+  - [x] ด้านขวาเป็นปุ่ม ? (`LabHelpDialog` เดิม), "เก็บ Template" (`SaveTemplateDialog` เดิม) และปุ่มสลับ "รัน/หยุด" ที่เรียก `handleStart`/`handleStop` เดิม
+  - [x] "เก็บ Template" กดไม่ได้ระหว่างรันหรือตอน canvas ว่าง
+  - [x] ปุ่มเมนูแพลตฟอร์มบนจอแคบ (`platformMenu`) ยังอยู่และใช้ได้
+  - [x] แถว Status แสดงไฟสถานะกับ Running/Stopped เท่านั้น ไม่มีปุ่ม Start/Stop แล้ว
+  - [x] ปุ่ม "รัน" ตอน canvas ว่างยังเตือนแบบเดิม
 - ตรวจ: เบราว์เซอร์ รัน Homography ด้วยปุ่มใหม่แล้วกดหยุดกลางทาง ลอง ? และเก็บ Template แล้วดูว่า hotkey ไม่ไปลบโหนดระหว่างที่ dialog เปิด
 - ไฟล์: `pages/LabPage.tsx`, `components/WorkflowControls.tsx`, สคริปต์ UI ถ้าอ้างปุ่ม Start/Stop
 - ขนาด: S
+- ผลตรวจ: CHECK PASS · เบราว์เซอร์ (admin): รัน Homography จนจบ (6 โหนด Completed) และหยุดกลางทางได้, เก็บ Template ถูก disable ตอนรัน, dialog ? และเก็บ Template เปิดแล้วกด Delete ไม่ลบโหนด (6=6), 375px หัวไม่ล้น · แก้เพิ่ม `LabHelpDialog.tsx` (ข้อความ "กด Start" → "กด รัน") ไม่มีสคริปต์ UI อ้างปุ่ม Start/Stop
 
 ### [ ] T2 แถบเครื่องมือเหนือ canvas
 - เกณฑ์รับ

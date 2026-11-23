@@ -1,5 +1,6 @@
 // File: src/pages/LabPage.tsx (editor เดิมจาก src/App.tsx ย้ายมาเป็นหน้า /lab ใน T4)
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useSyncExternalStore } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ReactFlowProvider } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -25,6 +26,7 @@ const COMPACT_MOBILE_QUERY = '(max-width: 767px), (max-height: 560px) and (point
 type PlatformMenuToggle = { open: boolean; toggle: () => void };
 
 export default function LabPage({ active = true, platformMenu }: { active?: boolean; platformMenu?: PlatformMenuToggle }) {
+  const navigate = useNavigate();
   const [isRunning, setIsRunning] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -285,7 +287,8 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
   }, [tabs, activeTabId]);
 
   const handleStop = useCallback(() => setIsRunning(false), []);
-  const activeTabName = tabs.find(t => t.id === activeTabId)?.name || 'Untitled';
+  const activeTab = tabs.find(t => t.id === activeTabId);
+  const activeTabName = activeTab?.name || 'Untitled';
 
   const getCurrentWorkflow = useCallback(() => {
     const snapshot = canvasRef.current?.getSnapshot();
@@ -348,7 +351,19 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
     <div className={`viper-app w-screen h-[100dvh] flex flex-col overflow-hidden bg-gray-900 text-white ${isCompactMobile ? 'compact-mobile' : ''}`}>
       {/* หัวของแพลตฟอร์ม (Header) แสดงอยู่เหนือ editor ใน LabHost แล้ว (ชื่อผู้ใช้ แผงจัดการผู้ใช้ของ admin และ Log out อยู่ที่นั่น) */}
       <div className="viper-header relative z-30 flex min-h-12 items-center gap-2 border-b-2 border-teal-500 bg-gray-900 px-3 shadow-lg sm:gap-3">
-        <h1 className="min-w-0 flex-1 truncate text-base font-extrabold tracking-wide text-teal-400 sm:text-lg">VIPER Lab</h1>
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="hidden shrink-0 rounded-md border border-teal-500/40 bg-teal-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-teal-300 sm:inline">Image Processing</span>
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            aria-label="กลับหน้าหลัก"
+            title="กลับหน้าหลัก"
+            className="flex h-9 w-9 shrink-0 touch-manipulation items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-sm font-bold text-slate-300 hover:border-teal-500/50 hover:text-teal-300"
+          >
+            ←
+          </button>
+          <h1 className="min-w-0 truncate text-base font-extrabold tracking-wide text-teal-400 sm:text-lg" title={activeTabName}>{activeTabName}</h1>
+        </div>
         {platformMenu && (
           <button
             type="button"
@@ -373,12 +388,22 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
         <button
           type="button"
           onClick={() => setSaveTemplateOpen(true)}
-          className="flex h-9 shrink-0 touch-manipulation items-center justify-center rounded-md border border-teal-500/40 bg-teal-500/10 px-2 text-[10px] font-bold text-teal-300 hover:bg-teal-500/20"
+          disabled={isRunning || !activeTab?.nodes.length}
+          className="flex h-9 shrink-0 touch-manipulation items-center justify-center rounded-md border border-teal-500/40 bg-teal-500/10 px-2 text-[10px] font-bold text-teal-300 hover:bg-teal-500/20 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          SAVE TEMPLATE
+          เก็บ Template
+        </button>
+        <button
+          type="button"
+          onClick={isRunning ? handleStop : handleStart}
+          aria-label={isRunning ? 'หยุด' : 'รัน'}
+          className={`flex h-9 shrink-0 touch-manipulation items-center justify-center gap-1.5 rounded-md px-3 text-xs font-bold text-white shadow-md ${isRunning ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+        >
+          <span aria-hidden="true">{isRunning ? '■' : '▶'}</span>
+          <span className="workflow-control-label">{isRunning ? 'หยุด' : 'รัน'}</span>
         </button>
       </div>
-      <WorkflowControls isRunning={isRunning} onStart={handleStart} onStop={handleStop} />
+      <WorkflowControls isRunning={isRunning} />
       <WorkflowTabs tabs={tabs.map(t => ({ id: t.id, name: t.name }))} activeTabId={activeTabId} onSwitch={handleSwitchTab} onAdd={handleAddTab} onClose={handleCloseTab} onRename={handleRenameTab} />
       <div className="flex flex-grow overflow-hidden relative">
         <ReactFlowProvider>
