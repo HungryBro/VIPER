@@ -48,8 +48,9 @@ export function GuestHeader({ theme, onToggleTheme }: { theme: PlatformTheme; on
         </Link>
         <nav className="global-nav" aria-label="เมนูหลัก">
           {GUEST_NAV.map((item) =>
-            item.to === '/' ? (
-              <NavLink key={item.label} to={item.to} end className={({ isActive }) => cx(isActive && 'active')}>
+            // 23 พ.ย. (ผู้ใช้สั่ง): Dashboard, Courses, Templates เปิดได้โดยไม่ login ; Lab พาไป /login?next=/lab
+            item.to !== '/lab' ? (
+              <NavLink key={item.label} to={item.to} end={item.to === '/'} className={({ isActive }) => cx(isActive && 'active')}>
                 {item.label}
               </NavLink>
             ) : (

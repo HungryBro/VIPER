@@ -3,18 +3,27 @@
 import { useCallback, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import { useAuth } from '../auth/AuthContext';
 import { loadPlatformTemplate, type TemplateSummary } from '../lib/templateApi';
+import { loginPathFor } from './safeNext';
 import { labBridge } from './labBridge';
 import { useToast } from './toast';
 
 export function useOpenInLab(): { openInLab: (template: TemplateSummary) => Promise<void>; openingId: number | null } {
   const navigate = useNavigate();
   const notify = useToast();
+  const { user } = useAuth();
   const [openingId, setOpeningId] = useState<number | null>(null);
   const busy = useRef(false);
 
   const openInLab = useCallback(
     async (template: TemplateSummary) => {
+      // ผู้เยี่ยมชม: Lab ต้อง login (POST /load ก็ต้อง login) พาไป /login?next=/lab
+      if (!user) {
+        void template;
+        navigate(loginPathFor('/lab'));
+        return;
+      }
       if (busy.current) return;
       busy.current = true;
       setOpeningId(template.id);
@@ -28,7 +37,7 @@ export function useOpenInLab(): { openInLab: (template: TemplateSummary) => Prom
         setOpeningId(null);
       }
     },
-    [navigate, notify],
+    [navigate, notify, user],
   );
 
   return { openInLab, openingId };

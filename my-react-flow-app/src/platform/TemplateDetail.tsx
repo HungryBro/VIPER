@@ -17,6 +17,7 @@ import {
 } from '../lib/templateApi';
 import './styles/Templates.css';
 import { Avatar, VisibilityBadge } from './TemplateBadges';
+import { loginPathFor } from './safeNext';
 import { canManageTemplate, canWriteComment, kindOf } from './templateAccess';
 import { useToast } from './toast';
 import { Badge, Button, Modal, time } from './ui';
@@ -33,6 +34,7 @@ export default function TemplateDetail({
   onOpenLab?: (template: TemplateSummary) => void;
 }) {
   const { user } = useAuth();
+  const signedIn = Boolean(user);
   const notify = useToast();
   const navigate = useNavigate();
   const [detail, setDetail] = useState<TemplateDetailData | null>(null);
@@ -47,7 +49,11 @@ export default function TemplateDetail({
     setLoading(true);
     setError(null);
     try {
-      const [full, thread] = await Promise.all([getPlatformTemplate(template.id), listTemplateComments(template.id)]);
+      // ผู้เยี่ยมชม (23 พ.ย.): อ่านรายละเอียดได้ แต่ความคิดเห็นต้อง login (GET comments ตอบ 401) จึงไม่เรียก
+      const [full, thread] = await Promise.all([
+        getPlatformTemplate(template.id),
+        signedIn ? listTemplateComments(template.id) : Promise.resolve([] as TemplateComment[]),
+      ]);
       setDetail(full);
       setComments(thread);
     } catch (err) {
@@ -55,7 +61,7 @@ export default function TemplateDetail({
     } finally {
       setLoading(false);
     }
-  }, [template.id]);
+  }, [template.id, signedIn]);
 
   useEffect(() => {
     void load();
@@ -147,6 +153,18 @@ export default function TemplateDetail({
             </Button>
           </div>
         )}
+        {!signedIn ? (
+          <div className="comments-section">
+            <div className="section-title">
+              <h3>ความคิดเห็น</h3>
+            </div>
+            <p className="muted small">เข้าสู่ระบบเพื่อดูความคิดเห็น</p>
+            <Button type="button" kind="secondary" onClick={() => navigate(loginPathFor('/templates'))}>
+              <LogIn size={14} />
+              เข้าสู่ระบบเพื่อดูความคิดเห็น
+            </Button>
+          </div>
+        ) : (
         <div className="comments-section">
           <div className="section-title">
             <h3>
@@ -221,6 +239,7 @@ export default function TemplateDetail({
           </form>
           )}
         </div>
+        )}
       </div>
       <div className="modal-actions">
         <Button kind="secondary" onClick={onClose}>

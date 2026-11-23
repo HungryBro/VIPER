@@ -28,7 +28,7 @@ export const router = createBrowserRouter([
     Component: App,
     ErrorBoundary: RootErrorBoundary,
     children: [
-      // ผู้เยี่ยมชมเห็นหน้าแรก "/" และ /login เท่านั้น ทุก route อื่นอยู่ใต้ RequireAuth (พาไป /login?next=...)
+      // ผู้เยี่ยมชมเห็นหน้าแรก "/", /login, /courses, /courses/:courseId และ /templates (23 พ.ย.) ทุก route อื่นอยู่ใต้ RequireAuth (พาไป /login?next=...)
       { path: 'login', Component: LoginPage },
       {
         Component: RequireAuth,
@@ -44,17 +44,19 @@ export const router = createBrowserRouter([
         ErrorBoundary: RootErrorBoundary,
         children: [
           { index: true, Component: HomeRoute },
+          // ผู้เยี่ยมชมเปิดดู Courses และ Templates ได้ (ผู้ใช้เปลี่ยนการตัดสินใจ 17 พ.ย. เมื่อ 23 พ.ย. 2569)
+          // ปุ่มที่ต้อง login ในหน้าเหล่านี้พาไป /login?next=... เอง ; /lab และหน้าอื่นยังอยู่ใต้ RequireAuth
+          { path: 'courses', Component: CoursesPage },
+          { path: 'courses/:courseId', Component: CourseRoute },
+          { path: 'templates', Component: TemplatesPage },
           {
             Component: RequireAuth,
             children: [
               { path: 'users', Component: UsersPage },
               { path: 'logs', Component: LogsPage },
-              { path: 'templates', Component: TemplatesPage },
               { path: 'profile', Component: ProfilePage },
               { path: 'submissions', Component: SubmissionsPage },
               { path: 'announcements', Component: AnnouncementsPage },
-              { path: 'courses', Component: CoursesPage },
-              { path: 'courses/:courseId', Component: CourseRoute },
               { path: 'lessons/:lessonId', Component: LessonRoute },
               { path: 'teach', Component: TeachPage },
               { path: 'teach/:courseId', Component: TeachCourseRoute },

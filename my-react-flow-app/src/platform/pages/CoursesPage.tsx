@@ -10,6 +10,7 @@ import { useAuth } from '../../auth/AuthContext';
 import { getCourse, getLesson, listCourses, listLessons } from '../../lib/learningApi';
 import { courseStatusBadge, type Course } from '../types';
 import { canTeach, isAdmin } from '../permissions';
+import { loginPathFor } from '../safeNext';
 import { useLoaded } from '../useLoaded';
 import { Badge, Button, Empty, Markdown, cx } from '../ui';
 
@@ -37,6 +38,30 @@ export function CourseTabs({ active }: { active: 'courses' | 'teach' }) {
 
 function CourseCard({ course }: { course: Course }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  // ผู้เยี่ยมชม (23 พ.ย.): ดูรายการคอร์สได้ ปุ่มดูคอร์ส/ลงทะเบียน/เข้าเรียนพาไป /login?next=/courses/<id>
+  const coursePath = `/courses/${course.id}`;
+  if (!user) {
+    return (
+      <article className="panel catalog-course">
+        <div className="section-title">
+          <Badge tone="blue">{course.code}</Badge>
+        </div>
+        <h2>{course.title}</h2>
+        <p>{course.description}</p>
+        <small className="muted">
+          ผู้สอน: {course.ownerName || 'VIPER'} · {course.lessonCount} บทเรียน
+        </small>
+        <div className="catalog-course-actions">
+          <Button kind="secondary" onClick={() => navigate(loginPathFor(coursePath))}>
+            <BookOpen size={15} />
+            ดูคอร์ส
+          </Button>
+          <Button onClick={() => navigate(loginPathFor(coursePath))}>ลงทะเบียน</Button>
+        </div>
+      </article>
+    );
+  }
   const [statusLabel, tone] = courseStatusBadge(course.status);
   return (
     <article className="panel catalog-course">

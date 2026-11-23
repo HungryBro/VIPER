@@ -1,4 +1,5 @@
 from base64 import b64encode
+from datetime import datetime, timedelta, timezone
 import json
 import os
 import shutil
@@ -213,7 +214,9 @@ def test_template_payload_validation_and_authentication():
 
     try:
         with make_client(engine) as client:
-            unauthenticated = client.get("/api/templates")
+            # 23 Nov 2026 (user): visitors may list Public templates; their own list still needs a login.
+            unauthenticated = client.get("/api/templates/mine")
+            unauthenticated_public = client.get("/api/templates")
             authenticate(client, owner.id)
             blank_name = client.post(
                 "/api/templates",
@@ -234,6 +237,7 @@ def test_template_payload_validation_and_authentication():
             )
 
         assert unauthenticated.status_code == 401
+        assert unauthenticated_public.status_code == 200
         assert blank_name.status_code == 422
         assert invalid_workflow.status_code == 422
         assert empty_update.status_code == 422
@@ -1387,5 +1391,110 @@ def test_a5a_admin_and_instructor_lists_never_include_someone_elses_private_temp
                 assert private_id not in ids, name
         assert teacher_detail.status_code == 404
         assert teacher_load.status_code == 404
+    finally:
+        app.dependency_overrides.clear()
+
+
+# ---- ผู้เยี่ยมชม (ไม่ login) อ่าน Official/Public ได้ (ผู้ใช้เปลี่ยนการตัดสินใจ 17 พ.ย. เมื่อ 23 พ.ย. 2569)
+
+
+def guest_setup():
+    """Owner with one Public, one Private; an admin; a banned user. Returns (engine, ids)."""
+    engine = make_engine()
+    Base.metadata.create_all(engine)
+    owner = add_user(engine, "owner", "owner@example.com")
+    admin = add_user(engine, "admin", "admin@example.com", role="admin")
+    banned = add_user(engine, "banned", "banned@example.com")
+    with Session(engine) as db:
+        account = db.get(User, banned.id)
+        account.status = "banned"
+        account.banned_until = datetime.now(timezone.utc) + timedelta(days=1)
+        db.commit()
+    return engine, owner, admin, banned
+
+
+def test_guest_reads_official_and_public_but_never_private_mine_comments_or_writes():
+    engine, owner, admin, banned = guest_setup()
+    try:
+        with make_client(engine) as client:
+            authenticate(client, owner.id)
+            public = client.post(
+                "/api/templates", json={"name": "Shared", "visibility": "public", "workflow": workflow()}
+            ).json()
+            private = client.post(
+                "/api/templates", json={"name": "Secret", "visibility": "private", "workflow": workflow()}
+            ).json()
+            owner_view = client.get(f"/api/templates/{private['id']}")
+            client.cookies.clear()
+
+            # ---- visitor without a session
+            official = client.get("/api/templates/official")
+            public_list = client.get("/api/templates")
+            public_detail = client.get(f"/api/templates/{public['id']}")
+            official_detail = client.get(f"/api/templates/{official.json()[0]['id']}")
+            private_detail = client.get(f"/api/templates/{private['id']}")
+            missing = client.get("/api/templates/999999")
+            mine = client.get("/api/templates/mine")
+            comments = client.get(f"/api/templates/{public['id']}/comments")
+            writes = [
+                client.post("/api/templates", json={"name": "x", "visibility": "public", "workflow": workflow()}),
+                client.patch(f"/api/templates/{public['id']}", json={"name": "taken"}),
+                client.delete(f"/api/templates/{public['id']}"),
+                client.post(f"/api/templates/{public['id']}/load"),
+                client.post(
+                    f"/api/templates/{public['id']}/cover", files={"file": ("c.png", b"\x89PNG", "image/png")}
+                ),
+                client.post(f"/api/templates/{public['id']}/comments", json={"body": "hi"}),
+                client.delete(f"/api/templates/{public['id']}/comments/1"),
+                client.patch(f"/api/admin/templates/{public['id']}/comments", json={"comments_enabled": False}),
+            ]
+
+            # ---- signed-in accounts are checked as before
+            authenticate(client, admin.id)
+            admin_private = client.get(f"/api/templates/{private['id']}")
+            authenticate(client, banned.id)
+            banned_list = client.get("/api/templates")
+            banned_official = client.get("/api/templates/official")
+
+        assert owner_view.status_code == 200
+        assert official.status_code == 200
+        assert len(official.json()) == len(OFFICIAL_TEMPLATE_CATALOG)
+        assert all(item["is_official"] for item in official.json())
+        assert public_list.status_code == 200
+        assert [item["id"] for item in public_list.json()] == [public["id"]]
+        assert public_detail.status_code == 200
+        assert public_detail.json()["workflow"]["nodes"]
+        assert official_detail.status_code == 200
+        # Owner data is TemplateOwnerPublic only: no email anywhere in what a visitor receives.
+        for body in (official.json()[0], public_list.json()[0], public_detail.json()):
+            assert set(body["owner"]) == {"id", "display_name", "avatar_url"}
+        for response in (official, public_list, public_detail, official_detail):
+            assert "@example.com" not in response.text
+            assert "@" not in json.dumps(response.json()).replace("@viper.local", "")
+        assert private_detail.status_code == 404
+        assert missing.status_code == 404
+        assert mine.status_code == 401
+        assert comments.status_code == 401
+        assert [response.status_code for response in writes] == [401] * len(writes)
+        assert admin_private.status_code == 200
+        assert banned_list.status_code == 403
+        assert banned_official.status_code == 403
+
+        with Session(engine) as db:
+            assert db.get(Template, public["id"]).name == "Shared"
+            assert db.get(Template, public["id"]).deleted_at is None
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_a_session_for_a_deleted_user_reads_public_routes_as_a_visitor():
+    engine, owner, _admin, _banned = guest_setup()
+    try:
+        with make_client(engine) as client:
+            authenticate(client, 424242)  # no such user
+            response = client.get("/api/templates/official")
+            mine = client.get("/api/templates/mine")
+        assert response.status_code == 200
+        assert mine.status_code == 401
     finally:
         app.dependency_overrides.clear()

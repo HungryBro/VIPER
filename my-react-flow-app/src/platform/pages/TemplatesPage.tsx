@@ -19,6 +19,7 @@ import {
   type TemplateVisibility,
 } from '../../lib/templateApi';
 import '../styles/Templates.css';
+import { loginPathFor } from '../safeNext';
 import { canDeleteTemplate, canManageTemplate, canToggleComments, kindOf } from '../templateAccess';
 import { Avatar, VisibilityBadge } from '../TemplateBadges';
 import TemplateDetail from '../TemplateDetail';
@@ -264,24 +265,33 @@ export default function TemplatesPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
+  // ผู้เยี่ยมชม (23 พ.ย.): เห็น Official และ Public เท่านั้น ไม่เรียก /mine (ต้อง login) และไม่มีแท็บ "ของฉัน"
+  const signedIn = Boolean(user);
+  const tabs = signedIn ? TABS : TABS.filter(([id]) => id !== 'mine');
+  // ออกจากระบบขณะอยู่แท็บ "ของฉัน": แสดง Official แทน
+  const activeTab: Tab = !signedIn && tab === 'mine' ? 'official' : tab;
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [official, publicList, mine] = await Promise.all([listOfficialTemplates(), listPublicTemplates(), listMyTemplates()]);
+      const [official, publicList, mine] = await Promise.all([
+        listOfficialTemplates(),
+        listPublicTemplates(),
+        signedIn ? listMyTemplates() : Promise.resolve([] as TemplateSummary[]),
+      ]);
       setLists({ official, public: publicList, mine });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'โหลด Template ไม่สำเร็จ');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [signedIn]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
   const needle = query.trim().toLowerCase();
-  const items = lists[tab].filter((template) =>
+  const items = lists[activeTab].filter((template) =>
     `${template.name} ${template.description} ${template.owner.display_name}`.toLowerCase().includes(needle),
   );
   const find = (id: number | null): TemplateSummary | undefined =>
@@ -298,15 +308,15 @@ export default function TemplatesPage() {
           <h1>Templates</h1>
           <p>บันทึก แบ่งปัน และเลือก Workflow ไปทดลองต่อ</p>
         </div>
-        <Button onClick={() => navigate('/lab')}>
+        <Button onClick={() => navigate(signedIn ? '/lab' : loginPathFor('/lab'))}>
           <Plus size={16} />
-          สร้างใน Lab
+          {signedIn ? 'สร้างใน Lab' : 'เข้าสู่ระบบเพื่อสร้างใน Lab'}
         </Button>
       </div>
       <div className="filter-toolbar">
         <div className="tabs template-filters">
-          {TABS.map(([id, label]) => (
-            <button key={id} type="button" className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>
+          {tabs.map(([id, label]) => (
+            <button key={id} type="button" className={activeTab === id ? 'active' : ''} onClick={() => setTab(id)}>
               {label} <span>{lists[id].length}</span>
             </button>
           ))}
@@ -323,7 +333,11 @@ export default function TemplatesPage() {
       </div>
       <div className="template-tab-note">
         <LockKeyhole size={14} />
-        <span>Private แสดงเฉพาะ Template ของบัญชีคุณ · Official เป็น Workflow อ้างอิงจากผู้สอนและผู้ดูแล</span>
+        <span>
+          {signedIn
+            ? 'Private แสดงเฉพาะ Template ของบัญชีคุณ · Official เป็น Workflow อ้างอิงจากผู้สอนและผู้ดูแล'
+            : 'กำลังดูแบบผู้เยี่ยมชม: เห็น Official และ Public · เข้าสู่ระบบเพื่อเปิดใน Lab บันทึก Template และดูความคิดเห็น'}
+        </span>
       </div>
       {error ? (
         <section className="panel">

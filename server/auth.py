@@ -141,6 +141,24 @@ def require_active_user(
     return user
 
 
+def optional_active_user(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> User | None:
+    """The signed-in user, or None for a visitor without a session (read-only public routes).
+
+    Someone who is signed in is checked exactly as by require_active_user (a banned
+    account still gets 403). A session whose user no longer exists is treated as a visitor.
+    """
+    user_id = request.session.get("user_id")
+    if not user_id:
+        return None
+    if db.get(User, user_id) is None:
+        request.session.clear()
+        return None
+    return require_active_user(request, db)
+
+
 def require_admin(user: User = Depends(require_active_user)) -> User:
     if user.role != "admin":
         raise HTTPException(

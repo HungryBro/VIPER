@@ -15,7 +15,6 @@ import {
 } from 'lucide-react';
 
 import { useAuth } from '../../auth/AuthContext';
-import { loginPathFor } from '../safeNext';
 import { Badge, Empty, cx } from '../ui';
 
 // ภาพประกอบคงที่ของ workflow (ไม่ใช่ข้อมูลจริง ไม่มีผลทดลอง)
@@ -84,12 +83,12 @@ export default function GuestHome() {
             เข้าสู่ระบบและลงทะเบียนเมื่อต้องการอ่านเนื้อหาเต็ม ใช้ Lab หรือส่งงาน
           </p>
           <div className="guest-hero-actions">
-            <Link className="btn primary" to={loginPathFor('/courses')}>
+            <Link className="btn primary" to="/courses">
               <BookOpen size={16} />
               ดูคอร์ส
               <ArrowRight size={16} />
             </Link>
-            <Link className="btn secondary" to={loginPathFor('/templates')}>
+            <Link className="btn secondary" to="/templates">
               <Library size={16} />
               สำรวจ Template
             </Link>
@@ -116,7 +115,7 @@ export default function GuestHome() {
             <h2>คอร์สที่เปิดสอน</h2>
             <p>ดูรายละเอียดและรายชื่อบทเรียนได้ ลงทะเบียนเพื่อเปิดเนื้อหาเต็ม</p>
           </div>
-          <Link className="text-btn" to={loginPathFor('/courses')}>
+          <Link className="text-btn" to="/courses">
             ดูทั้งหมด
             <ArrowRight size={15} />
           </Link>

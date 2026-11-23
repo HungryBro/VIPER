@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, 
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session, joinedload
 
-from ..auth import require_active_user, utc_now
+from ..auth import optional_active_user, require_active_user, utc_now
 from ..database import get_db
 from ..models import AuditLog, Comment, Template, User
 from ..official_templates import ensure_official_template_records
@@ -36,15 +36,16 @@ def _comment_query():
     return select(Comment).options(joinedload(Comment.author))
 
 
-def _get_visible_template(db: Session, template_id: int, user: User) -> Template:
+def _get_visible_template(db: Session, template_id: int, user: User | None) -> Template:
     template = db.scalar(_template_query().where(Template.id == template_id))
     if template is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Template not found")
 
+    # user is None only on the read-only routes open to visitors (see get_template):
+    # a visitor sees Official and Public templates, like anyone who is not the owner.
     can_view = (
         template.visibility == "public"
-        or template.owner_id == user.id
-        or user.role == "admin"
+        or (user is not None and (template.owner_id == user.id or user.role == "admin"))
     )
     if not can_view:
         # Hide private template existence from users who do not own it.
@@ -97,7 +98,8 @@ def _add_audit(
 
 @router.get("", response_model=list[TemplateSummary])
 def list_public_templates(
-    _: User = Depends(require_active_user),
+    # Visitors may browse (user changed 17 Nov decision on 23 Nov 2026); a banned account still gets 403.
+    _: User | None = Depends(optional_active_user),
     db: Session = Depends(get_db),
 ):
     return db.scalars(
@@ -109,7 +111,7 @@ def list_public_templates(
 
 @router.get("/official", response_model=list[TemplateSummary])
 def list_official_templates(
-    _: User = Depends(require_active_user),
+    _: User | None = Depends(optional_active_user),
     db: Session = Depends(get_db),
 ):
     ensure_official_template_records(db)
@@ -181,7 +183,8 @@ def create_template(
 @router.get("/{template_id}", response_model=TemplateDetail)
 def get_template(
     template_id: int,
-    user: User = Depends(require_active_user),
+    # Visitors read Official/Public details; someone else's Private stays 404 (_get_visible_template).
+    user: User | None = Depends(optional_active_user),
     db: Session = Depends(get_db),
 ):
     return _get_visible_template(db, template_id, user)
