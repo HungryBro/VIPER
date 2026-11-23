@@ -25,6 +25,26 @@ SEED_FILE = Path(__file__).with_name("official_templates.json")
 # written to the database until then.
 _SEED = [entry for entry in json.loads(SEED_FILE.read_text(encoding="utf-8")) if entry.get("enabled", True)]
 
+# Cover image of each Official template, under outputs/samples/covers (tracked in git).
+# A cover an Admin uploaded is never replaced.
+_COVERS = {
+    "SIFT (Scale-Invariant Feature Transform)": "sift",
+    "FLANN (Fast Library for Approximate Nearest Neighbors)": "flann",
+    "PSNR (Peak Signal-to-Noise Ratio)": "psnr",
+    "BRISQUE (Blind/Referenceless Image Spatial Quality Evaluator)": "brisque",
+    "Otsu Thresholding": "otsu",
+    "Active Contour (Snake)": "snake",
+    "Homography Estimation": "homography",
+    "Shapes — End-to-End Training & Evaluation": "shapes-train",
+    "Shapes — Detection & XAI": "shapes-xai",
+}
+
+
+def _cover_url(key: str) -> str | None:
+    name = _COVERS.get(key)
+    return f"/static/samples/covers/{name}.jpg" if name else None
+
+
 # (official_key, description) of every template that is seeded.
 OFFICIAL_TEMPLATE_CATALOG = tuple((entry["official_key"], entry["description"]) for entry in _SEED)
 
@@ -70,7 +90,11 @@ def ensure_official_template_records(db: Session) -> None:
                 workflow=entry["workflow"],
                 is_official=True,
                 official_key=key,
+                cover_url=_cover_url(key),
             ))
-        elif template.deleted_at is None and _is_empty(template.workflow):
-            template.workflow = entry["workflow"]
+        elif template.deleted_at is None:
+            if _is_empty(template.workflow):
+                template.workflow = entry["workflow"]
+            if template.cover_url is None:
+                template.cover_url = _cover_url(key)
     db.commit()
