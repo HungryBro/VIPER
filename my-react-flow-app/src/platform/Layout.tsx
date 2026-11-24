@@ -32,15 +32,18 @@ export default function Layout() {
           ) : (
             <GuestHeader theme={theme} onToggleTheme={toggleTheme} />
           )}
-          <main id="main" className="main">
-            <Outlet />
-          </main>
-          <footer className="site-footer">
-            <span>
-              <span className="brand-small">VIPER</span> เรียนรู้ผ่านการลงมือทำ
-            </span>
-            <span>Image Processing</span>
-          </footer>
+          {/* เนื้อหาเลื่อนในกล่องนี้ แถบด้านบนอยู่นอกกล่อง scrollbar จึงเริ่มใต้แถบด้านบน */}
+          <div className="app-scroll">
+            <main id="main" className="main">
+              <Outlet />
+            </main>
+            <footer className="site-footer">
+              <span>
+                <span className="brand-small">VIPER</span> เรียนรู้ผ่านการลงมือทำ
+              </span>
+              <span>Image Processing</span>
+            </footer>
+          </div>
         </div>
         {toast && (
           <div className="toast" role="status">
