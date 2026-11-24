@@ -14,7 +14,7 @@ const SaveJsonNode = ({ id, data, selected }: NodeProps<CustomNodeData>) => {
 
   let borderColor = 'border-gray-500';
   if (selected) {
-    borderColor = 'border-gray-300 ring-2 ring-gray-500'; 
+    borderColor = 'border-gray-400 ring-2 ring-gray-500'; 
   } else if (isRunning) {
     borderColor = 'border-yellow-500 ring-2 ring-yellow-500/50'; 
   }
@@ -32,7 +32,7 @@ const SaveJsonNode = ({ id, data, selected }: NodeProps<CustomNodeData>) => {
 
   return (
     <div className={`bg-gray-800 text-white rounded-lg p-3 w-48 text-center border-2 shadow-md transition-all duration-200 ${borderColor}`}>
-      <div className="font-bold text-gray-300 mb-1">Save JSON</div>
+      <div className="font-bold text-gray-400 mb-1">Save JSON</div>
       <p className="text-xs text-gray-400 mb-2">Export descriptors</p>
       
       <button 

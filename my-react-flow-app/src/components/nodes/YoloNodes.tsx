@@ -14,15 +14,15 @@ type Mode = 'train' | 'detect' | 'gradcam';
 const CONFIG = {
   train: {
     title: 'YOLO Train', hint: 'Configure a dataset YAML and train',
-    text: 'text-violet-400', border: 'border-violet-500', button: 'bg-violet-600 hover:bg-violet-500',
+    text: 'text-cyan-400', border: 'border-cyan-500', button: 'bg-cyan-600 hover:bg-cyan-700',
   },
   detect: {
     title: 'YOLO Detect / Test', hint: 'Connect an image and run inference',
-    text: 'text-cyan-400', border: 'border-cyan-500', button: 'bg-cyan-600 hover:bg-cyan-500',
+    text: 'text-cyan-400', border: 'border-cyan-500', button: 'bg-cyan-600 hover:bg-cyan-700',
   },
   gradcam: {
     title: 'YOLO Grad-CAM', hint: 'Explain detections with a heatmap',
-    text: 'text-rose-400', border: 'border-rose-500', button: 'bg-rose-600 hover:bg-rose-500',
+    text: 'text-cyan-400', border: 'border-cyan-500', button: 'bg-cyan-600 hover:bg-cyan-700',
   },
 } as const;
 
@@ -74,7 +74,7 @@ function ModelSelect({ value, models, onChange, loading, error }: {
   return <label className="block">
     <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-400">Base model</span>
     <select
-      className="nodrag nowheel w-full rounded border border-gray-700 bg-gray-900 p-2 font-mono text-xs text-white outline-none focus:border-violet-400"
+      className="nodrag nowheel w-full rounded border border-gray-700 bg-gray-900 p-2 font-mono text-xs text-white outline-none focus:border-cyan-400"
       value={value}
       onChange={(event) => onChange(event.target.value)}
       disabled={loading && models.length === 0}
@@ -146,7 +146,7 @@ function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mo
     ? data?.payload?.result_image_url || result.output_image_url
     : data?.payload?.result_image_url || result.overlay_url;
   const compactness = result.heatmap_compactness;
-  const border = isFault ? 'border-red-500' : isRunning ? 'border-yellow-400' : selected ? 'border-white ring-2 ring-white/30' : config.border;
+  const border = isFault ? 'border-red-500' : isRunning ? 'border-yellow-400' : selected ? 'border-cyan-400 ring-2 ring-cyan-500' : config.border;
   const handleClass = `h-3 w-3 border-2 border-gray-400 bg-white ${isFault && !isConnected ? '!h-4 !w-4 !border-red-300 !bg-red-500' : ''}`;
 
   return (
@@ -203,18 +203,18 @@ function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mo
           <div className="break-all text-xs text-gray-400" title={result.model_path}>Last run model: {compactPath(result.model_path)}</div>
         )}
         {mode === 'train' && data.payload?.best_model_path && (
-          <div className="break-all text-xs text-violet-300" title={data.payload.best_model_path}>Output model: {compactPath(data.payload.best_model_path)}</div>
+          <div className="break-all text-xs text-cyan-300" title={data.payload.best_model_path}>Output model: {compactPath(data.payload.best_model_path)}</div>
         )}
 
         {mode === 'train' && (isRunning || trainingProgress) && (
-          <div className="rounded border border-violet-400/40 bg-gray-900/70 p-2">
-            <div className="mb-1 flex justify-between text-[10px] text-violet-200">
+          <div className="rounded border border-cyan-400/40 bg-gray-900/70 p-2">
+            <div className="mb-1 flex justify-between text-[10px] text-cyan-200">
               <span>{trainingProgress?.message || 'Preparing training…'}</span>
               <span>{Math.round(Number(trainingProgress?.progress || 0))}%</span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-gray-700">
               <div
-                className="h-full rounded-full bg-violet-500 transition-[width] duration-300"
+                className="h-full rounded-full bg-cyan-500 transition-[width] duration-300"
                 style={{ width: `${Math.min(100, Math.max(0, Number(trainingProgress?.progress || 0)))}%` }}
               />
             </div>
@@ -281,7 +281,7 @@ function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mo
                 <label className="block">
                   <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-400">CAM method</span>
                   <select
-                    className="nodrag nowheel w-full rounded border border-gray-700 bg-gray-900 p-2 font-mono text-xs text-white outline-none focus:border-rose-400"
+                    className="nodrag nowheel w-full rounded border border-gray-700 bg-gray-900 p-2 font-mono text-xs text-white outline-none focus:border-cyan-400"
                     value={form.method}
                     onChange={(event) => setParam('method', event.target.value)}
                   >

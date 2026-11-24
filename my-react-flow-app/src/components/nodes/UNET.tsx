@@ -131,7 +131,7 @@ const UNetNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
     return null;
   }, [json_data, data?.payload]);
 
-  let borderColor = 'border-yellow-600';
+  let borderColor = 'border-yellow-500';
   if (selected) borderColor = 'border-yellow-400 ring-2 ring-yellow-500';
   else if (isRunning) borderColor = 'border-yellow-500 ring-2 ring-yellow-500/50';
 
@@ -147,14 +147,14 @@ const UNetNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
       <Handle type="target" position={Position.Left} className={targetHandleClass} style={{ top: '50%', transform: 'translateY(-50%)' }} />
       <Handle type="source" position={Position.Right} className="w-2 h-2 rounded-full border-2 bg-white border-yellow-600" style={{ top: '50%', transform: 'translateY(-50%)' }} />
 
-      <div className="bg-gray-700 text-yellow-500 rounded-t-xl px-2 py-2 flex items-center justify-between font-bold">
+      <div className="bg-gray-700 text-yellow-400 rounded-t-xl px-2 py-2 flex items-center justify-between font-bold">
         <div>U-Net (Custom)</div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleRun}
             disabled={isRunning}
             className={`px-2 py-1 rounded text-xs font-semibold transition-colors duration-200 text-white cursor-pointer ${
-                isRunning ? 'bg-yellow-600 cursor-wait opacity-80' : 'bg-yellow-600 hover:bg-yellow-500'
+                isRunning ? 'bg-yellow-600 cursor-wait opacity-80' : 'bg-yellow-600 hover:bg-yellow-700'
             }`}
           >
             {isRunning ? 'Running...' : '▶ Run'}

@@ -148,7 +148,7 @@ const AffineAlignNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>)
       <Handle type="target" position={Position.Left} className={targetHandleClass} style={{ top: '50%', transform: 'translateY(-50%)' }} />
       <Handle type="source" position={Position.Right} className={sourceHandleClass} style={{ top: '50%', transform: 'translateY(-50%)' }} />
 
-      <div className="bg-gray-700 text-purple-500 rounded-t-xl px-2 py-2 flex items-center justify-between font-bold">
+      <div className="bg-gray-700 text-purple-400 rounded-t-xl px-2 py-2 flex items-center justify-between font-bold">
         <div>Affine Align</div>
         <div className="flex items-center gap-2">
           <button

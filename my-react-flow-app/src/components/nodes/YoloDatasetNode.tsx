@@ -108,7 +108,7 @@ const YoloDatasetNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>)
     width: Math.abs(draft.x2 - draft.x), height: Math.abs(draft.y2 - draft.y), class_id: classId,
   } : null;
   const annotationCount = images.reduce((count, image) => count + (image.annotations?.length || 0), 0);
-  const border = selected ? 'border-white ring-2 ring-white/30' : data.status === 'fault' ? 'border-red-500' : 'border-cyan-500';
+  const border = selected ? 'border-cyan-400 ring-2 ring-cyan-500' : data.status === 'fault' ? 'border-red-500' : 'border-cyan-500';
 
   return (
     <div className={`w-[26rem] rounded-xl border-2 bg-gray-800 text-gray-200 shadow-2xl ${border}`}>
@@ -116,7 +116,7 @@ const YoloDatasetNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>)
       <Handle type="source" position={Position.Right} id="dataset" className="h-3 w-3 border-2 border-gray-400 bg-white" />
       <div className="flex items-center justify-between rounded-t-lg bg-gray-700 px-3 py-2">
         <strong className="text-cyan-400">YOLO Dataset Builder</strong>
-        <button disabled={!images.length} className="nodrag rounded bg-cyan-600 px-2 py-1 text-xs font-semibold text-white hover:bg-cyan-500 disabled:cursor-not-allowed disabled:bg-gray-600" onClick={() => data?.onRunNode?.(id)}>
+        <button disabled={!images.length} className="nodrag rounded bg-cyan-600 px-2 py-1 text-xs font-semibold text-white hover:bg-cyan-700 disabled:cursor-not-allowed disabled:bg-gray-600" onClick={() => data?.onRunNode?.(id)}>
           Build dataset
         </button>
       </div>

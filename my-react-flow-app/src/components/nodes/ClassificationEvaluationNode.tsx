@@ -27,7 +27,7 @@ const ClassificationEvaluationNode = memo(({ id, data, selected }: NodeProps<Cus
   const hasModel = upstream.some((node) => node?.type === 'yolo-train');
   const connectedModel = upstream.find((node) => node?.type === 'yolo-train')?.data.payload?.best_model_path;
   const hasImage = upstream.some((node) => node?.type === 'image-input');
-  const borderClass = selected ? 'border-amber-300 ring-2 ring-amber-400/30' : data.status === 'fault' ? 'border-red-500' : 'border-amber-500';
+  const borderClass = selected ? 'border-amber-400 ring-2 ring-amber-500' : data.status === 'fault' ? 'border-red-500' : 'border-amber-500';
 
   const updateInput = useCallback((input: Record<string, unknown>, name: string) => setNodes((current) => current.map((node) => node.id === id ? {
     ...node,
@@ -53,7 +53,7 @@ const ClassificationEvaluationNode = memo(({ id, data, selected }: NodeProps<Cus
     <Handle type="target" position={Position.Left} id="model" style={{ top: '39%' }} className="h-3 w-3 border-2 border-gray-400 bg-white" />
     <Handle type="target" position={Position.Left} id="image" style={{ top: '47%' }} className="h-3 w-3 border-2 border-gray-400 bg-white" />
     <Handle type="source" position={Position.Right} id="metric" className="h-3 w-3 border-2 border-gray-400 bg-white" />
-    <div className="flex items-center justify-between rounded-t-lg bg-gray-700 px-3 py-2"><strong className="text-amber-300">Classification Evaluation</strong><button type="button" className={`nodrag rounded px-2 py-1 text-xs font-semibold text-white ${isRunning ? 'cursor-wait bg-yellow-600' : 'bg-amber-600 hover:bg-amber-500'}`} disabled={isRunning} onClick={() => data.onRunNode?.(id)}>{isRunning ? 'Running…' : '▶ Run'}</button></div>
+    <div className="flex items-center justify-between rounded-t-lg bg-gray-700 px-3 py-2"><strong className="text-amber-400">Classification Evaluation</strong><button type="button" className={`nodrag rounded px-2 py-1 text-xs font-semibold text-white ${isRunning ? 'cursor-wait bg-yellow-600' : 'bg-amber-600 hover:bg-amber-700'}`} disabled={isRunning} onClick={() => data.onRunNode?.(id)}>{isRunning ? 'Running…' : '▶ Run'}</button></div>
     <div className="space-y-3 p-3">
       <div className="rounded border border-dashed border-amber-700 bg-gray-900/70 p-2">
         <div className="nodrag mb-2 grid grid-cols-2 rounded border border-gray-700 bg-gray-950 p-1 text-[10px] font-semibold"><button type="button" className={`rounded px-2 py-1.5 ${inputMode === 'yolo' ? 'bg-amber-600 text-white' : 'text-gray-400 hover:bg-gray-800'}`} onClick={() => setInputMode('yolo')}>Use YOLO workflow</button><button type="button" className={`rounded px-2 py-1.5 ${inputMode === 'file' ? 'bg-amber-600 text-white' : 'text-gray-400 hover:bg-gray-800'}`} onClick={() => setInputMode('file')}>Import JSON file</button></div>
