@@ -332,6 +332,10 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
     canvasRef.current?.addNode(nodeType);
   }, []);
 
+  const handleAddNodeAt = useCallback((nodeType: string, clientX: number, clientY: number) => {
+    canvasRef.current?.addNodeAt(nodeType, clientX, clientY);
+  }, []);
+
   // กลับมาที่ /lab: รอให้ layout คำนวณขนาด canvas ใหม่ (หน้าต่างอาจเปลี่ยนขนาดระหว่างซ่อน) แล้ว fit view
   const wasActiveRef = useRef(active);
   useEffect(() => {
@@ -421,6 +425,7 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
             getCurrentWorkflow={getCurrentWorkflow}
             onLoadPlatformTemplate={handleLoadPlatformTemplate}
             onAddNode={handleAddNodeFromLibrary}
+            onAddNodeAt={handleAddNodeAt}
             templateRefreshKey={templateRefreshKey}
           />
           <div className="flex-1 h-full relative">

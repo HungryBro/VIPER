@@ -32,6 +32,8 @@ export interface FlowCanvasHandle {
   restoreSnapshot: (nodes: RFNode[], edges: Edge[], viewport: Viewport | 'fit') => void;
   fitView: () => void;
   addNode: (nodeType: string) => void;
+  /** Add a node of this type under a screen point (a drop from the library) and fit the view. */
+  addNodeAt: (nodeType: string, clientX: number, clientY: number) => void;
 }
 
 interface FlowCanvasProps {
@@ -307,6 +309,16 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       addLog(`Added ${nodeType}`, 'info', id);
     }, [addLog, cancelNodeById, getNodes, runNodeById, screenToFlowPosition, setNodes]);
 
+    const addNodeAtScreenPoint = useCallback((type: string, clientX: number, clientY: number) => {
+      const id = getId();
+      setNodes((nds) => nds.concat({
+        id, type, position: screenToFlowPosition({ x: clientX, y: clientY }),
+        data: { label: type.toUpperCase(), status: 'idle', onRunNode: (id: string) => runNodeById(id), onCancelNode: (id: string) => cancelNodeById(id) },
+      }));
+      fitPendingRef.current = 'add';
+      addLog(`Added ${type}`, 'info', id);
+    }, [addLog, cancelNodeById, runNodeById, screenToFlowPosition, setNodes]);
+
     const fitWorkflowToCanvas = useCallback((maxZoomCap?: number) => {
       const isCompactMobile = document.querySelector('.viper-app')?.classList.contains('compact-mobile');
       const flowPane = document.querySelector('.react-flow');
@@ -416,7 +428,8 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       },
       fitView: () => fitWorkflowToCanvas(),
       addNode: addNodeFromLibrary,
-    }), [addNodeFromLibrary, cancelNodeById, edges, fitWorkflowToCanvas, getViewport, runNodeById, setEdges, setNodes, setViewport, nodes]);
+      addNodeAt: addNodeAtScreenPoint,
+    }), [addNodeAtScreenPoint, addNodeFromLibrary, cancelNodeById, edges, fitWorkflowToCanvas, getViewport, runNodeById, setEdges, setNodes, setViewport, nodes]);
 
     // A restore with 'fit' or an add waits until React Flow has measured every node:
     // fitting earlier would use the wrong bounds.
@@ -541,14 +554,8 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       e.preventDefault();
       const type = e.dataTransfer.getData('application/reactflow');
       if (!type) return;
-      const id = getId();
-      setNodes((nds) => nds.concat({
-        id, type, position: screenToFlowPosition({ x: e.clientX, y: e.clientY }),
-        data: { label: type.toUpperCase(), status: 'idle', onRunNode: (id: string) => runNodeById(id), onCancelNode: (id: string) => cancelNodeById(id) },
-      }));
-      fitPendingRef.current = 'add';
-      addLog(`Added ${type}`, 'info', id);
-    }, [screenToFlowPosition, setNodes, runNodeById, addLog]);
+      addNodeAtScreenPoint(type, e.clientX, e.clientY);
+    }, [addNodeAtScreenPoint]);
 
     return (
       <div className="relative flex-1 h-full flex flex-col">

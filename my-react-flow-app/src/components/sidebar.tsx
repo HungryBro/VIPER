@@ -1,5 +1,5 @@
 // src/components/sidebar.tsx
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { ChevronDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { TEMPLATE_INFO, type TemplateInfo } from '../lib/templateInfo';
 import { listOfficialTemplates, loadPlatformTemplate, type CurrentWorkflow, type TemplateDetail } from '../lib/templateApi';
@@ -20,6 +20,8 @@ interface SidebarProps {
   /** ส่งต่อให้ TemplatePlatformLibrary: เปลี่ยนค่าเมื่อรายการ template ต้องโหลดใหม่ (A4f) */
   templateRefreshKey?: number;
   onAddNode: (nodeType: string) => void;
+  /** Drop a node under a screen point: a long-press drag with a finger or pen (HTML5 drag does not work with touch). */
+  onAddNodeAt?: (nodeType: string, clientX: number, clientY: number) => void;
 }
 
 const COMPACT_MOBILE_QUERY = '(max-width: 767px), (max-height: 560px) and (pointer: coarse)';
@@ -71,7 +73,7 @@ const Icons: Record<string, React.FC<{ className?: string }>> = {
   )
 };
 
-const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templateRefreshKey }: SidebarProps) => {
+const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, onAddNodeAt, templateRefreshKey }: SidebarProps) => {
 
   const [activeTab, setActiveTab] = useState<'nodes' | 'templates'>('nodes');
   const [templateView, setTemplateView] = useState<PlatformTemplateView>('official');
@@ -148,7 +150,60 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templa
     return colorMap[color] || colorMap['teal'];
   };
 
+  // Touch/pen drag from the library: a ~250ms press picks the node up, lifting over the canvas adds it there.
+  // A quick tap still adds the node (onClick) and a swipe scrolls the list. The mouse keeps using HTML5 drag.
+  const TOUCH_PICKUP_MS = 250;
+  const lastPointerType = useRef('mouse');
+  const suppressClick = useRef(false);
+  const touchDrag = useRef<{ type: string; label: string; x: number; y: number; sx: number; sy: number; picked: boolean; timer: number } | null>(null);
+  const [ghost, setGhost] = useState<{ label: string; x: number; y: number } | null>(null);
+
+  const blockScroll = useCallback((e: TouchEvent) => {
+    if (touchDrag.current?.picked && e.cancelable) e.preventDefault();
+  }, []);
+  const endTouchDrag = useCallback(() => {
+    if (touchDrag.current) window.clearTimeout(touchDrag.current.timer);
+    touchDrag.current = null;
+    setGhost(null);
+    document.removeEventListener('touchmove', blockScroll);
+  }, [blockScroll]);
+  useEffect(() => endTouchDrag, [endTouchDrag]);
+
+  const onNodePointerDown = (e: React.PointerEvent, nodeType: string, label: string) => {
+    lastPointerType.current = e.pointerType;
+    suppressClick.current = false;
+    if (e.pointerType === 'mouse' || !onAddNodeAt || window.matchMedia(COMPACT_MOBILE_QUERY).matches) return;
+    endTouchDrag();
+    document.addEventListener('touchmove', blockScroll, { passive: false });
+    const drag = {
+      type: nodeType, label, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, picked: false,
+      timer: window.setTimeout(() => {
+        drag.picked = true;
+        suppressClick.current = true;
+        setGhost({ label, x: drag.x, y: drag.y });
+      }, TOUCH_PICKUP_MS),
+    };
+    touchDrag.current = drag;
+  };
+  const onNodePointerMove = (e: React.PointerEvent) => {
+    const drag = touchDrag.current;
+    if (!drag) return;
+    drag.x = e.clientX;
+    drag.y = e.clientY;
+    if (drag.picked) setGhost({ label: drag.label, x: e.clientX, y: e.clientY });
+    else if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 8) endTouchDrag(); // a swipe: let the list scroll
+  };
+  const onNodePointerUp = (e: React.PointerEvent) => {
+    const drag = touchDrag.current;
+    if (drag?.picked) {
+      const overCanvas = document.elementFromPoint(e.clientX, e.clientY)?.closest('.react-flow__pane, .react-flow__renderer');
+      if (overCanvas) onAddNodeAt?.(drag.type, e.clientX, e.clientY);
+    }
+    endTouchDrag();
+  };
+
   const onDragStart = (e: React.DragEvent, nodeType: string) => {
+    if (lastPointerType.current !== 'mouse') { e.preventDefault(); return; }
     e.dataTransfer.setData('application/reactflow', nodeType);
     e.dataTransfer.effectAllowed = 'move';
   };
@@ -295,8 +350,14 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templa
                             type="button"
                             draggable
                             onDragStart={(e) => onDragStart(e, alg.type)}
+                            onPointerDown={(e) => onNodePointerDown(e, alg.type, alg.label)}
+                            onPointerMove={onNodePointerMove}
+                            onPointerUp={onNodePointerUp}
+                            onPointerCancel={endTouchDrag}
+                            onContextMenu={(e) => { if (lastPointerType.current !== 'mouse') e.preventDefault(); }}
                             // Touch screens cannot drag an HTML5 element, so a tap adds the node; with a mouse the button is drag-only.
                             onClick={() => {
+                              if (suppressClick.current) { suppressClick.current = false; return; }
                               if (window.matchMedia(COMPACT_MOBILE_QUERY).matches || window.matchMedia('(pointer: coarse)').matches) addNodeFromLibrary(alg.type);
                             }}
                             aria-label={`เพิ่ม ${alg.label} ลง canvas`}
@@ -371,6 +432,15 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templa
 
       {aboutModal.visible && (
         <AlgorithmInfoModal template={aboutModal.template} onClose={() => setAboutModal({ visible: false, template: null })} />
+      )}
+      {ghost && (
+        <div
+          aria-hidden="true"
+          style={{ left: ghost.x, top: ghost.y }}
+          className="pointer-events-none fixed z-[200] -translate-x-1/2 -translate-y-[130%] rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-action)] px-3 py-2 text-xs font-bold uppercase tracking-[0.03em] text-white shadow-lg"
+        >
+          {ghost.label}
+        </div>
       )}
     </>
   );
