@@ -425,7 +425,10 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       if (nodes.some((n) => !n.width || !n.height)) return;
       const mode = fitPendingRef.current;
       fitPendingRef.current = false;
-      fitWorkflowToCanvas(mode === 'add' ? 1 : undefined);
+      if (mode !== 'add') { fitWorkflowToCanvas(); return; }
+      // On compact mobile the library closes after an add (300ms width transition): fit once it has settled.
+      const settle = document.querySelector('.viper-app')?.classList.contains('compact-mobile') ? 350 : 0;
+      setTimeout(() => fitWorkflowToCanvas(1), settle);
     }, [nodes, fitWorkflowToCanvas]);
 
     // A restored (remembered) viewport may predate the current layout and leave nodes under the
