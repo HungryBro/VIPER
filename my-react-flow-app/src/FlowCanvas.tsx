@@ -582,7 +582,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
               position="bottom-right"
               pannable
               zoomable
-              style={{ width: 120, height: 98 }}
+              style={{ width: 160, height: 120 }}
               maskColor="color-mix(in srgb, var(--lab-bg) 70%, transparent)"
               nodeColor={(n) => n.data?.status === 'success' ? '#22c55e' : '#94a3b8'}
             />
