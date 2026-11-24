@@ -172,6 +172,8 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, onAddN
   const onNodePointerDown = (e: React.PointerEvent, nodeType: string, label: string) => {
     lastPointerType.current = e.pointerType;
     suppressClick.current = false;
+    // iPadOS lifts a draggable element natively after a long press and cancels our pointer events: only the mouse uses HTML5 drag.
+    (e.currentTarget as HTMLElement).draggable = e.pointerType === 'mouse';
     if (e.pointerType === 'mouse' || !onAddNodeAt || window.matchMedia(COMPACT_MOBILE_QUERY).matches) return;
     endTouchDrag();
     document.addEventListener('touchmove', blockScroll, { passive: false });
@@ -355,6 +357,7 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, onAddN
                             onPointerUp={onNodePointerUp}
                             onPointerCancel={endTouchDrag}
                             onContextMenu={(e) => { if (lastPointerType.current !== 'mouse') e.preventDefault(); }}
+                            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
                             // Touch screens cannot drag an HTML5 element, so a tap adds the node; with a mouse the button is drag-only.
                             onClick={() => {
                               if (suppressClick.current) { suppressClick.current = false; return; }
