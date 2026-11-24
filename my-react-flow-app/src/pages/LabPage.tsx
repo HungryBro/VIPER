@@ -22,6 +22,9 @@ const STORAGE_KEY_APP_TABS = 'n2n_app_tabs';
 const STORAGE_KEY_ACTIVE_TAB = 'n2n_active_tab_id';
 const COMPACT_MOBILE_QUERY = '(max-width: 767px), (max-height: 560px) and (pointer: coarse)';
 
+// true = พื้นที่ทำงานของ Lab ล็อกชุดสีมืดเสมอ (แบบเดิม), false = ทดลองแบบ A: ตามธีมแพลตฟอร์ม รวมโหนดบน canvas (สีโหนดธีมสว่างอยู่ใน index.css)
+const LAB_FORCE_DARK: boolean = false;
+
 // `active` เป็น false เมื่อ editor ถูกเก็บ mount ไว้แต่ซ่อนอยู่หลัง route อื่น (ดู LabHost ใน src/App.tsx)
 // งานที่รัน การแก้ undo/redo, Log panel และ clipboard จึงอยู่ครบเมื่อกลับมา
 // platformMenu: LabHost ส่งมาเฉพาะโทรศัพท์แนวนอนที่ซ่อน header แพลตฟอร์มไว้ (B7b) ปุ่มนี้เปิด/ปิด header นั้น
@@ -358,7 +361,7 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
     <div data-lab-theme={theme} className={`viper-app w-screen h-[100dvh] flex flex-col overflow-hidden bg-[var(--lab-bg)] text-[color:var(--lab-ink)] ${isCompactMobile ? 'compact-mobile' : ''}`}>
       {/* หัวของแพลตฟอร์ม (Header) แสดงอยู่เหนือ editor ใน LabHost แล้ว (ชื่อผู้ใช้ แผงจัดการผู้ใช้ของ admin และ Log out อยู่ที่นั่น) */}
       {/* แถวหัว Lab และพื้นที่ทำงานใช้ชุดสีมืดเสมอ แม้แพลตฟอร์มเป็นธีมสว่าง (dialog ที่เปิดจากแถวหัวยังตามธีมแพลตฟอร์ม) */}
-      <div data-lab-theme="dark" className="contents">
+      <div data-lab-theme={LAB_FORCE_DARK ? 'dark' : theme} className="contents">
       <div className="viper-header relative z-30 flex min-h-11 items-center gap-2 border-b border-[var(--lab-line)] bg-[var(--lab-panel)] px-3 sm:gap-3 sm:px-5">
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           <button
