@@ -14,12 +14,11 @@ import LabHelpDialog from '../platform/LabHelpDialog';
 import { sanitizeWorkflowDocument, type TemplateDetail } from '../lib/templateApi';
 import { nodeSpec } from '../lib/nodeCatalog';
 import { labBridge } from '../platform/labBridge';
+import { STORAGE_KEY_APP_TABS, STORAGE_KEY_ACTIVE_TAB } from '../lib/labStorage';
 import { usePlatformTheme } from '../platform/theme';
 import SaveTemplateDialog from '../platform/SaveTemplateDialog';
 import type { WorkflowTab, NodeStatus } from '../types'; 
 
-const STORAGE_KEY_APP_TABS = 'n2n_app_tabs';
-const STORAGE_KEY_ACTIVE_TAB = 'n2n_active_tab_id';
 const COMPACT_MOBILE_QUERY = '(max-width: 767px), (max-height: 560px) and (pointer: coarse)';
 
 // `active` เป็น false เมื่อ editor ถูกเก็บ mount ไว้แต่ซ่อนอยู่หลัง route อื่น (ดู LabHost ใน src/App.tsx)

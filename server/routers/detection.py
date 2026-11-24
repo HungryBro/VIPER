@@ -100,9 +100,11 @@ def list_yolo_models() -> dict[str, list[dict[str, str]]]:
 class YOLOTrainReq(BaseModel):
     dataset_yaml: str
     model_path: str = yolo_adapter.DEFAULT_MODEL
-    epochs: int = Field(default=10, ge=1)
-    image_size: int = Field(default=640, ge=32)
-    batch: int = Field(default=16, ge=1)
+    # Upper limits: one shared worker trains for everyone, so a typo like epochs=1000
+    # must not hold it for hours (only the starter knows the job id to cancel it).
+    epochs: int = Field(default=10, ge=1, le=300)
+    image_size: int = Field(default=640, ge=32, le=1280)
+    batch: int = Field(default=16, ge=1, le=128)
     device: Optional[str] = None
     # A folder name under outputs/detection/train: no "/" or "..", so it cannot leave that folder.
     run_name: Optional[str] = Field(default=None, pattern=SAFE_FOLDER_NAME)

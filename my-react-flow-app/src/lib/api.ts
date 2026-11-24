@@ -16,7 +16,11 @@ export const absStrict = (url: string) =>
 async function handleResponse(resp: Response) {
   if (!resp.ok) {
     const errBody = await resp.json().catch(() => ({}));
-    const msg = errBody.detail || `Request failed with status ${resp.status}`;
+    // A FastAPI validation error (422) sends detail as a list: show "field: reason" for each.
+    const detail = Array.isArray(errBody.detail)
+      ? errBody.detail.map((d: { loc?: unknown[]; msg?: string }) => `${d.loc?.at(-1) ?? 'input'}: ${d.msg}`).join('; ')
+      : errBody.detail;
+    const msg = detail || `Request failed with status ${resp.status}`;
     throw new Error(msg);
   }
   return resp.json();
