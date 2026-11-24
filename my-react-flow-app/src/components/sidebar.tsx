@@ -276,15 +276,16 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templa
                             key={alg.type}
                             draggable
                             onDragStart={(e) => onDragStart(e, alg.type)}
-                            className="group rounded-[5px] border border-[color-mix(in_srgb,var(--group-color)_35%,var(--lab-line))] bg-[color-mix(in_srgb,var(--group-color)_11%,var(--lab-panel))] px-[9px] py-2.5 text-left text-xs text-[var(--group-color)] md:cursor-grab md:active:cursor-grabbing"
+                            className="group rounded-[5px] border border-[color-mix(in_srgb,var(--group-color)_35%,var(--lab-line))] bg-[color-mix(in_srgb,var(--group-color)_11%,var(--lab-panel))] px-[9px] py-2.5 text-left text-xs text-[var(--group-color)] md:cursor-grab md:active:cursor-grabbing flex items-center justify-between gap-2"
                           >
-                            <span className="block w-full">{alg.label}</span>
+                            <span className="block min-w-0 flex-1">{alg.label}</span>
                             <button
                               type="button"
                               onClick={() => addNodeFromLibrary(alg.type)}
-                              className="mt-2 flex min-h-9 w-full touch-manipulation items-center justify-center rounded border border-[color-mix(in_srgb,var(--group-color)_35%,var(--lab-line))] px-2 text-[10px] font-semibold md:hidden"
+                              aria-label={`Add ${alg.label} to canvas`}
+                              className="flex min-h-9 min-w-9 shrink-0 touch-manipulation items-center justify-center rounded border border-[color-mix(in_srgb,var(--group-color)_35%,var(--lab-line))] px-2 text-base font-semibold leading-none md:hidden"
                             >
-                              + ADD TO CANVAS
+                              +
                             </button>
                           </div>
                         ))}
@@ -295,7 +296,7 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templa
               })}
 
             {activeTab === 'nodes' && (
-              <p className="px-1 pt-2 text-xs leading-relaxed text-[var(--lab-muted)]">ลากโหนดจากคลังลงบน Canvas แล้วลากสายเชื่อมเอง (บนจอแคบกด + ADD TO CANVAS)</p>
+              <p className="px-1 pt-2 text-xs leading-relaxed text-[var(--lab-muted)]">ลากโหนดจากคลังลงบน Canvas แล้วลากสายเชื่อมเอง (บนจอแคบกดปุ่ม + ข้างชื่อโหนด)</p>
             )}
 
             {SHOW_LEGACY_TEMPLATE_LIST && activeTab === 'templates' && templateView === 'official' && templateJobs.map(job => {

@@ -290,19 +290,12 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       if (existing.length > 0) {
         const b = getNodesBounds(existing);
         const sizeOf = (n: typeof existing[number]) => ({ w: n.width ?? 0, h: n.height ?? 0 });
-        const newW = sizeOf(existing[existing.length - 1]).w;
-        // Aspect ratio of the visible canvas (sidebar overlay excluded): wrap to a new row when a row to the right would be wider than it.
-        const pane = document.querySelector('.react-flow')?.getBoundingClientRect();
-        const sidebar = document.querySelector('.viper-sidebar')?.getBoundingClientRect();
-        const sideCut = pane && sidebar && sidebar.right > pane.left && sidebar.left <= pane.left + 1 ? Math.min(pane.width, sidebar.right - pane.left + 12) : 0;
-        const ratio = pane ? Math.max(1, pane.width - sideCut) / Math.max(1, pane.height) : 1;
-        if ((b.width + 80 + newW) / Math.max(1, b.height) > ratio) {
-          position = { x: b.x, y: b.y + b.height + 80 };
-        } else {
-          const lastTop = Math.max(...existing.map((n) => n.position.y));
-          const lastRow = existing.filter((n) => n.position.y >= lastTop - 1);
-          position = { x: Math.max(...lastRow.map((n) => n.position.x + sizeOf(n).w)) + 80, y: lastTop };
-        }
+        // Rows of 3, left to right; the 4th node starts a new row below.
+        const lastTop = Math.max(...existing.map((n) => n.position.y));
+        const lastRow = existing.filter((n) => n.position.y >= lastTop - 1);
+        position = lastRow.length >= 3
+          ? { x: b.x, y: b.y + b.height + 80 }
+          : { x: Math.max(...lastRow.map((n) => n.position.x + sizeOf(n).w)) + 80, y: lastTop };
       }
       setNodes((nds) => nds.concat({
         id,
