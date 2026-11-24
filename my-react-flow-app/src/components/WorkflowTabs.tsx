@@ -56,7 +56,7 @@ export default function WorkflowTabs({
   };
   
   return (
-    <div className="viper-workflow-tabs flex h-10 w-full select-none items-center border-b border-gray-700 bg-gray-900 sm:h-9">
+    <div className="viper-workflow-tabs flex h-10 w-full select-none items-center border-b border-[var(--lab-line)] bg-[var(--lab-subtle)] sm:h-9">
       
       <div className="flex-1 flex overflow-x-auto no-scrollbar h-full">
         {tabs.map((tab) => {
@@ -70,10 +70,10 @@ export default function WorkflowTabs({
               onContextMenu={(e) => startEditing(e, tab)}    
               onDoubleClick={(e) => startEditing(e, tab)}    
               className={`
-                group flex h-full min-w-[116px] max-w-[200px] touch-manipulation items-center border-r border-gray-700 px-2.5 transition-all sm:min-w-[140px] sm:px-3
+                group flex h-full min-w-[116px] max-w-[200px] touch-manipulation items-center border-r border-[var(--lab-line)] px-2.5 transition-all sm:min-w-[140px] sm:px-3
                 ${isActive 
-                  ? 'bg-gray-800 text-teal-400 border-t-2 border-t-teal-500' 
-                  : 'bg-gray-900 text-gray-400 hover:bg-gray-800 hover:text-gray-200 border-t-2 border-t-transparent'}
+                  ? 'bg-[var(--lab-panel)] text-[var(--lab-blue-ink)] border-t-2 border-t-[var(--lab-blue)]' 
+                  : 'text-[var(--lab-muted)] hover:bg-[var(--lab-panel)] hover:text-[var(--lab-ink)] border-t-2 border-t-transparent'}
               `}
               title={isEditing ? '' : "Right-click to rename"}
             >
@@ -89,11 +89,11 @@ export default function WorkflowTabs({
                   onChange={(e) => setTempName(e.target.value)}
                   onBlur={saveRename} 
                   onKeyDown={handleKeyDown}
-                  className="flex-1 w-full bg-gray-700 text-white text-xs px-1 py-0.5 rounded outline-none border border-teal-500"
+                  className="flex-1 w-full bg-[var(--lab-panel)] text-[var(--lab-ink)] text-xs px-1 py-0.5 rounded outline-none border border-[var(--lab-blue)]"
                   onClick={(e) => e.stopPropagation()} 
                 />
               ) : (
-                <span className="flex-1 truncate text-xs font-medium font-mono pt-0.5">
+                <span className="flex-1 truncate text-xs pt-0.5">
                   {tab.name}
                 </span>
               )}
@@ -105,7 +105,7 @@ export default function WorkflowTabs({
                     onClose(tab.id);
                   }}
                   className={`
-                    ml-1 rounded-md p-1.5 hover:bg-gray-700 hover:text-red-400 sm:p-0.5 sm:transition-opacity
+                    ml-1 rounded-md p-1.5 hover:bg-[var(--lab-subtle)] hover:text-[var(--lab-danger)] sm:p-0.5 sm:transition-opacity
                     ${isActive ? 'opacity-100' : 'opacity-100 sm:opacity-0 sm:group-hover:opacity-100'}
                   `}
                   title="Close Tab"
@@ -122,7 +122,7 @@ export default function WorkflowTabs({
 
       <button
         onClick={onAdd}
-        className="flex items-center justify-center w-10 h-full text-gray-500 hover:text-teal-400 hover:bg-gray-800 border-l border-gray-700 transition-colors"
+        className="flex items-center justify-center w-10 h-full text-[var(--lab-muted)] hover:text-[var(--lab-blue-ink)] hover:bg-[var(--lab-panel)] border-l border-[var(--lab-line)] transition-colors"
         title="New Workflow"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
