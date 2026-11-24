@@ -86,7 +86,8 @@ app.add_middleware(
     session_cookie="viper_session",
     max_age=8 * 60 * 60,
     same_site="lax",
-    https_only=False,
+    # Secure cookie when the backend is served over HTTPS; plain http stays usable on localhost.
+    https_only=settings.backend_url.startswith("https://"),
 )
 app.add_middleware(
     CORSMiddleware,

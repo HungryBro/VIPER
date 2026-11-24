@@ -23,7 +23,11 @@ def require_file(reference: str, detail: str) -> str:
 
     `detail` may contain `{path}`, which is replaced by where the file was expected.
     """
-    path = resolve_image_path(reference)
+    try:
+        path = resolve_image_path(reference)
+    except ValueError:
+        # Outside OUT: answered like a missing file, so it tells nothing about what exists there.
+        raise HTTPException(status_code=404, detail=detail.replace("{path}", reference))
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail=detail.replace("{path}", path))
     return path

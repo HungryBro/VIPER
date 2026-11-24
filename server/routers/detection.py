@@ -16,6 +16,8 @@ from ..algos.detection import dataset_builder, yolo_adapter
 
 router = APIRouter()
 
+SAFE_FOLDER_NAME = r"^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$"
+
 # Training can take minutes on a CPU.  Keep it off the request thread and let
 # the canvas poll a small status object for real epoch progress.
 _training_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="viper-yolo-train")
@@ -102,7 +104,8 @@ class YOLOTrainReq(BaseModel):
     image_size: int = Field(default=640, ge=32)
     batch: int = Field(default=16, ge=1)
     device: Optional[str] = None
-    run_name: Optional[str] = None
+    # A folder name under outputs/detection/train: no "/" or "..", so it cannot leave that folder.
+    run_name: Optional[str] = Field(default=None, pattern=SAFE_FOLDER_NAME)
 
 
 @router.post("/train/start")
@@ -153,7 +156,8 @@ class YOLODatasetImage(BaseModel):
 class YOLODatasetReq(BaseModel):
     images: list[YOLODatasetImage] = Field(min_length=2)
     class_names: list[str] = Field(min_length=1)
-    name: Optional[str] = None
+    # A folder name under outputs/detection/datasets (see YOLOTrainReq.run_name).
+    name: Optional[str] = Field(default=None, pattern=SAFE_FOLDER_NAME)
     validation_split: float = Field(default=0.2, gt=0.0, lt=1.0)
 
 

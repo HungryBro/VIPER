@@ -1,6 +1,7 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlparse
 
 from dotenv import load_dotenv
 
@@ -21,6 +22,11 @@ def _env_bool(name: str, default: bool) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
+# Public (it is in git): anyone who knows it can sign a session cookie for any user.
+DEV_SESSION_SECRET = "viper-local-development-session-secret-change-me"
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+
+
 @dataclass(frozen=True)
 class Settings:
     frontend_url: str = os.getenv("FRONTEND_URL", "http://localhost:5173").rstrip("/")
@@ -29,7 +35,7 @@ class Settings:
     google_client_secret: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
     session_secret: str = os.getenv(
         "SESSION_SECRET",
-        "viper-local-development-session-secret-change-me",
+        DEV_SESSION_SECRET,
     )
     database_url: str = os.getenv(
         "DATABASE_URL",
@@ -40,3 +46,12 @@ class Settings:
 
 
 settings = Settings()
+
+
+def check_session_secret(current: Settings) -> None:
+    """Refuse to start with the public development secret unless the backend runs on this machine."""
+    if current.session_secret == DEV_SESSION_SECRET and urlparse(current.backend_url).hostname not in LOCAL_HOSTS:
+        raise RuntimeError("Set SESSION_SECRET in the environment: the default secret is public")
+
+
+check_session_secret(settings)

@@ -1,0 +1,15 @@
+# Secrets: the image must never carry them; pass them as environment variables.
+.env
+.env.*
+!.env.example
+
+# User data written at runtime; only the bundled samples belong in the image.
+outputs/*
+!outputs/samples
+
+# Local environments and build output.
+.git
+.venv
+venv
+**/node_modules
+**/__pycache__

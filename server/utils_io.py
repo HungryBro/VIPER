@@ -33,8 +33,24 @@ def ensure_dirs(*paths: str) -> None:
     for p in paths: os.makedirs(p, exist_ok=True)
 
 
+def _inside_out(path: str) -> str:
+    """`path` with links and `..` resolved, or ValueError when that lands outside OUT.
+
+    Files under OUT are served by /static, so a client path that reached anywhere
+    else could copy any server file (such as .env) to where anyone can download it.
+    """
+    real = os.path.realpath(path)
+    root = os.path.realpath(OUT)
+    if os.path.commonpath([real, root]) != root:
+        raise ValueError("File must be inside the VIPER outputs folder")
+    return real
+
+
 def resolve_image_path(p: str) -> str:
-    """Map a URL or /static path sent by the frontend to its file under OUT."""
+    """Map a URL or /static path sent by the frontend to its file under OUT.
+
+    Raises ValueError for a reference that points outside OUT.
+    """
     if not p: return p
     if p.startswith("http://") or p.startswith("https://"):
         path_part = urlparse(p).path or ""
@@ -43,20 +59,24 @@ def resolve_image_path(p: str) -> str:
 
     if path_part.startswith("/static/"):
         rel = path_part[len("/static/"):]
-        return str(os.path.join(OUT, rel.lstrip("/")))
+        return _inside_out(os.path.join(OUT, rel.lstrip("/")))
 
     if "/uploads/" in path_part:
         name = Path(path_part).name
-        return str(os.path.join(UPLOAD_DIR, name))
-    return p
+        return _inside_out(os.path.join(UPLOAD_DIR, name))
+    # An absolute path the server returned earlier (a result's json_path or dataset_yaml).
+    return _inside_out(p)
 
 
 def locate_file(path: str) -> str:
     """Find the file a request or a result JSON refers to; return `path` unchanged if none exists."""
     if not path or os.path.exists(path): return path
 
-    mapped = resolve_image_path(path)
-    if os.path.exists(mapped): return mapped
+    try:
+        mapped = resolve_image_path(path)
+    except ValueError:
+        mapped = ""  # a path recorded on another machine; looked up by name below
+    if mapped and os.path.exists(mapped): return mapped
 
     name = os.path.basename(path)
     for sub in _SEARCH_SUBDIRS:
