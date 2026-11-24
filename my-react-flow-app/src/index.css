@@ -233,8 +233,8 @@ input[type="number"] {
 }
 .viper-app .react-flow__controls-button {
   box-sizing: border-box;
-  width: 24px;
-  height: 24px;
+  width: 29px;
+  height: 29px;
   padding: 0;
   border: 0;
   border-bottom: 1px solid var(--lab-line);
@@ -248,8 +248,8 @@ input[type="number"] {
   background: var(--lab-subtle);
 }
 .viper-app .react-flow__controls-button svg {
-  max-width: 11px;
-  max-height: 11px;
+  max-width: 13px;
+  max-height: 13px;
   fill: currentColor;
 }
 .viper-app .react-flow__minimap {
