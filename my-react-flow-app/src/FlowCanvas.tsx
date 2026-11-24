@@ -278,22 +278,43 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       }
     }, [addLog, getNodes, setNodes]);
 
+    const fitPendingRef = useRef<false | 'restore' | 'add'>(false);
+
     const addNodeFromLibrary = useCallback((nodeType: string) => {
       const id = getId();
-      const position = screenToFlowPosition({
+      const existing = getNodes();
+      let position = screenToFlowPosition({
         x: window.innerWidth * 0.6,
         y: window.innerHeight * 0.52,
       });
+      if (existing.length > 0) {
+        const b = getNodesBounds(existing);
+        const sizeOf = (n: typeof existing[number]) => ({ w: n.width ?? 0, h: n.height ?? 0 });
+        const newW = sizeOf(existing[existing.length - 1]).w;
+        // Aspect ratio of the visible canvas (sidebar overlay excluded): wrap to a new row when a row to the right would be wider than it.
+        const pane = document.querySelector('.react-flow')?.getBoundingClientRect();
+        const sidebar = document.querySelector('.viper-sidebar')?.getBoundingClientRect();
+        const sideCut = pane && sidebar && sidebar.right > pane.left && sidebar.left <= pane.left + 1 ? Math.min(pane.width, sidebar.right - pane.left + 12) : 0;
+        const ratio = pane ? Math.max(1, pane.width - sideCut) / Math.max(1, pane.height) : 1;
+        if ((b.width + 80 + newW) / Math.max(1, b.height) > ratio) {
+          position = { x: b.x, y: b.y + b.height + 80 };
+        } else {
+          const lastTop = Math.max(...existing.map((n) => n.position.y));
+          const lastRow = existing.filter((n) => n.position.y >= lastTop - 1);
+          position = { x: Math.max(...lastRow.map((n) => n.position.x + sizeOf(n).w)) + 80, y: lastTop };
+        }
+      }
       setNodes((nds) => nds.concat({
         id,
         type: nodeType,
         position,
         data: { label: nodeType.toUpperCase(), status: 'idle', onRunNode: (nodeId: string) => runNodeById(nodeId), onCancelNode: (nodeId: string) => cancelNodeById(nodeId) },
       }));
+      fitPendingRef.current = 'add';
       addLog(`Added ${nodeType}`, 'info', id);
-    }, [addLog, cancelNodeById, runNodeById, screenToFlowPosition, setNodes]);
+    }, [addLog, cancelNodeById, getNodes, runNodeById, screenToFlowPosition, setNodes]);
 
-    const fitWorkflowToCanvas = useCallback(() => {
+    const fitWorkflowToCanvas = useCallback((maxZoomCap?: number) => {
       const isCompactMobile = document.querySelector('.viper-app')?.classList.contains('compact-mobile');
       const flowPane = document.querySelector('.react-flow');
 
@@ -355,7 +376,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
 
         const nodeBounds = getNodesBounds(nodes);
         const minZoom = isCompactMobile ? 0.12 : 0.08;
-        const maxZoom = isCompactMobile ? 2.5 : 5;
+        const maxZoom = Math.min(isCompactMobile ? 2.5 : 5, maxZoomCap ?? Infinity);
         const padding = isCompactMobile ? 0.06 : 0.1;
         const bestFit = fitAreas
           .map((area) => {
@@ -381,7 +402,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       fitView({
         padding: isCompactMobile ? 0.06 : 0.1,
         minZoom: isCompactMobile ? 0.12 : 0.08,
-        maxZoom: isCompactMobile ? 2.5 : 5,
+        maxZoom: Math.min(isCompactMobile ? 2.5 : 5, maxZoomCap ?? Infinity),
         duration: 300,
       });
     }, [fitView, nodes, setViewport]);
@@ -394,24 +415,24 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
         }));
         setNodes(nodesWithFunc);
         setEdges(newEdges);
-        if (newViewport === 'fit') fitPendingRef.current = true;
+        if (newViewport === 'fit') fitPendingRef.current = 'restore';
         else {
           setViewport(newViewport);
           verifyViewportRef.current = true;
         }
       },
-      fitView: fitWorkflowToCanvas,
+      fitView: () => fitWorkflowToCanvas(),
       addNode: addNodeFromLibrary,
     }), [addNodeFromLibrary, cancelNodeById, edges, fitWorkflowToCanvas, getViewport, runNodeById, setEdges, setNodes, setViewport, nodes]);
 
-    // A restore with 'fit' waits until React Flow has measured every node:
+    // A restore with 'fit' or an add waits until React Flow has measured every node:
     // fitting earlier would use the wrong bounds.
-    const fitPendingRef = useRef(false);
     useEffect(() => {
       if (!fitPendingRef.current) return;
       if (nodes.some((n) => !n.width || !n.height)) return;
+      const mode = fitPendingRef.current;
       fitPendingRef.current = false;
-      fitWorkflowToCanvas();
+      fitWorkflowToCanvas(mode === 'add' ? 1 : undefined);
     }, [nodes, fitWorkflowToCanvas]);
 
     // A restored (remembered) viewport may predate the current layout and leave nodes under the
@@ -529,13 +550,14 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
         id, type, position: screenToFlowPosition({ x: e.clientX, y: e.clientY }),
         data: { label: type.toUpperCase(), status: 'idle', onRunNode: (id: string) => runNodeById(id), onCancelNode: (id: string) => cancelNodeById(id) },
       }));
+      fitPendingRef.current = 'add';
       addLog(`Added ${type}`, 'info', id);
     }, [screenToFlowPosition, setNodes, runNodeById, addLog]);
 
     return (
       <div className="relative flex-1 h-full flex flex-col">
         <div className="viper-canvas-actions absolute left-16 right-3 top-2.5 z-10 flex justify-end gap-[7px]">
-          <button type="button" onClick={fitWorkflowToCanvas} title="Fit workflow to canvas" aria-label="Fit workflow to canvas" className="viper-fit-canvas-button flex min-h-8 min-w-8 touch-manipulation items-center justify-center gap-[5px] rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2 text-xs text-[var(--lab-ink)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] sm:px-[9px]">
+          <button type="button" onClick={() => fitWorkflowToCanvas()} title="Fit workflow to canvas" aria-label="Fit workflow to canvas" className="viper-fit-canvas-button flex min-h-8 min-w-8 touch-manipulation items-center justify-center gap-[5px] rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2 text-xs text-[var(--lab-ink)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] sm:px-[9px]">
             <Maximize2 size={15} aria-hidden="true" />
           </button>
           <button type="button" onClick={saveWorkflow} className="flex min-h-8 min-w-8 touch-manipulation items-center justify-center gap-[5px] rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2 text-xs text-[var(--lab-ink)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] sm:px-[9px]"><Save size={15} aria-hidden="true" /><span className="hidden sm:inline">Save</span></button>
