@@ -355,7 +355,6 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
       {/* หัวของแพลตฟอร์ม (Header) แสดงอยู่เหนือ editor ใน LabHost แล้ว (ชื่อผู้ใช้ แผงจัดการผู้ใช้ของ admin และ Log out อยู่ที่นั่น) */}
       <div className="viper-header relative z-30 flex min-h-11 items-center gap-2 border-b border-[var(--lab-line)] bg-[var(--lab-panel)] px-3 sm:gap-3 sm:px-5">
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-          <span className="hidden shrink-0 border-r border-[var(--lab-line)] pr-3 text-xs text-[var(--lab-muted)] sm:inline">Image Processing</span>
           <button
             type="button"
             onClick={() => navigate('/')}
