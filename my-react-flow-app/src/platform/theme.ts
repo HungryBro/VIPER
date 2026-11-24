@@ -24,8 +24,18 @@ export function readStoredTheme(): PlatformTheme {
 let currentTheme: PlatformTheme | null = null;
 const themeListeners = new Set<() => void>();
 
+// scrollbar ของทั้งหน้า (viewport) ใช้ค่าจากองค์ประกอบ html ไม่ใช่ .viper-platform จึงตั้งตามธีมที่นี่
+function applyRootScrollbar(theme: PlatformTheme): void {
+  const root = document.documentElement.style;
+  root.colorScheme = theme;
+  root.scrollbarColor = theme === 'dark' ? 'rgba(154, 171, 193, 0.45) transparent' : 'rgba(122, 135, 154, 0.45) transparent';
+}
+
 function getTheme(): PlatformTheme {
-  if (currentTheme === null) currentTheme = readStoredTheme();
+  if (currentTheme === null) {
+    currentTheme = readStoredTheme();
+    applyRootScrollbar(currentTheme);
+  }
   return currentTheme;
 }
 
@@ -39,6 +49,7 @@ function subscribeTheme(listener: () => void): () => void {
 function toggleTheme(): void {
   const next: PlatformTheme = getTheme() === 'dark' ? 'light' : 'dark';
   currentTheme = next;
+  applyRootScrollbar(next);
   try {
     window.localStorage.setItem(THEME_STORAGE_KEY, next);
   } catch {

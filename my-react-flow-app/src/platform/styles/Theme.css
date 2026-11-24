@@ -43,6 +43,8 @@
   --danger: #f2a1a1;
   color-scheme: dark;
 }
+/* scrollbar ทุกจุดในแพลตฟอร์ม: พื้น track โปร่งใส เห็นสีพื้นของบริเวณนั้น แท่งใช้สี muted จางๆ ตามธีม */
+.viper-platform { scrollbar-color: color-mix(in srgb, var(--muted) 45%, transparent) transparent; }
 .viper-platform { font-size: 14px; line-height: 1.7; }
 .viper-platform h1 { font-size: 29px; font-weight: 700; letter-spacing: -.65px; }
 .viper-platform h2, .viper-platform h3 { font-weight: 650; }
