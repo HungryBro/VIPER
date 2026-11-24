@@ -1,6 +1,7 @@
 // File: src/pages/LabPage.tsx (editor เดิมจาก src/App.tsx ย้ายมาเป็นหน้า /lab ใน T4)
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useSyncExternalStore } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, CircleHelp, Play, Save, Square } from 'lucide-react';
 import { ReactFlowProvider } from 'reactflow';
 import 'reactflow/dist/style.css';
 
@@ -13,6 +14,7 @@ import LabHelpDialog from '../platform/LabHelpDialog';
 import { sanitizeWorkflowDocument, type TemplateDetail } from '../lib/templateApi';
 import { nodeSpec } from '../lib/nodeCatalog';
 import { labBridge } from '../platform/labBridge';
+import { usePlatformTheme } from '../platform/theme';
 import SaveTemplateDialog from '../platform/SaveTemplateDialog';
 import type { WorkflowTab, NodeStatus } from '../types'; 
 
@@ -27,6 +29,7 @@ type PlatformMenuToggle = { open: boolean; toggle: () => void };
 
 export default function LabPage({ active = true, platformMenu }: { active?: boolean; platformMenu?: PlatformMenuToggle }) {
   const navigate = useNavigate();
+  const [theme] = usePlatformTheme();
   const [isRunning, setIsRunning] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -348,20 +351,21 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
   }, [active, bumpTemplateList]);
 
   return (
-    <div className={`viper-app w-screen h-[100dvh] flex flex-col overflow-hidden bg-gray-900 text-white ${isCompactMobile ? 'compact-mobile' : ''}`}>
+    <div data-lab-theme={theme} className={`viper-app w-screen h-[100dvh] flex flex-col overflow-hidden bg-[var(--lab-bg)] text-[color:var(--lab-ink)] ${isCompactMobile ? 'compact-mobile' : ''}`}>
       {/* หัวของแพลตฟอร์ม (Header) แสดงอยู่เหนือ editor ใน LabHost แล้ว (ชื่อผู้ใช้ แผงจัดการผู้ใช้ของ admin และ Log out อยู่ที่นั่น) */}
-      <div className="viper-header relative z-30 flex min-h-12 items-center gap-2 border-b-2 border-teal-500 bg-gray-900 px-3 shadow-lg sm:gap-3">
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+      <div className="viper-header relative z-30 flex min-h-11 items-center gap-2 border-b border-[var(--lab-line)] bg-[var(--lab-panel)] px-3 sm:gap-3 sm:px-5">
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+          <span className="hidden shrink-0 border-r border-[var(--lab-line)] pr-3 text-xs text-[var(--lab-muted)] sm:inline">Image Processing</span>
           <button
             type="button"
             onClick={() => navigate('/')}
             aria-label="กลับหน้าหลัก"
             title="กลับหน้าหลัก"
-            className="flex h-9 w-9 shrink-0 touch-manipulation items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-sm font-bold text-slate-300 hover:border-teal-500/50 hover:text-teal-300"
+            className="flex h-8 w-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-[var(--lab-line)] bg-[var(--lab-panel)] text-[var(--lab-ink)] hover:border-[var(--lab-blue)]"
           >
-            ←
+            <ArrowLeft size={16} />
           </button>
-          <h1 className="min-w-0 truncate text-base font-extrabold tracking-wide text-teal-400 sm:text-lg" title={activeTabName}>{activeTabName}</h1>
+          <h1 className="min-w-0 truncate text-[13px] font-semibold text-[var(--lab-ink)]" title={activeTabName}>{activeTabName}</h1>
         </div>
         <WorkflowControls isRunning={isRunning} />
         {platformMenu && (
@@ -371,7 +375,7 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
             aria-expanded={platformMenu.open}
             aria-label={platformMenu.open ? 'ซ่อนเมนูแพลตฟอร์ม' : 'เมนูแพลตฟอร์ม (บัญชี หน้าอื่น ออกจากระบบ)'}
             title="เมนูแพลตฟอร์ม"
-            className="flex h-9 shrink-0 touch-manipulation items-center justify-center rounded-md border border-slate-700 bg-slate-800 px-2 text-[10px] font-bold text-slate-300 hover:border-teal-500/50 hover:text-teal-300"
+            className="flex h-8 shrink-0 touch-manipulation items-center justify-center rounded-md border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2 text-[11px] font-semibold text-[var(--lab-muted)] hover:border-[var(--lab-blue)]"
           >
             {platformMenu.open ? 'ซ่อนเมนู' : 'เมนู'}
           </button>
@@ -381,9 +385,9 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
           onClick={() => setHelpOpen(true)}
           aria-label="วิธีใช้ VIPER Lab"
           title="วิธีใช้ VIPER Lab"
-          className="flex h-9 w-9 shrink-0 touch-manipulation items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-sm font-bold text-slate-300 hover:border-teal-500/50 hover:text-teal-300"
+          className="flex h-8 w-8 shrink-0 touch-manipulation items-center justify-center rounded-full text-[var(--lab-muted)] hover:bg-[var(--lab-subtle)] hover:text-[var(--lab-ink)]"
         >
-          ?
+          <CircleHelp size={18} />
         </button>
         <button
           type="button"
@@ -391,27 +395,24 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
           disabled={isRunning || !activeTab?.nodes.length}
           aria-label="เก็บ Template"
           title="เก็บ Template"
-          className="flex h-9 w-9 shrink-0 touch-manipulation items-center justify-center rounded-md border border-teal-500/40 bg-teal-500/10 text-teal-300 hover:bg-teal-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex h-8 shrink-0 touch-manipulation items-center justify-center gap-1.5 rounded-md border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2.5 text-xs font-semibold text-[var(--lab-ink)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] disabled:cursor-not-allowed disabled:opacity-45"
         >
-          <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
-            <polyline points="17 21 17 13 7 13 7 21" />
-            <polyline points="7 3 7 8 15 8" />
-          </svg>
+          <Save size={15} />
+          <span className="hidden sm:inline">เก็บ Template</span>
         </button>
         <button
           type="button"
           onClick={isRunning ? handleStop : handleStart}
           aria-label={isRunning ? 'หยุด' : 'รัน'}
-          className={`flex h-9 shrink-0 touch-manipulation items-center justify-center gap-1.5 rounded-md px-3 text-xs font-bold text-white shadow-md ${isRunning ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+          className={`flex h-8 min-w-8 shrink-0 touch-manipulation items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-semibold sm:min-w-[82px] ${isRunning ? 'bg-[var(--lab-danger)] text-[color:var(--lab-on-danger)] hover:brightness-95' : 'bg-[var(--lab-action)] text-white hover:bg-[var(--lab-action-hover)]'}`}
         >
-          <span aria-hidden="true">{isRunning ? '■' : '▶'}</span>
+          {isRunning ? <Square size={14} aria-hidden="true" /> : <Play size={14} aria-hidden="true" />}
           <span className="workflow-control-label">{isRunning ? 'หยุด' : 'รัน'}</span>
         </button>
       </div>
       <WorkflowTabs tabs={tabs.map(t => ({ id: t.id, name: t.name }))} activeTabId={activeTabId} onSwitch={handleSwitchTab} onAdd={handleAddTab} onClose={handleCloseTab} onRename={handleRenameTab} />
-      <div className="viper-canvas-toolbar flex items-center border-b border-gray-700 bg-gray-800/60 px-3 py-1">
-        <span className="rounded-md border border-slate-700 bg-slate-800 px-2 py-0.5 text-[11px] font-semibold text-slate-300">{activeTab?.nodes.length ?? 0} โหนด</span>
+      <div className="viper-canvas-toolbar flex items-center border-b border-[var(--lab-line)] bg-[var(--lab-panel)] px-3 py-1">
+        <span className="rounded-[5px] border border-[var(--lab-line)] px-2 py-0.5 text-[11px] font-medium text-[var(--lab-muted)]">{activeTab?.nodes.length ?? 0} โหนด</span>
       </div>
       <div className="flex flex-grow overflow-hidden relative">
         <ReactFlowProvider>

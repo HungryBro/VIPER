@@ -96,15 +96,16 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
 เปลี่ยนเฉพาะหน้าตา (UI/UX) การทำงานทุกอย่างต้องเหมือนเดิม · ค่าสี/ขนาด/ระยะ/ขอบ/มุมโค้งดึงจาก `outputs/viper-learning-v2/src/Theme.css` (และ App.css, Density.css) แล้วเขียนเป็น Tailwind ใน component (ตัวแปรสี `--lab-*` สองชุด สว่าง/มืด อยู่ใน `index.css` ผูกกับธีมของแพลตฟอร์ม) ห้าม import CSS ของ mockup · ไอคอนใช้ `lucide-react` (ติดตั้งแล้ว) · ตรวจทุกงาน: `scripts/check.sh` ต้อง `CHECK PASS`
 ห้ามแตะ: หน้าตา/การทำงานของโหนด, รัน/หยุด, แท็บ workflow, hotkey, save/load/clear, fit view, undo/redo, log, Lab ค้าง mount, กฎซ่อน Lab (R-43), ค่าคงที่ที่ปิดไว้, backend
 
-### [ ] T6 หัว Lab + แถวเครื่องมือ
+### [x] T6 หัว Lab + แถวเครื่องมือ
 - เกณฑ์รับ
-  - [ ] ป้าย "Image Processing" เล็กสีเทา (muted) · ปุ่มย้อนกลับเป็นไอคอน · ชื่อแท็บตัวหนาสีหลักขนาดแบบ mockup (13px)
-  - [ ] ด้านขวา: Status (ไฟสถานะ + Running/Stopped คงไว้ในหัว), ปุ่ม ? เป็นไอคอนวงกลม, "เก็บ Template" มีไอคอนพร้อมข้อความ (ยัง disabled ตอนรัน/canvas ว่าง), ปุ่ม "รัน/หยุด" สี action สีน้ำเงินแบบ mockup (หยุด = สี danger)
-  - [ ] แถว "N โหนด" ป้ายเล็กแบบ mockup ไม่เพิ่มปุ่มใหม่
-  - [ ] สีตามธีม: มืดและสว่างใช้ค่าจาก Theme.css (`--lab-*`)
-  - [ ] 375px และแนวนอน: ไม่ล้น ปุ่มไม่ทับกัน
+  - [x] ป้าย "Image Processing" เล็กสีเทา (muted) · ปุ่มย้อนกลับเป็นไอคอน · ชื่อแท็บตัวหนาสีหลักขนาดแบบ mockup (13px)
+  - [x] ด้านขวา: Status (ไฟสถานะ + Running/Stopped คงไว้ในหัว), ปุ่ม ? เป็นไอคอนวงกลม, "เก็บ Template" มีไอคอนพร้อมข้อความ (ยัง disabled ตอนรัน/canvas ว่าง), ปุ่ม "รัน/หยุด" สี action สีน้ำเงินแบบ mockup (หยุด = สี danger)
+  - [x] แถว "N โหนด" ป้ายเล็กแบบ mockup ไม่เพิ่มปุ่มใหม่
+  - [x] สีตามธีม: มืดและสว่างใช้ค่าจาก Theme.css (`--lab-*`)
+  - [x] 375px และแนวนอน: ไม่ล้น ปุ่มไม่ทับกัน
 - ตรวจ: เบราว์เซอร์ 1440/800/375 ทั้งสองธีม, รัน/หยุด Homography, dialog ? และเก็บ Template เปิดได้และ hotkey ไม่ทำงานตอนเปิด
 - ไฟล์: `pages/LabPage.tsx`, `components/WorkflowControls.tsx`, `index.css`
+- ผลตรวจ: CHECK PASS · เบราว์เซอร์ (admin) ธีมมืดและสว่างตามตัวแปร `--lab-*` (เพิ่มใน `index.css`, `data-lab-theme` บน `.viper-app`) หัวใหม่ใช้ไอคอน lucide (ArrowLeft, CircleHelp, Save, Play/Square) · ภาพเทียบ mockup เก็บตอน T9
 
 ### [ ] T7 คลังโหนด
 - เกณฑ์รับ

@@ -12,6 +12,47 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ตัวแปรสีของ Lab (รอบ 2) ดึงจาก outputs/viper-learning-v2/src/Theme.css ของ mockup: ชุดมืด = html[data-theme=dark], ชุดสว่าง = html
+   ผูกกับธีมแพลตฟอร์มผ่าน data-lab-theme บน .viper-app (LabPage) ใช้ผ่าน Tailwind เช่น bg-[var(--lab-panel)] */
+.viper-app {
+  --lab-bg: #151821;
+  --lab-panel: #1c202b;
+  --lab-subtle: #222735;
+  --lab-canvas: #171b25;
+  --lab-ink: #e8ebf3;
+  --lab-muted: #a3adbf;
+  --lab-line: #333b4d;
+  --lab-blue: #94b0ff;
+  --lab-blue-soft: #283653;
+  --lab-blue-ink: #adc1ff;
+  --lab-action: #526fe0;
+  --lab-action-hover: #5a73dc;
+  --lab-teal: #8ed3ad;
+  --lab-amber: #ebc378;
+  --lab-danger: #f2a1a1;
+  --lab-on-danger: #1c202b;
+  --lab-dots: #333b4d;
+}
+.viper-app[data-lab-theme='light'] {
+  --lab-bg: #f2f3f7;
+  --lab-panel: #ffffff;
+  --lab-subtle: #f8f9fc;
+  --lab-canvas: #f4f5f9;
+  --lab-ink: #252831;
+  --lab-muted: #677080;
+  --lab-line: #e1e4ec;
+  --lab-blue: #4b78f5;
+  --lab-blue-soft: #edf2ff;
+  --lab-blue-ink: #365bc2;
+  --lab-action: #436bdc;
+  --lab-action-hover: #365bc2;
+  --lab-teal: #207653;
+  --lab-amber: #936214;
+  --lab-danger: #b74646;
+  --lab-on-danger: #ffffff;
+  --lab-dots: #d4d8e3;
+}
+
 button,
 input,
 select,
