@@ -4,8 +4,6 @@ import { Handle, Position, useReactFlow, type NodeProps } from 'reactflow';
 import type { CustomNodeData } from '../../types';
 import { uploadImages, abs } from '../../lib/api';
 
-const statusDot = (active: boolean, color: string) =>
-  `h-[6.5px] w-[6.5px] rounded-full ${active ? color : 'bg-gray-600'} flex-shrink-0 shadow-inner transition-colors duration-200`;
 
 type Props = NodeProps<CustomNodeData>;
 
@@ -82,7 +80,6 @@ const ImageInputNode = memo(({ id, data, selected }: Props) => {
 
   const isRunning = uploading || data?.status === 'running';
 
-  const isSuccess = data?.status === 'success' || (!!rawUrl && !isRunning && data?.status !== 'fault');
 
   let borderColor = 'border-teal-500';
   if (selected) borderColor = 'border-teal-400 ring-2 ring-teal-500';
@@ -142,25 +139,6 @@ const ImageInputNode = memo(({ id, data, selected }: Props) => {
         )}
 
         {error && <div className="text-xs text-red-400 font-bold">{error}</div>}
-      </div>
-
-      <div className="grid grid-cols-4 border-t-2 border-gray-700 px-1 pb-2 pt-1.5 text-xs font-medium">
-        <div className="flex flex-col-reverse items-center gap-1 py-1">
-          <span className="text-red-400">start</span>
-          <div className={statusDot(data?.status === 'start', 'bg-red-500')} />
-        </div>
-        <div className="flex flex-col-reverse items-center gap-1 py-1">
-          <span className="text-cyan-400">running</span>
-          <div className={statusDot(isRunning, 'bg-cyan-400 animate-pulse')} />
-        </div>
-        <div className="flex flex-col-reverse items-center gap-1 py-1">
-          <span className="text-green-400">success</span>
-          <div className={statusDot(isSuccess, 'bg-green-500')} />
-        </div>
-        <div className="flex flex-col-reverse items-center gap-1 py-1">
-          <span className="text-yellow-400">fault</span>
-          <div className={statusDot(false, 'bg-red-500')} />
-        </div>
       </div>
     </div>
   );
