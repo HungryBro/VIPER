@@ -88,3 +88,54 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
 - [ ] `CHECK PASS` และสคริปต์ UI ผ่าน
 - [ ] ผู้ใช้ดูหน้า `/lab` จริงแล้วอนุมัติ
 - [ ] ห้าม push/merge จนกว่าผู้ใช้จะสั่ง
+
+---
+
+## รอบ 2: ปรับหน้าตา Lab ให้ใกล้ mockup v2 (24 พ.ย. 2569, branch `lab-layout`)
+
+เปลี่ยนเฉพาะหน้าตา (UI/UX) การทำงานทุกอย่างต้องเหมือนเดิม · ค่าสี/ขนาด/ระยะ/ขอบ/มุมโค้งดึงจาก `outputs/viper-learning-v2/src/Theme.css` (และ App.css, Density.css) แล้วเขียนเป็น Tailwind ใน component (ตัวแปรสี `--lab-*` สองชุด สว่าง/มืด อยู่ใน `index.css` ผูกกับธีมของแพลตฟอร์ม) ห้าม import CSS ของ mockup · ไอคอนใช้ `lucide-react` (ติดตั้งแล้ว) · ตรวจทุกงาน: `scripts/check.sh` ต้อง `CHECK PASS`
+ห้ามแตะ: หน้าตา/การทำงานของโหนด, รัน/หยุด, แท็บ workflow, hotkey, save/load/clear, fit view, undo/redo, log, Lab ค้าง mount, กฎซ่อน Lab (R-43), ค่าคงที่ที่ปิดไว้, backend
+
+### [ ] T6 หัว Lab + แถวเครื่องมือ
+- เกณฑ์รับ
+  - [ ] ป้าย "Image Processing" เล็กสีเทา (muted) · ปุ่มย้อนกลับเป็นไอคอน · ชื่อแท็บตัวหนาสีหลักขนาดแบบ mockup (13px)
+  - [ ] ด้านขวา: Status (ไฟสถานะ + Running/Stopped คงไว้ในหัว), ปุ่ม ? เป็นไอคอนวงกลม, "เก็บ Template" มีไอคอนพร้อมข้อความ (ยัง disabled ตอนรัน/canvas ว่าง), ปุ่ม "รัน/หยุด" สี action สีน้ำเงินแบบ mockup (หยุด = สี danger)
+  - [ ] แถว "N โหนด" ป้ายเล็กแบบ mockup ไม่เพิ่มปุ่มใหม่
+  - [ ] สีตามธีม: มืดและสว่างใช้ค่าจาก Theme.css (`--lab-*`)
+  - [ ] 375px และแนวนอน: ไม่ล้น ปุ่มไม่ทับกัน
+- ตรวจ: เบราว์เซอร์ 1440/800/375 ทั้งสองธีม, รัน/หยุด Homography, dialog ? และเก็บ Template เปิดได้และ hotkey ไม่ทำงานตอนเปิด
+- ไฟล์: `pages/LabPage.tsx`, `components/WorkflowControls.tsx`, `index.css`
+
+### [ ] T7 คลังโหนด
+- เกณฑ์รับ
+  - [ ] กว้างตาม mockup (240px) · หัว "VIPER LIBRARY" 12px ตัวอักษรห่าง สี blue-ink · ปุ่มพับเป็นไอคอน
+  - [ ] Open all/Close all ปุ่มเล็กแบบ `.real-group-tools`
+  - [ ] หัวกลุ่มตัวเล็ก พับได้ ลูกศรหมุน สีตามหมวด (INPUT = teal, EVALUATION = amber, อื่น = blue-ink) กรอบมุมโค้ง 6px พื้น subtle
+  - [ ] ปุ่มโหนดในกลุ่มเป็นรายการโหนดจริงชุดเดิม (22 ชนิด ลากลง canvas ได้ ปุ่ม + ADD บนจอแคบยังอยู่) หน้าตาแบบ `.real-add-node`
+  - [ ] ข้อความช่วยใต้กลุ่ม + footer ALL NODES
+  - [ ] ค่าคงที่ `SHOW_LAB_TEMPLATES_TAB` / `SHOW_LEGACY_TEMPLATE_LIST` / `NODE_GROUPS` และโค้ด templates ยังอยู่ครบ
+- ตรวจ: นับปุ่มโหนด = 22, Open/Close all, ลากโหนดลง canvas, 375px (คลังเป็น overlay), สองธีม
+- ไฟล์: `components/sidebar.tsx`, `index.css`
+
+### [ ] T8 canvas
+- เกณฑ์รับ
+  - [ ] ปุ่ม Fit / Save / Load / Clear ขนาดเล็กมีไอคอนแบบ `.canvas-file-actions` (คงปุ่ม fit ข้าง Save) Clear ขอบสี danger
+  - [ ] Controls เป็นกล่องเดียวสีเข้มแบบ mockup (คงปุ่ม lock)
+  - [ ] MiniMap เล็กอยู่มุมขวาล่าง
+  - [ ] ฉากหลังเป็นจุดตามสี canvas ของ mockup
+  - [ ] `fitWorkflowToCanvas` เว้นที่ตามตำแหน่งใหม่ของ MiniMap (ขวาล่าง) และ Controls (ซ้ายล่าง): เลือกพื้นที่ปลอดภัยที่ได้ zoom มากสุด · ตรวจ refit หลัง restore (verifyViewportRef) ยังทำงาน
+  - [ ] หน้าตาโหนดไม่เปลี่ยน
+- ตรวจ: fit view แล้วไม่มีโหนดทับ MiniMap/Controls ที่ 1440/800/375, undo/redo/save/load/clear ยังใช้ได้
+- ไฟล์: `FlowCanvas.tsx`, `index.css`
+
+### [ ] T9 แผงล่าง + ตรวจรวม
+- เกณฑ์รับ
+  - [ ] แผงล่างหน้าตาแบบ `.results-panel`: แถบแท็บ + ปุ่มย่อ/ขยาย แท็บเดียว "บันทึกการทดลอง" (System Logs จริง) ไม่มีแท็บภาพ/เปรียบเทียบรอบ/ป้ายผลจำลอง
+  - [ ] นับจำนวน ล้าง ปรับความสูง ย่อ/ขยาย ปิด/เปิดอัตโนมัติเมื่อมี log ใหม่ ใช้ได้เหมือนเดิม
+  - [ ] สีตามธีมทั้งสองธีม
+  - [ ] ภาพ /lab เทียบ mockup ที่ 1440/800/375 เก็บใน `outputs/lab-layout/` (`r2-*`)
+  - [ ] `check.sh`, `ui_checks.py`, `ui_checks_phase3.py` ผ่าน (แก้ได้เฉพาะ selector) และรัน Homography หนึ่งรอบ
+- ไฟล์: `components/LogPanel.tsx`, `index.css`
+
+### จุดตรวจรอบ 2
+- [ ] รายงานพร้อมภาพเทียบ · ห้าม push/merge จนกว่าผู้ใช้จะสั่ง
