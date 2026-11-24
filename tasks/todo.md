@@ -64,7 +64,7 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
 - เรื่องแท็บที่ 3 ว่างตอน HMR (สอบสวนแล้ว ไม่แก้): login ใหม่แล้ว LS แท็บ 1–2 ครบ (0 / 6 โหนด 5 เส้น) แท็บ 3 ยังว่างอยู่ จึงกู้จาก `outputs/lab-backup/n2n_tabs_2026-11-23_before-logout.json` แล้ว reload: แท็บ 3 อยู่ครบ (6 โหนด 5 เส้น) ลองจำลอง HMR ซ้ำ 4 แบบ (แก้ FlowCanvas.tsx, แก้ LabPage.tsx ตอนแท็บ 2 active, ตอนแท็บ 3 active, และ reload ที่ 375px แล้วแก้ LabPage แล้วกลับ desktop) ไม่ทำให้แท็บว่าง จึงยังไม่รู้สาเหตุ อ่านโค้ดแล้วจังหวะที่แท็บ active ถูกเขียนทับเป็นว่างได้คือ FlowCanvas ส่ง onFlowChange (debounce 1 วินาที) ด้วย nodes ว่างเมื่อ restoreSnapshot ไม่ทำงาน (`LabPage.tsx` layout effect ข้ามถ้า `canvasRef.current` ว่าง) หลังพ้น isInitializing 500ms เกิดได้เฉพาะตอน canvas ถูก remount โดย LabPage ไม่รู้ (เช่น HMR ของ FlowCanvas) ยังไม่พบทางเกิดตอน mount ปกติ
 - แก้หลังดูรอบแรก: เอาปุ่ม fit view ออกจากแถวเครื่องมือ, `fitWorkflowToCanvas` เว้นที่ให้ MiniMap+Controls (ตรวจ 800px/1440px/375px: โหนดไม่ทับและไม่ล้นพื้นที่), ป้าย Image Processing เป็นตัวหนังสือเทาเล็กไม่มีกรอบ
 
-### [~] T5 ตรวจรวม
+### [x] T5 ตรวจรวม
 - เกณฑ์รับ
   - [x] จอ 375px และโทรศัพท์แนวนอน: ไม่มีอะไรล้นออกด้านข้าง ปุ่มไม่ทับกัน canvas ยังใช้งานได้
   - [x] ธีมสว่างและธีมมืด: ตัวหนังสือในหัว Lab แถวเครื่องมือ และแผงล่างอ่านได้
@@ -79,8 +79,10 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
   - ธีม: ปุ่มสลับธีมเปลี่ยนเฉพาะ header แพลตฟอร์ม editor คงธีมมืด (ผู้ใช้ตัดสิน B7a) ตัวหนังสือหัว Lab/แถวเครื่องมือ/แผง log อ่านได้ทั้งสองธีม
   - hotkey (กดจริงใน browser): Ctrl+C/V เพิ่มโหนด 6→7, Ctrl+Z 7→6, Ctrl+Shift+Z 6→7, Delete 7→6; ปิดตอน dialog เปิด (ui_checks A1 ผ่าน, ทดสอบเองแล้วโหนดไม่ลบ)
   - `ui_checks_phase3.py` ผ่าน 23/23; `ui_checks.py` แก้ selector เดียว (`SAVE TEMPLATE` → `เก็บ Template`) แล้วผ่านทุกข้อ **ยกเว้น A4e/A4f ที่ต้องกดแท็บ "Templates" ในคลัง ซึ่งถูกซ่อนด้วย `SHOW_LAB_TEMPLATES_TAB = false`** (timeout) ตั้งเป็น true ชั่วคราวแล้วรันซ้ำ: ผ่านทุกข้อ (แล้วตั้งคืน false) → ต้องให้ผู้ใช้ตัดสินว่าจะให้สคริปต์ข้ามสองข้อนี้ หรือเปิดแท็บ templates กลับ
-  - **ยังไม่ได้ทำ:** รันงานหลายนาที (เทรน Shapes) แล้วออกจาก /lab กลับมา (ทดสอบแทนด้วย Homography ตอน T4: ออกไป /templates ระหว่างรัน กลับมา log ครบ ปุ่มหยุดใช้ได้) เพราะเทรนจะเขียนไฟล์/ฐานข้อมูลจริง
+  - (ทำแล้ว 24 พ.ย. ดูบรรทัด "เทรน Shapes" ด้านล่าง) รันงานหลายนาที (เทรน Shapes) แล้วออกจาก /lab กลับมา (ทดสอบแทนด้วย Homography ตอน T4: ออกไป /templates ระหว่างรัน กลับมา log ครบ ปุ่มหยุดใช้ได้) เพราะเทรนจะเขียนไฟล์/ฐานข้อมูลจริง
   - `tasks/parity.md` แถว P-13 อัปเดตแล้ว
+  - เทรน Shapes (24 พ.ย., template "Shapes — End-to-End Training & Evaluation" เปิดใหม่จาก /templates): รัน → ออกไป /templates ระหว่างเทรน (Lab visibility hidden + inert, แผง log ไม่โผล่ทับ) → รอ ~3 นาทีจนเทรนจบ → กลับ /lab: log ครบ 18 รายการ ไม่มี fault Pipeline Finished สถานะ Stopped แผงล่างสูง 224px · รันอีกรอบ ออกไป-กลับระหว่างเทรน ปุ่ม "หยุด" ยังกดได้และหยุดสำเร็จ (หมายเหตุ: tab ที่เก็บใน localStorage ไม่เก็บรูป dataset ของ Multi Image Input จึงต้องเปิด template ใหม่ก่อนรัน เป็นพฤติกรรมเดิม)
+  - ผล UI scripts รอบหลังแก้: `ui_checks.py` 18/18 (ข้าม A4e/A4f ตามที่ตกลง; เพิ่ม wait 1.5 วินาทีหลังโหลด /lab ในเทสต์ A1 เพราะ history snapshot แรกช้ากว่า refit), `ui_checks_phase3.py` 23/23
 
 ### จุดตรวจสุดท้าย
 - [ ] `CHECK PASS` และสคริปต์ UI ผ่าน
