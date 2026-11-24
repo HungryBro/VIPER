@@ -98,7 +98,7 @@ def list_yolo_models() -> dict[str, list[dict[str, str]]]:
 class YOLOTrainReq(BaseModel):
     dataset_yaml: str
     model_path: str = yolo_adapter.DEFAULT_MODEL
-    epochs: int = Field(default=50, ge=1)
+    epochs: int = Field(default=10, ge=1)
     image_size: int = Field(default=640, ge=32)
     batch: int = Field(default=16, ge=1)
     device: Optional[str] = None

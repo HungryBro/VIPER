@@ -77,6 +77,8 @@ function saveTrainingProgress(nodeId: string, params: Record<string, any>, progr
 
 export async function runDetectionNode(node: RF, setNodes: SetNodes, nodes: RF[], edges: Edge[], signal?: AbortSignal) {
   const params = { ...(node.data?.payload?.params || node.data?.params || {}) };
+  // a cleared number field is kept as '' in the node (shown blank); send 0 as before
+  for (const key of ['epochs', 'image_size', 'batch', 'confidence', 'iou']) if (params[key] === '') params[key] = 0;
   if (node.type === 'yolo-train') {
     const dataset = datasetYaml(node.id, nodes, edges) || params.dataset_yaml;
     if (typeof dataset !== 'string' || !dataset.trim()) {

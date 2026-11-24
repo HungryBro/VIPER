@@ -52,7 +52,7 @@ function Field({ label, value, type = 'text', onChange, readOnly = false, path =
         readOnly={readOnly}
         aria-readonly={readOnly}
         onKeyDown={(event) => event.stopPropagation()}
-        onChange={(event) => onChange(type === 'number' ? Number(event.target.value) : event.target.value)}
+        onChange={(event) => onChange(type === 'number' && event.target.value !== '' ? Number(event.target.value) : event.target.value)}
       />
     </label>
   );

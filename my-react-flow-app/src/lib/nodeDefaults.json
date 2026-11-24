@@ -14,7 +14,7 @@
     "init_cx": null, "init_cy": null, "init_radius": null, "init_points": 400,
     "from_point_x": null, "from_point_y": null, "bbox_x1": null, "bbox_y1": null, "bbox_x2": null, "bbox_y2": null
   },
-  "yolo-train": { "dataset_yaml": "", "model_path": "models/yolo11n.pt", "epochs": 50, "image_size": 640, "batch": 16 },
+  "yolo-train": { "dataset_yaml": "", "model_path": "models/yolo11n.pt", "epochs": 10, "image_size": 640, "batch": 16 },
   "yolo-detect": { "model_path": "models/yolo11n.pt", "confidence": 0.25, "iou": 0.7, "image_size": 640, "class_ids": "" },
   "yolo-gradcam": { "model_path": "models/yolo11n.pt", "method": "GradCAM", "confidence": 0.2, "target_layers": "", "target_class_ids": "" },
   "detection-evaluation": { "confidence_threshold": 0.25, "iou_threshold": 0.5, "nms_iou_threshold": 0.7, "image_size": 640 },
