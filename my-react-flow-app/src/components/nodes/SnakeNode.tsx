@@ -6,6 +6,7 @@ import Modal from '../common/Modal';
 import { getNodeImageUrl } from '../../lib/runners/utils';
 import { useNodeStatus } from '../../hooks/useNodeStatus'; 
 import { ParameterLoader } from '../ParameterLoader'; 
+import { SettingsSlidersIcon } from './SettingsSlidersIcon';
 import { NODE_DEFAULTS } from '../../lib/nodeDefaults';
 
 const stopAll = (e: React.SyntheticEvent) => e.stopPropagation();
@@ -381,6 +382,19 @@ const SnakeNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
               {isRunning ? 'Running...' : '▶ Run'}
             </button>
             
+            <span className="relative inline-flex items-center group">
+            <button 
+              aria-label="Open Snake settings" 
+              onClick={() => setOpen(true)} 
+              className="h-5 w-5 rounded-full bg-white flex items-center justify-center shadow ring-2 ring-gray-500/60 hover:ring-gray-500/80 transition focus:outline-none"
+            >
+              <SettingsSlidersIcon className="h-3.5 w-3.5" />
+            </button>
+            <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 shadow-lg ring-1 ring-black/20 transition-opacity duration-150 group-hover:opacity-100 z-50 font-normal">
+              Settings
+              <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+            </span>
+            </span>
         </div>
       </div>
 
@@ -450,7 +464,7 @@ const SnakeNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
         <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-yellow-400">fault</span><div className={statusDot(data?.status === 'fault', 'bg-yellow-500')} /></div>
       </div>
 
-      <Modal inline onCommit={onSave} open={open} title="Snake Settings" onClose={onClose}>
+      <Modal open={open} title="Snake Settings" onClose={onClose}>
       
          <div className="space-y-5 text-xs text-gray-300 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar" onMouseDown={stopAll} onClick={stopAll} onDoubleClick={stopAll}>
             <div className="space-y-2">
@@ -536,7 +550,7 @@ const SnakeNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
 
             <div className="flex justify-between items-center pt-5 border-t border-gray-700 mt-4">
                 <button onClick={(e) => { stopAll(e); setForm(DEFAULT_PARAMS); setIsEditing(true); }} className="px-4 py-1.5 rounded bg-gray-700 text-xs cursor-pointer hover:bg-gray-600 transition text-white">Reset</button>
-                <div className="hidden">
+                <div className="flex gap-2">
                     <button onClick={onClose} className="px-4 py-1.5 rounded bg-gray-700 text-xs cursor-pointer hover:bg-gray-600 transition text-white">Cancel</button>
                     <button onClick={(e) => { stopAll(e); onSave(); }} className="px-4 py-1.5 rounded bg-pink-600 text-white text-xs font-bold cursor-pointer hover:bg-pink-700 transition">Save</button>
                 </div>

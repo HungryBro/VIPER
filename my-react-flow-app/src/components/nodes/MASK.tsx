@@ -6,6 +6,7 @@ import { abs } from "../../lib/api";
 import type { CustomNodeData } from "../../types";
 import { useNodeStatus } from '../../hooks/useNodeStatus';
 import { ParameterLoader } from '../ParameterLoader'; 
+import { SettingsSlidersIcon } from './SettingsSlidersIcon';
 import { NODE_DEFAULTS } from '../../lib/nodeDefaults';
 
 const DEFAULT_PARAMS = { ...NODE_DEFAULTS.maskrcnn };
@@ -25,6 +26,7 @@ const MaskRCNNNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) =>
   
   useEffect(() => { if (!open) setForm(params); }, [params, open]);
 
+  const handleOpen = useCallback(() => { setForm(params); setOpen(true); }, [params]);
   const handleClose = useCallback(() => { setForm(params); setOpen(false); }, [params]);
 
   const handleParamsLoaded = useCallback((loadedParams: any) => {
@@ -116,6 +118,18 @@ const MaskRCNNNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) =>
             {isRunning ? 'Running...' : '▶ Run'}
           </button>
           
+          <span className="relative inline-flex items-center group">
+            <button
+              onClick={handleOpen}
+              className="h-5 w-5 rounded-full bg-white flex items-center justify-center shadow ring-2 ring-gray-500/60 transition focus-visible:outline-none cursor-pointer hover:bg-gray-100 active:scale-95"
+            >
+              <SettingsSlidersIcon className="h-3.5 w-3.5" />
+            </button>
+            <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 shadow-lg ring-1 ring-black/20 transition-opacity duration-150 group-hover:opacity-100 z-50 font-normal">
+              Settings
+              <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+            </span>
+          </span>
         </div>
       </div>
 
@@ -161,7 +175,7 @@ const MaskRCNNNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) =>
         <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-yellow-400">fault</span><div className={statusDot(data?.status === 'fault', 'bg-yellow-500')} /></div>
       </div>
 
-      <Modal inline onCommit={onSave} open={open} title="Mask R-CNN Config" onClose={handleClose}>
+      <Modal open={open} title="Mask R-CNN Config" onClose={handleClose}>
         <div className="grid grid-cols-1 gap-5 text-xs text-gray-300">
           <div className="space-y-4">
             <div className="flex justify-between items-center">

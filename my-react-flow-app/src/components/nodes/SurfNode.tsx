@@ -5,6 +5,7 @@ import Modal from '../common/Modal';
 import { abs } from '../../lib/api'; 
 import { useNodeStatus } from '../../hooks/useNodeStatus';
 import { ParameterLoader } from '../ParameterLoader'; 
+import { SettingsSlidersIcon } from './SettingsSlidersIcon';
 import { NODE_DEFAULTS } from '../../lib/nodeDefaults';
 
 const DEFAULT_SURF = { ...NODE_DEFAULTS.surf };
@@ -124,6 +125,12 @@ const SurfNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
             {isRunning ? 'Running...' : '▶ Run'}
           </button>
 
+          <span className="relative inline-flex items-center group">
+            <button onClick={() => setOpen(true)} className="h-5 w-5 rounded-full bg-white flex items-center justify-center shadow ring-2 ring-gray-500/60 transition hover:bg-gray-100 focus:outline-none">
+              <SettingsSlidersIcon className="h-3.5 w-3.5" />
+            </button>
+            <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 shadow-lg ring-1 ring-black/20 transition-opacity duration-150 group-hover:opacity-100 z-50 font-normal">Settings<span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" /></span>
+          </span>
         </div>
       </div>
 
@@ -140,7 +147,7 @@ const SurfNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
         <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-yellow-400">fault</span><div className={statusDot(isFault, 'bg-yellow-500')} /></div>
       </div>
 
-      <Modal inline onCommit={saveParams} open={open} title="SURF Settings" onClose={() => setOpen(false)}>
+      <Modal open={open} title="SURF Settings" onClose={() => setOpen(false)}>
         <div className="grid grid-cols-2 gap-4 text-xs text-gray-300">
           <div className="col-span-2">
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Hessian Threshold</label>

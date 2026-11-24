@@ -5,6 +5,8 @@ import { abs, getYOLOModels } from '../../lib/api';
 import { resolveYoloModel } from '../../lib/yoloModel';
 import { compactPath } from '../../lib/compactPath';
 import { NODE_DEFAULTS } from '../../lib/nodeDefaults';
+import Modal from '../common/Modal';
+import { SettingsSlidersIcon } from './SettingsSlidersIcon';
 
 
 type Mode = 'train' | 'detect' | 'gradcam';
@@ -40,10 +42,10 @@ function Field({ label, value, type = 'text', onChange, readOnly = false, path =
 }) {
   const [focused, setFocused] = useState(false);
   return (
-    <label className="block text-[10px] text-gray-400">
-      <span className="mb-1 block">{label}</span>
+    <label className="block">
+      <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-400">{label}</span>
       <input
-        className={`nodrag nowheel w-full rounded border border-gray-600 bg-gray-900 px-2 py-1 text-xs text-white outline-none ${readOnly ? 'cursor-not-allowed opacity-75' : 'focus:border-cyan-400'}`}
+        className={`nodrag nowheel w-full rounded border border-gray-700 bg-gray-900 p-2 font-mono text-xs text-white outline-none ${readOnly ? 'cursor-not-allowed opacity-75' : 'focus:border-cyan-400'}`}
         type={type}
         value={path && !focused && typeof value === 'string' ? compactPath(value) : value}
         title={path ? String(value) : undefined}
@@ -69,10 +71,10 @@ function ModelSelect({ value, models, onChange, loading, error }: {
     ? models
     : [{ path: value, name: `${value.split(/[\\/]/).pop()} (saved selection)` }, ...models];
 
-  return <label className="block text-[10px] text-gray-400">
-    <span className="mb-1 block">Base model</span>
+  return <label className="block">
+    <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-400">Base model</span>
     <select
-      className="nodrag nowheel w-full rounded border border-gray-600 bg-gray-900 px-2 py-2 text-xs text-white outline-none focus:border-violet-400"
+      className="nodrag nowheel w-full rounded border border-gray-700 bg-gray-900 p-2 font-mono text-xs text-white outline-none focus:border-violet-400"
       value={value}
       onChange={(event) => onChange(event.target.value)}
       disabled={loading && models.length === 0}
@@ -93,6 +95,7 @@ function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mo
   const [availableModels, setAvailableModels] = useState<{ path: string; name: string }[]>([]);
   const [modelsLoading, setModelsLoading] = useState(mode === 'train');
   const [modelsError, setModelsError] = useState('');
+  const [open, setOpen] = useState(false);
   const config = CONFIG[mode];
   const params = useMemo(
     () => ({ ...DEFAULTS[mode], ...(data?.payload?.params || data?.params || {}) }),
@@ -118,11 +121,14 @@ function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mo
     return () => controller.abort();
   }, [mode]);
 
-  const setParam = useCallback((key: string, value: string | number) => {
+  const [form, setForm] = useState<Record<string, any>>(params);
+  useEffect(() => { if (!open) setForm(params); }, [params, open]);
+  const setParam = useCallback((key: string, value: string | number) => setForm((f) => ({ ...f, [key]: value })), []);
+  const saveParams = useCallback((values: Record<string, any>) => {
     rf.setNodes((nodes) => nodes.map((node) => {
       if (node.id !== id) return node;
       const current = { ...DEFAULTS[mode], ...(node.data?.payload?.params || node.data?.params || {}) };
-      const next = { ...current, [key]: value };
+      const next = { ...current, ...values };
       return {
         ...node,
         data: {
@@ -150,40 +156,44 @@ function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mo
 
       <div className="flex items-center justify-between rounded-t-lg bg-gray-700 px-3 py-2">
         <strong className={config.text}>{config.title}</strong>
-        {mode === 'train' && isRunning ? (
-          <button
-            className="nodrag rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-500"
-            disabled={Boolean(trainingProgress?.cancel_requested)}
-            onClick={() => data?.onCancelNode?.(id)}
-          >
-            {trainingProgress?.cancel_requested ? 'Canceling…' : '■ Cancel'}
-          </button>
-        ) : (
-          <button
-            className={`nodrag rounded px-2 py-1 text-xs font-semibold text-white ${isRunning ? 'cursor-wait bg-yellow-600' : config.button}`}
-            disabled={isRunning}
-            onClick={() => data?.onRunNode?.(id)}
-          >
-            {isRunning ? 'Running…' : '▶ Run'}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {mode === 'train' && isRunning ? (
+            <button
+              className="nodrag rounded bg-red-600 px-2 py-1 text-xs font-semibold text-white hover:bg-red-500"
+              disabled={Boolean(trainingProgress?.cancel_requested)}
+              onClick={() => data?.onCancelNode?.(id)}
+            >
+              {trainingProgress?.cancel_requested ? 'Canceling…' : '■ Cancel'}
+            </button>
+          ) : (
+            <button
+              className={`nodrag rounded px-2 py-1 text-xs font-semibold text-white ${isRunning ? 'cursor-wait bg-yellow-600' : config.button}`}
+              disabled={isRunning}
+              onClick={() => data?.onRunNode?.(id)}
+            >
+              {isRunning ? 'Running…' : '▶ Run'}
+            </button>
+          )}
+          <span className="relative inline-flex items-center group">
+            <button
+              type="button"
+              aria-label={`${config.title} settings`}
+              onClick={() => { setForm(params); setOpen(true); }}
+              className="nodrag flex h-5 w-5 cursor-pointer items-center justify-center rounded-full bg-white shadow ring-2 ring-gray-500/60 transition hover:bg-gray-100 focus-visible:outline-none active:scale-95"
+            >
+              <SettingsSlidersIcon className="h-3.5 w-3.5" />
+            </button>
+            <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs font-normal text-white opacity-0 shadow-lg ring-1 ring-black/20 transition-opacity duration-150 group-hover:opacity-100">Settings<span className="absolute left-1/2 top-full -translate-x-1/2 border-4 border-transparent border-t-gray-900" /></span>
+          </span>
+        </div>
       </div>
 
       <div className="space-y-2 p-3">
-        {mode === 'train' && <Field path label="Dataset YAML" value={params.dataset_yaml} onChange={(v) => setParam('dataset_yaml', v)} />}
-        {mode === 'train' ? <ModelSelect
-          value={String(params.model_path || '')}
-          models={availableModels}
-          loading={modelsLoading}
-          error={modelsError}
-          onChange={(value) => setParam('model_path', value)}
-        /> : <Field
-          path
-          label="Model weights"
-          value={model.path || 'Waiting for YOLO Train…'}
-          readOnly={!!model.source}
-          onChange={(v) => setParam('model_path', v)}
-        />}
+        {(mode === 'train' ? params.model_path : model.path) && (
+          <div className="break-all text-xs text-gray-300" title={String(mode === 'train' ? params.model_path : model.path)}>
+            Model: {compactPath(String(mode === 'train' ? params.model_path : model.path))}
+          </div>
+        )}
         {mode !== 'train' && model.source && (
           <p className="break-all text-[10px] text-cyan-300">
             From: {model.source.data.label || model.source.type} · {model.path ? 'connected output (read-only)' : 'run YOLO Train first'}
@@ -196,65 +206,22 @@ function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mo
           <div className="break-all text-xs text-violet-300" title={data.payload.best_model_path}>Output model: {compactPath(data.payload.best_model_path)}</div>
         )}
 
-        {mode === 'train' && (
-          <>
-            <div className="grid grid-cols-3 gap-2">
-              <Field label="Epochs" type="number" value={params.epochs} onChange={(v) => setParam('epochs', v)} />
-            <Field label="Image size" type="number" value={params.image_size} onChange={(v) => setParam('image_size', v)} />
-            <Field label="Batch" type="number" value={params.batch} onChange={(v) => setParam('batch', v)} />
+        {mode === 'train' && (isRunning || trainingProgress) && (
+          <div className="rounded border border-violet-400/40 bg-gray-900/70 p-2">
+            <div className="mb-1 flex justify-between text-[10px] text-violet-200">
+              <span>{trainingProgress?.message || 'Preparing training…'}</span>
+              <span>{Math.round(Number(trainingProgress?.progress || 0))}%</span>
             </div>
-            <p className="text-[10px] text-gray-500">Set Epochs to the number of training rounds you want.</p>
-            {(isRunning || trainingProgress) && (
-              <div className="rounded border border-violet-400/40 bg-gray-900/70 p-2">
-                <div className="mb-1 flex justify-between text-[10px] text-violet-200">
-                  <span>{trainingProgress?.message || 'Preparing training…'}</span>
-                  <span>{Math.round(Number(trainingProgress?.progress || 0))}%</span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-gray-700">
-                  <div
-                    className="h-full rounded-full bg-violet-500 transition-[width] duration-300"
-                    style={{ width: `${Math.min(100, Math.max(0, Number(trainingProgress?.progress || 0)))}%` }}
-                  />
-                </div>
-                <p className="mt-1 text-[10px] text-gray-400">
-                  Epoch {Number(trainingProgress?.current_epoch || 0)} / {Number(trainingProgress?.total_epochs || params.epochs || 0)}
-                </p>
-              </div>
-            )}
-          </>
-        )}
-
-        {mode === 'detect' && (
-          <>
-            <div className="grid grid-cols-3 gap-2">
-              <Field label="Confidence" type="number" value={params.confidence} onChange={(v) => setParam('confidence', v)} />
-              <Field label="IoU" type="number" value={params.iou} onChange={(v) => setParam('iou', v)} />
-              <Field label="Image size" type="number" value={params.image_size} onChange={(v) => setParam('image_size', v)} />
+            <div className="h-2 overflow-hidden rounded-full bg-gray-700">
+              <div
+                className="h-full rounded-full bg-violet-500 transition-[width] duration-300"
+                style={{ width: `${Math.min(100, Math.max(0, Number(trainingProgress?.progress || 0)))}%` }}
+              />
             </div>
-            <Field label="Class IDs (CSV, optional)" value={params.class_ids} onChange={(v) => setParam('class_ids', v)} />
-          </>
-        )}
-
-        {mode === 'gradcam' && (
-          <>
-            <div className="grid grid-cols-2 gap-2">
-              <label className="block text-[10px] text-gray-400">
-                <span className="mb-1 block">CAM method</span>
-                <select
-                  className="nodrag nowheel w-full rounded border border-gray-600 bg-gray-900 px-2 py-1 text-xs"
-                  value={params.method}
-                  onChange={(event) => setParam('method', event.target.value)}
-                >
-                  <option>GradCAM</option><option>GradCAMPlusPlus</option><option>EigenCAM</option><option>LayerCAM</option>
-                </select>
-              </label>
-              <Field label="Confidence" type="number" value={params.confidence} onChange={(v) => setParam('confidence', v)} />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <Field label="Target layers (CSV)" value={params.target_layers} onChange={(v) => setParam('target_layers', v)} />
-              <Field label="Class IDs (optional CSV)" value={params.target_class_ids} onChange={(v) => setParam('target_class_ids', v)} />
-            </div>
-          </>
+            <p className="mt-1 text-[10px] text-gray-400">
+              Epoch {Number(trainingProgress?.current_epoch || 0)} / {Number(trainingProgress?.total_epochs || params.epochs || 0)}
+            </p>
+          </div>
         )}
 
         {imageUrl && <img src={abs(imageUrl)} alt={config.title} className="max-h-52 w-full rounded border border-gray-700 object-contain" />}
@@ -268,6 +235,74 @@ function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mo
             : data.description || config.hint}
         </p>
       </div>
+
+      <Modal open={open} title={`${config.title} Settings`} onClose={() => { setForm(params); setOpen(false); }}>
+        <div className="space-y-3">
+          {mode === 'train' && <Field path label="Dataset YAML" value={form.dataset_yaml} onChange={(v) => setParam('dataset_yaml', v)} />}
+          {mode === 'train' ? <ModelSelect
+            value={String(form.model_path || '')}
+            models={availableModels}
+            loading={modelsLoading}
+            error={modelsError}
+            onChange={(value) => setParam('model_path', value)}
+          /> : <Field
+            path
+            label="Model weights"
+            value={model.source ? (model.path || 'Waiting for YOLO Train…') : String(form.model_path ?? '')}
+            readOnly={!!model.source}
+            onChange={(v) => setParam('model_path', v)}
+          />}
+
+          {mode === 'train' && (
+            <>
+              <div className="grid grid-cols-3 gap-3">
+                <Field label="Epochs" type="number" value={form.epochs} onChange={(v) => setParam('epochs', v)} />
+                <Field label="Image size" type="number" value={form.image_size} onChange={(v) => setParam('image_size', v)} />
+                <Field label="Batch" type="number" value={form.batch} onChange={(v) => setParam('batch', v)} />
+              </div>
+              <p className="text-[10px] text-gray-500">Set Epochs to the number of training rounds you want.</p>
+            </>
+          )}
+
+          {mode === 'detect' && (
+            <>
+              <div className="grid grid-cols-3 gap-3">
+                <Field label="Confidence" type="number" value={form.confidence} onChange={(v) => setParam('confidence', v)} />
+                <Field label="IoU" type="number" value={form.iou} onChange={(v) => setParam('iou', v)} />
+                <Field label="Image size" type="number" value={form.image_size} onChange={(v) => setParam('image_size', v)} />
+              </div>
+              <Field label="Class IDs (CSV, optional)" value={form.class_ids} onChange={(v) => setParam('class_ids', v)} />
+            </>
+          )}
+
+          {mode === 'gradcam' && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-gray-400">CAM method</span>
+                  <select
+                    className="nodrag nowheel w-full rounded border border-gray-700 bg-gray-900 p-2 font-mono text-xs text-white outline-none focus:border-rose-400"
+                    value={form.method}
+                    onChange={(event) => setParam('method', event.target.value)}
+                  >
+                    <option>GradCAM</option><option>GradCAMPlusPlus</option><option>EigenCAM</option><option>LayerCAM</option>
+                  </select>
+                </label>
+                <Field label="Confidence" type="number" value={form.confidence} onChange={(v) => setParam('confidence', v)} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Target layers (CSV)" value={form.target_layers} onChange={(v) => setParam('target_layers', v)} />
+                <Field label="Class IDs (optional CSV)" value={form.target_class_ids} onChange={(v) => setParam('target_class_ids', v)} />
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="mt-4 flex justify-end gap-2 border-t border-gray-700 pt-5">
+          <button onClick={() => { setForm(params); setOpen(false); }} className="cursor-pointer rounded bg-gray-700 px-4 py-1.5 text-xs text-white transition hover:bg-gray-600">Cancel</button>
+          <button onClick={() => { saveParams(form); setOpen(false); }} className={`cursor-pointer rounded px-4 py-1.5 text-xs font-bold text-white transition ${config.button}`}>Save</button>
+        </div>
+      </Modal>
     </div>
   );
 }

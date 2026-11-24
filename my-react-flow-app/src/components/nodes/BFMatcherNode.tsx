@@ -5,6 +5,7 @@ import Modal from '../common/Modal';
 import { abs } from '../../lib/api';
 import { useNodeStatus } from '../../hooks/useNodeStatus'; 
 import { ParameterLoader } from '../ParameterLoader'; 
+import { SettingsSlidersIcon } from './SettingsSlidersIcon';
 import { NODE_DEFAULTS } from '../../lib/nodeDefaults';
 
 // cross_check starts unset: the backend then picks it from the descriptor type.
@@ -159,6 +160,18 @@ const BFMatcherNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) =
             {isRunning ? 'Running...' : '▶ Run'}
           </button>
           
+          <span className="relative inline-flex items-center group">
+            <button 
+              onClick={() => setOpen(true)} 
+              className="h-5 w-5 rounded-full bg-white flex items-center justify-center shadow ring-2 ring-gray-500/60 hover:ring-gray-500/80 transition focus:outline-none"
+            >
+              <SettingsSlidersIcon className="h-3.5 w-3.5" />
+            </button>
+            <span role="tooltip" className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap rounded bg-gray-900 px-2 py-1 text-xs text-white opacity-0 shadow-lg ring-1 ring-black/20 transition-opacity duration-150 group-hover:opacity-100 z-50 font-normal">
+              Settings
+              <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+            </span>
+          </span>
         </div>
       </div>
 
@@ -198,7 +211,7 @@ const BFMatcherNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) =
         <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-yellow-400">fault</span><div className={statusDot(data?.status === 'fault', 'bg-yellow-500')} /></div>
       </div>
 
-      <Modal inline onCommit={onSave} open={open} title="BFMatcher Settings" onClose={onClose}>
+      <Modal open={open} title="BFMatcher Settings" onClose={onClose}>
         <div className="grid grid-cols-2 gap-4 text-xs text-gray-300">
           <div>
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Norm Type</label>

@@ -6,24 +6,9 @@ type ModalProps = {
   title?: string;
   onClose: () => void;
   children?: React.ReactNode; 
-  /** Render the content inside its parent (a node) instead of as an overlay; always visible. */
-  inline?: boolean;
-  /** Inline only: called when focus leaves a field, so edits apply without a Save button. */
-  onCommit?: () => void;
 };
 
-const Modal: React.FC<ModalProps> = ({ open, title, onClose, children, inline, onCommit }) => {
-  if (inline) {
-    // The Save/Cancel row stays in the markup but is hidden: fields commit on blur.
-    return (
-      <div
-        className="nodrag nowheel border-t-2 border-gray-700 p-3 text-left [&_.justify-end.border-t]:hidden"
-        onBlur={() => { if (onCommit) setTimeout(onCommit, 0); }}
-      >
-        {children ?? <div className="text-sm text-gray-400">No content</div>}
-      </div>
-    );
-  }
+const Modal: React.FC<ModalProps> = ({ open, title, onClose, children }) => {
   if (!open) return null;
 
   return (
