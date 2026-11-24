@@ -352,7 +352,6 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
       {/* หัวของแพลตฟอร์ม (Header) แสดงอยู่เหนือ editor ใน LabHost แล้ว (ชื่อผู้ใช้ แผงจัดการผู้ใช้ของ admin และ Log out อยู่ที่นั่น) */}
       <div className="viper-header relative z-30 flex min-h-12 items-center gap-2 border-b-2 border-teal-500 bg-gray-900 px-3 shadow-lg sm:gap-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <span className="hidden shrink-0 text-xs text-gray-400 sm:inline">Image Processing</span>
           <button
             type="button"
             onClick={() => navigate('/')}
@@ -364,6 +363,7 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
           </button>
           <h1 className="min-w-0 truncate text-base font-extrabold tracking-wide text-teal-400 sm:text-lg" title={activeTabName}>{activeTabName}</h1>
         </div>
+        <WorkflowControls isRunning={isRunning} />
         {platformMenu && (
           <button
             type="button"
@@ -389,9 +389,15 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
           type="button"
           onClick={() => setSaveTemplateOpen(true)}
           disabled={isRunning || !activeTab?.nodes.length}
-          className="flex h-9 shrink-0 touch-manipulation items-center justify-center rounded-md border border-teal-500/40 bg-teal-500/10 px-2 text-[10px] font-bold text-teal-300 hover:bg-teal-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+          aria-label="เก็บ Template"
+          title="เก็บ Template"
+          className="flex h-9 w-9 shrink-0 touch-manipulation items-center justify-center rounded-md border border-teal-500/40 bg-teal-500/10 text-teal-300 hover:bg-teal-500/20 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          เก็บ Template
+          <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+            <polyline points="17 21 17 13 7 13 7 21" />
+            <polyline points="7 3 7 8 15 8" />
+          </svg>
         </button>
         <button
           type="button"
@@ -403,7 +409,6 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
           <span className="workflow-control-label">{isRunning ? 'หยุด' : 'รัน'}</span>
         </button>
       </div>
-      <WorkflowControls isRunning={isRunning} />
       <WorkflowTabs tabs={tabs.map(t => ({ id: t.id, name: t.name }))} activeTabId={activeTabId} onSwitch={handleSwitchTab} onAdd={handleAddTab} onClose={handleCloseTab} onRename={handleRenameTab} />
       <div className="viper-canvas-toolbar flex items-center border-b border-gray-700 bg-gray-800/60 px-3 py-1">
         <span className="rounded-md border border-slate-700 bg-slate-800 px-2 py-0.5 text-[11px] font-semibold text-slate-300">{activeTab?.nodes.length ?? 0} โหนด</span>

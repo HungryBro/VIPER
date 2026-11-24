@@ -227,6 +227,8 @@ def run():
         ctx, page, _ = new_page(browser, api)
         page.goto(f"{BASE}/lab")
         page.wait_for_selector(".react-flow__node")
+        # let the viewport settle (a refit may run after restore) and the history take its first snapshot
+        page.wait_for_timeout(1500)
         node = page.locator(".react-flow__node").first
         node.click()
         page.get_by_role("button", name="เก็บ Template").click()

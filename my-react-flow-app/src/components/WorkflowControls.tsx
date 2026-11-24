@@ -7,7 +7,7 @@ interface WorkflowControlsProps {
 
 const WorkflowControls: React.FC<WorkflowControlsProps> = ({ isRunning }) => {
   return (
-    <div className="viper-workflow-controls flex items-center border-b-2 border-gray-700 bg-gray-800 px-3 py-2 sm:px-4">
+    <div className="viper-workflow-controls flex shrink-0 items-center">
       <div className="flex items-center space-x-2">
         <div className={`w-2.5 h-2.5 rounded-full ${isRunning ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`} />
         <span className="text-xs font-semibold text-gray-200 sm:text-sm">
