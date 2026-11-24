@@ -25,8 +25,11 @@ const COMPACT_MOBILE_QUERY = '(max-width: 767px), (max-height: 560px) and (point
 // true = พื้นที่ทำงานของ Lab ล็อกชุดสีมืดเสมอ (แบบเดิม), false = ทดลองแบบ A: ตามธีมแพลตฟอร์ม รวมโหนดบน canvas (สีโหนดธีมสว่างอยู่ใน index.css)
 const LAB_FORCE_DARK: boolean = false;
 
-// true = canvas (พื้น โหนด เส้นเชื่อม Controls MiniMap ปุ่ม Save/Load/Clear) เป็นสีมืดเสมอ กรอบรอบๆ ตามธีม, false = canvas ตามธีม (แบบ A)
-const LAB_DARK_CANVAS: boolean = true;
+// true = canvas (พื้น เส้นเชื่อม Controls MiniMap ปุ่ม Save/Load/Clear) เป็นสีมืดเสมอ กรอบรอบๆ ตามธีม, false = canvas ตามธีม
+const LAB_DARK_CANVAS: boolean = false;
+
+// true = โหนดสว่างตามธีม (แบบ A), false = โหนดสีมืดเสมอ (แบบ B) มีผลเมื่อธีมสว่างและ canvas ตามธีม
+const LAB_LIGHT_NODES: boolean = false;
 
 // `active` เป็น false เมื่อ editor ถูกเก็บ mount ไว้แต่ซ่อนอยู่หลัง route อื่น (ดู LabHost ใน src/App.tsx)
 // งานที่รัน การแก้ undo/redo, Log panel และ clipboard จึงอยู่ครบเมื่อกลับมา
@@ -364,7 +367,7 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
     <div data-lab-theme={theme} className={`viper-app w-screen h-[100dvh] flex flex-col overflow-hidden bg-[var(--lab-bg)] text-[color:var(--lab-ink)] ${isCompactMobile ? 'compact-mobile' : ''}`}>
       {/* หัวของแพลตฟอร์ม (Header) แสดงอยู่เหนือ editor ใน LabHost แล้ว (ชื่อผู้ใช้ แผงจัดการผู้ใช้ของ admin และ Log out อยู่ที่นั่น) */}
       {/* แถวหัว Lab และพื้นที่ทำงานใช้ชุดสีมืดเสมอ แม้แพลตฟอร์มเป็นธีมสว่าง (dialog ที่เปิดจากแถวหัวยังตามธีมแพลตฟอร์ม) */}
-      <div data-lab-theme={LAB_FORCE_DARK ? 'dark' : theme} data-lab-canvas={LAB_DARK_CANVAS ? 'dark' : 'theme'} className="contents">
+      <div data-lab-theme={LAB_FORCE_DARK ? 'dark' : theme} data-lab-canvas={LAB_DARK_CANVAS ? 'dark' : 'theme'} data-lab-nodes={LAB_LIGHT_NODES ? 'light' : 'dark'} className="contents">
       <div className="viper-header relative z-30 flex min-h-11 items-center gap-2 border-b border-[var(--lab-line)] bg-[var(--lab-panel)] px-3 sm:gap-3 sm:px-5">
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           <button
