@@ -147,6 +147,10 @@ def run():
             m = re.findall(r"-?[\d.]+", page.evaluate("document.querySelector('.react-flow__node').style.transform"))
             exp = ((px - pane[0] - tr[0]) / tr[2], (py - pane[1] - tr[1]) / tr[2])
             check(f"{tag}: long-press drag shows a ghost and drops the node under the finger", ghost and node_count(page) == n0 + 1 and abs(float(m[0]) - exp[0]) < 4 and abs(float(m[1]) - exp[1]) < 4, f"ghost={ghost} node={m[:2]} expected={[round(v) for v in exp]}")
+            n1b = node_count(page)
+            swipe(cdp, page, bx, by, px - bx, py - by, steps=14, hold_ms=0)  # no press: a sideways drag picks the node up straight away
+            page.wait_for_timeout(800)
+            check(f"{tag}: an immediate sideways drag (no long press) also drops a node on the canvas", node_count(page) == n1b + 1)
             n1 = node_count(page)
             touch(cdp, "touchStart", [(bx, by)])
             cdp.send("Input.dispatchTouchEvent", {"type": "touchEnd", "touchPoints": []})

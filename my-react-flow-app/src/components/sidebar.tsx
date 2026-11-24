@@ -192,8 +192,17 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, onAddN
     if (!drag) return;
     drag.x = e.clientX;
     drag.y = e.clientY;
-    if (drag.picked) setGhost({ label: drag.label, x: e.clientX, y: e.clientY });
-    else if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 8) endTouchDrag(); // a swipe: let the list scroll
+    if (drag.picked) { setGhost({ label: drag.label, x: e.clientX, y: e.clientY }); return; }
+    const dx = e.clientX - drag.sx;
+    const dy = e.clientY - drag.sy;
+    if (Math.hypot(dx, dy) <= 8) return;
+    if (Math.abs(dx) > Math.abs(dy) * 1.2) {
+      // The list only scrolls up and down, so a sideways drag before the press timer is a drag out of the library: pick up at once.
+      window.clearTimeout(drag.timer);
+      drag.picked = true;
+      suppressClick.current = true;
+      setGhost({ label: drag.label, x: e.clientX, y: e.clientY });
+    } else endTouchDrag(); // a vertical swipe: let the list scroll
   };
   const onNodePointerUp = (e: React.PointerEvent) => {
     const drag = touchDrag.current;
