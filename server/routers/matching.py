@@ -67,10 +67,9 @@ class MatchReq(BaseModel):
 
 @router.post("/bf")
 def match_bf(req: MatchReq, db: Session = Depends(get_db)):
-    json_a_path = resolve_image_path(req.json_a)
-    json_b_path = resolve_image_path(req.json_b)
-
     with failures_as(400, "BF Matcher failed: "):
+        json_a_path = resolve_image_path(req.json_a)
+        json_b_path = resolve_image_path(req.json_b)
         result = bf_run(
             json_a_path, json_b_path, OUT,
             lowe_ratio=req.lowe_ratio,
@@ -90,10 +89,9 @@ def match_bf(req: MatchReq, db: Session = Depends(get_db)):
 
 @router.post("/flann")
 def match_flann(req: MatchReq, db: Session = Depends(get_db)):
-    json_a_path = resolve_image_path(req.json_a)
-    json_b_path = resolve_image_path(req.json_b)
-
     with failures_as(400, "FLANN Matcher failed: "):
+        json_a_path = resolve_image_path(req.json_a)
+        json_b_path = resolve_image_path(req.json_b)
         result = flann_run(
             json_a_path, json_b_path, OUT,
             lowe_ratio=req.lowe_ratio,       

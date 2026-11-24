@@ -136,7 +136,9 @@ def detection_requests(image: str, dataset: str, model_path: str):
     ]
 
 
-def test_model_path_outside_allowed_folders_is_rejected_with_4xx(client, tmp_path):
+def test_model_path_outside_allowed_folders_is_rejected_with_4xx(client, tmp_path, monkeypatch):
+    # Input images must sit inside OUT, so the routes get past the image check to the model check.
+    monkeypatch.setattr("server.utils_io.OUT", str(tmp_path))
     image = tmp_path / "input.png"
     Image.new("RGB", (32, 32)).save(image)
     # A minimal YOLO dataset, so routes that read the dataset first still reach the model check.

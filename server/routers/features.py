@@ -26,7 +26,8 @@ def _add_feature_route(name: str, run: Callable) -> None:
     def extract(req: FeatureReq, db: Session = Depends(get_db)):
         img_path = require_file(req.image_path, "Image not found at: {path}")
         with failures_as(500):
-            params = req.params or {}
+            params = dict(req.params or {})
+            params.pop("out_dir", None)  # results always go under OUT; a client must not pick the folder
             json_path, vis_path = run(img_path, **params)
             data = read_json(json_path)
 
