@@ -393,20 +393,20 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
           onClick={() => setSaveTemplateOpen(true)}
           disabled={isRunning || !activeTab?.nodes.length}
           aria-label="เก็บ Template"
-          title="เก็บ Template"
+          title="Template"
           className="flex h-8 shrink-0 touch-manipulation items-center justify-center gap-1.5 rounded-md border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2.5 text-xs font-semibold text-[var(--lab-ink)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] disabled:cursor-not-allowed disabled:opacity-45"
         >
           <Save size={15} />
-          <span className="hidden sm:inline">เก็บ Template</span>
+          <span className="hidden sm:inline">Template</span>
         </button>
         <button
           type="button"
           onClick={isRunning ? handleStop : handleStart}
-          aria-label={isRunning ? 'หยุด' : 'รัน'}
+          aria-label={isRunning ? 'Stop' : 'Start'}
           className={`flex h-8 min-w-8 shrink-0 touch-manipulation items-center justify-center gap-1.5 rounded-md px-2.5 text-xs font-semibold sm:min-w-[82px] ${isRunning ? 'bg-[var(--lab-danger)] text-[color:var(--lab-on-danger)] hover:brightness-95' : 'bg-[var(--lab-action)] text-white hover:bg-[var(--lab-action-hover)]'}`}
         >
           {isRunning ? <Square size={14} aria-hidden="true" /> : <Play size={14} aria-hidden="true" />}
-          <span className="workflow-control-label">{isRunning ? 'หยุด' : 'รัน'}</span>
+          <span className="workflow-control-label">{isRunning ? 'Stop' : 'Start'}</span>
         </button>
       </div>
       <WorkflowTabs tabs={tabs.map(t => ({ id: t.id, name: t.name }))} activeTabId={activeTabId} onSwitch={handleSwitchTab} onAdd={handleAddTab} onClose={handleCloseTab} onRename={handleRenameTab} />
