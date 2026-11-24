@@ -213,7 +213,7 @@ const RealESRGANNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) 
               <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Scale (min 1)</label>
               <input 
                 type="number" step="0.5" min="1"
-                className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-red-400 font-mono outline-none focus:border-red-500" 
+                className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-red-500" 
                 value={form.scale} 
                 onChange={e => setForm((s: Params) => ({ ...s, scale: Number(e.target.value) }))} 
                 onBlur={(e) => setForm(s => ({ ...s, scale: Math.max(1, Number(e.target.value)) }))}
@@ -223,7 +223,7 @@ const RealESRGANNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) 
               <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Denoise (0-1)</label>
               <input 
                 type="number" step="0.1" min="0" max="1"
-                className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-red-400 font-mono outline-none focus:border-red-500" 
+                className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-red-500" 
                 value={form.denoise} 
                 onChange={e => setForm((s: Params) => ({ ...s, denoise: Number(e.target.value) }))}
                 onBlur={(e) => {

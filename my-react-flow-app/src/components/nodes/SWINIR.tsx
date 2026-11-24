@@ -168,7 +168,7 @@ const SwinIRNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
               <label className="uppercase font-bold text-gray-400 text-[10px] tracking-wider">Scale Factor</label>
               <input 
                 type="number" min="1" max="4" step="1"
-                className="nodrag w-16 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-red-400 font-mono text-right outline-none focus:border-red-500"
+                className="nodrag w-16 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-white font-mono text-right outline-none focus:border-red-500"
                 value={form.scale}
                 onChange={(e) => setForm((s: Params) => ({ ...s, scale: Number(e.target.value) }))}
               />

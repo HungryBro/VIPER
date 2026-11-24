@@ -225,7 +225,7 @@ const UNetNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
              <input 
                type="text" 
                placeholder="e.g., weights/unet_car.pth"
-               className="nodrag w-full bg-gray-900 border border-gray-700 rounded px-2 py-2 text-yellow-500 font-mono text-[10px] outline-none"
+               className="nodrag w-full bg-gray-900 border border-gray-700 rounded px-2 py-2 text-white font-mono text-[10px] outline-none"
                value={form.model_path}
                onChange={(e) => setForm(s => ({ ...s, model_path: e.target.value }))}
              />
@@ -237,7 +237,7 @@ const UNetNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
               <label className="uppercase font-bold text-gray-400 text-[10px] tracking-wider">Binary Threshold</label>
               <input 
                 type="number" step="0.01" min="0" max="1.0"
-                className="nodrag w-16 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-yellow-500 font-mono text-right outline-none focus:border-yellow-500"
+                className="nodrag w-16 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-white font-mono text-right outline-none focus:border-yellow-500"
                 value={form.threshold}
                 onChange={(e) => setForm(s => ({ ...s, threshold: Number(e.target.value) }))}
               />

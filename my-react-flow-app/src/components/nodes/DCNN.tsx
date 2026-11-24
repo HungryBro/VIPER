@@ -169,7 +169,7 @@ const DnCNNNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
               </label>
               <input 
                 type="number" min="0" max="100" step="1"
-                className="nodrag w-12 bg-gray-900 border border-gray-700 rounded px-1 py-0.5 text-red-400 font-mono text-right outline-none focus:border-red-500 text-xs"
+                className="nodrag w-12 bg-gray-900 border border-gray-700 rounded px-1 py-0.5 text-white font-mono text-right outline-none focus:border-red-500 text-xs"
                 value={form.sigma}
                 onChange={(e) => setForm(s => ({ ...s, sigma: Number(e.target.value) }))}
               />

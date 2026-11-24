@@ -169,7 +169,7 @@ const OrbNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">nFeatures</label>
             <input 
               type="number" min="0" step="10"
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-green-400 font-mono outline-none focus:border-green-500" 
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-green-500" 
               value={form.nfeatures} 
               onChange={(e) => setForm((s: Params) => ({ ...s, nfeatures: Number(e.target.value) }))} 
             />
@@ -179,7 +179,7 @@ const OrbNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Scale Factor</label>
             <input 
               type="number" step="0.1" min="1.01"
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-green-400 font-mono outline-none focus:border-green-500" 
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-green-500" 
               value={form.scaleFactor} 
               onChange={(e) => setForm((s: Params) => ({ ...s, scaleFactor: Number(e.target.value) }))}
               onBlur={(e) => { if(Number(e.target.value) <= 1) setForm(s=>({...s, scaleFactor: 1.1})) }}
@@ -189,7 +189,7 @@ const OrbNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Levels</label>
             <input 
               type="number" min="1"
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-green-400 font-mono outline-none focus:border-green-500" 
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-green-500" 
               value={form.nlevels} 
               onChange={(e) => setForm((s: Params) => ({ ...s, nlevels: Number(e.target.value) }))}
               onBlur={(e) => { if(Number(e.target.value) < 1) setForm(s=>({...s, nlevels: 1})) }}
@@ -199,7 +199,7 @@ const OrbNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Edge Thresh</label>
             <input 
               type="number" min="1"
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-green-400 font-mono outline-none focus:border-green-500" 
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-green-500" 
               value={form.edgeThreshold} 
               onChange={(e) => setForm((s: Params) => ({ ...s, edgeThreshold: Number(e.target.value) }))} 
               onBlur={(e) => { if(Number(e.target.value) < 1) setForm(s=>({...s, edgeThreshold: 1})) }}
@@ -209,7 +209,7 @@ const OrbNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Patch Size</label>
             <input 
               type="number" min="2"
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-green-400 font-mono outline-none focus:border-green-500" 
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-green-500" 
               value={form.patchSize} 
               onChange={(e) => setForm((s: Params) => ({ ...s, patchSize: Number(e.target.value) }))} 
               onBlur={(e) => { if(Number(e.target.value) < 2) setForm(s=>({...s, patchSize: 2})) }}
@@ -218,7 +218,7 @@ const OrbNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
           <div>
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">WTA_K</label>
             <select 
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-green-400 font-mono outline-none focus:border-green-500" 
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-green-500" 
               value={form.WTA_K} 
               onChange={(e) => setForm((s: Params) => ({ ...s, WTA_K: Number(e.target.value) }))}
             >
@@ -228,7 +228,7 @@ const OrbNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
           <div>
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Score Type</label>
             <select 
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-green-400 font-mono outline-none focus:border-green-500" 
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-green-500" 
               value={form.scoreType} 
               onChange={(e) => setForm((s: Params) => ({ ...s, scoreType: e.target.value as 'FAST' | 'HARRIS' }))}
             >
@@ -239,7 +239,7 @@ const OrbNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Fast Thresh</label>
             <input 
               type="number" 
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-green-400 font-mono outline-none focus:border-green-500" 
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-green-500" 
               value={form.fastThreshold} 
               onChange={(e) => setForm((s: Params) => ({ ...s, fastThreshold: Number(e.target.value) }))} 
             />
@@ -248,7 +248,7 @@ const OrbNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">First Level</label>
             <input 
               type="number" 
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-green-400 font-mono outline-none focus:border-green-500" 
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-green-500" 
               value={form.firstLevel} 
               onChange={(e) => setForm((s: Params) => ({ ...s, firstLevel: Number(e.target.value) }))} 
             />

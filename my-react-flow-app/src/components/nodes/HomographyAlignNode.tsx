@@ -231,7 +231,7 @@ const HomographyAlignNode = memo(({ id, data, selected }: NodeProps<CustomNodeDa
           <div>
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Warp Mode</label>
             <select
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-purple-400 font-mono outline-none focus:border-purple-500"
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-purple-500"
               value={form.warp_mode}
               onChange={(e) => setForm(s => ({ ...s, warp_mode: e.target.value as Params['warp_mode'] }))}
             >

@@ -183,7 +183,7 @@ const CLAHENode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
               <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Clip Limit</label>
               <input 
                 type="number" step="0.1" min="0.1"
-                className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-indigo-400 font-mono outline-none focus:border-indigo-500" 
+                className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-indigo-500" 
                 value={form.clipLimit} 
                 onChange={(e) => setForm(s => ({ ...s, clipLimit: Number(e.target.value) }))} 
                 onBlur={(e) => {
@@ -196,7 +196,7 @@ const CLAHENode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
               <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Tile X</label>
               <input 
                 type="number" min="1"
-                className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-indigo-400 font-mono outline-none focus:border-indigo-500" 
+                className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-indigo-500" 
                 value={form.tileGridSizeX} 
                 onChange={(e) => setForm(s => ({ ...s, tileGridSizeX: Number(e.target.value) }))}
                 onBlur={(e) => {
@@ -209,7 +209,7 @@ const CLAHENode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
               <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Tile Y</label>
               <input 
                 type="number" min="1"
-                className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-indigo-400 font-mono outline-none focus:border-indigo-500" 
+                className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-indigo-500" 
                 value={form.tileGridSizeY} 
                 onChange={(e) => setForm(s => ({ ...s, tileGridSizeY: Number(e.target.value) }))} 
                 onBlur={(e) => {

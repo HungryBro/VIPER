@@ -153,7 +153,7 @@ const SurfNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Hessian Threshold</label>
             <input 
               type="number" min="1"
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-green-400 font-mono outline-none focus:border-green-500" 
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-green-500" 
               value={form.hessianThreshold} 
               onChange={(e) => setForm((s: Params) => ({ ...s, hessianThreshold: Number(e.target.value) }))}
               onBlur={(e) => { if(Number(e.target.value) < 1) setForm(s=>({...s, hessianThreshold: 1})) }}
@@ -163,7 +163,7 @@ const SurfNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Octaves</label>
             <input 
               type="number" min="1"
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-green-400 font-mono outline-none focus:border-green-500" 
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-green-500" 
               value={form.nOctaves} 
               onChange={(e) => setForm((s: Params) => ({ ...s, nOctaveLayers: Number(e.target.value) }))} 
               onBlur={(e) => { if(Number(e.target.value) < 1) setForm(s=>({...s, nOctaves: 1})) }}
@@ -173,7 +173,7 @@ const SurfNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Layers</label>
             <input 
               type="number" min="1"
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-green-400 font-mono outline-none focus:border-green-500" 
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-green-500" 
               value={form.nOctaveLayers} 
               onChange={(e) => setForm((s: Params) => ({ ...s, nOctaveLayers: Number(e.target.value) }))} 
               onBlur={(e) => { if(Number(e.target.value) < 1) setForm(s=>({...s, nOctaveLayers: 1})) }}

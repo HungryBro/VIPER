@@ -214,7 +214,7 @@ const OtsuNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
             <span className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Blur Kernel Size (odd)</span>
             <input 
               type="number" min={1} step={2} 
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-pink-400 font-mono outline-none focus:border-pink-500" 
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-pink-500" 
               value={form.blur_ksize} 
               onKeyDown={stopPropagation} 
               onChange={(e) => setForm((s: Params) => ({ ...s, blur_ksize: Number(e.target.value) }))}

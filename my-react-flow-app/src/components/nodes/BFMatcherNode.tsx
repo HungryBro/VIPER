@@ -216,7 +216,7 @@ const BFMatcherNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) =
           <div>
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Norm Type</label>
             <select 
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-orange-400 font-mono outline-none focus:border-orange-500" 
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-orange-500" 
               value={form.norm_type} 
               onChange={(e) => setForm(s => ({ ...s, norm_type: e.target.value as BFParams['norm_type'] }))}
             >
@@ -231,7 +231,7 @@ const BFMatcherNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) =
           <div>
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Cross-check</label>
             <select 
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-orange-400 font-mono outline-none focus:border-orange-500" 
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-orange-500" 
               value={form.cross_check === undefined ? 'AUTO' : form.cross_check ? 'TRUE' : 'FALSE'} 
               onChange={(e) => { const v = e.target.value; setForm(s => ({ ...s, cross_check: v === 'AUTO' ? undefined : v === 'TRUE' })); }}
             >
@@ -245,7 +245,7 @@ const BFMatcherNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) =
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Lowe's ratio</label>
             <input 
               type="number" step="0.01" min={0.1} max={1} 
-              className={`nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-orange-400 font-mono outline-none focus:border-orange-500 ${form.cross_check === true ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-orange-500 ${form.cross_check === true ? 'opacity-50 cursor-not-allowed' : ''}`}
               value={form.lowe_ratio} 
               onChange={(e) => setForm(s => ({ ...s, lowe_ratio: Number(e.target.value) }))} 
               disabled={form.cross_check === true}
@@ -262,7 +262,7 @@ const BFMatcherNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) =
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">RANSAC (px)</label>
             <input 
               type="number" step="0.1" min={0.1} 
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-orange-400 font-mono outline-none focus:border-orange-500" 
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-orange-500" 
               value={form.ransac_thresh} 
               onChange={(e) => setForm(s => ({ ...s, ransac_thresh: Number(e.target.value) }))}
               onBlur={(e) => {
@@ -276,7 +276,7 @@ const BFMatcherNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) =
           <div className="col-span-2">
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Draw Mode</label>
             <select 
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-orange-400 font-mono outline-none focus:border-orange-500" 
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-orange-500" 
               value={form.draw_mode} 
               onChange={(e) => setForm(s => ({ ...s, draw_mode: e.target.value as 'good' | 'inliers' }))}
             >

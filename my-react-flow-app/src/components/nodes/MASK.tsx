@@ -182,7 +182,7 @@ const MaskRCNNNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) =>
               <label className="uppercase font-bold text-gray-400 text-[10px] tracking-wider">Confidence Threshold</label>
               <input 
                 type="number" step="0.05" min="0.1" max="1.0"
-                className="nodrag w-16 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-yellow-500 font-mono text-right outline-none focus:border-yellow-500"
+                className="nodrag w-16 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-white font-mono text-right outline-none focus:border-yellow-500"
                 value={form.score_thr}
                 onChange={(e) => setForm((s: Params) => ({ ...s, score_thr: Number(e.target.value) }))}
               />

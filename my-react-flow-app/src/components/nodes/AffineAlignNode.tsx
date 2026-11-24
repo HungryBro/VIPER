@@ -226,7 +226,7 @@ const AffineAlignNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>)
           <div>
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Model</label>
             <select
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-purple-400 font-mono outline-none focus:border-purple-500"
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-purple-500"
               value={form.model}
               onChange={(e) => setForm((s) => ({ ...s, model: e.target.value as Params['model'] }))}
             >
@@ -238,7 +238,7 @@ const AffineAlignNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>)
           <div>
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Warp Mode</label>
             <select
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-purple-400 font-mono outline-none focus:border-purple-500"
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-purple-500"
               value={form.warp_mode}
               onChange={(e) => setForm((s) => ({ ...s, warp_mode: e.target.value as Params['warp_mode'] }))}
             >
@@ -261,7 +261,7 @@ const AffineAlignNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>)
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">RANSAC Thresh</label>
             <input
               type="number" step="0.1" min={0.1}
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-purple-400 font-mono outline-none focus:border-purple-500"
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-purple-500"
               value={form.ransac_thresh}
               onChange={(e) => setForm((s) => ({ ...s, ransac_thresh: Number(e.target.value) }))}
               onBlur={(e) => {
@@ -275,7 +275,7 @@ const AffineAlignNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>)
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Confidence (0.1 - 1.0)</label>
             <input
               type="number" step="0.01" min={0} max={1}
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-purple-400 font-mono outline-none focus:border-purple-500"
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-purple-500"
               value={form.confidence}
               onChange={(e) => setForm((s) => ({ ...s, confidence: Number(e.target.value) }))}
               onBlur={(e) => {
@@ -291,7 +291,7 @@ const AffineAlignNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>)
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Refine Iters</label>
             <input
               type="number" min={0}
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-purple-400 font-mono outline-none focus:border-purple-500"
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-purple-500"
               value={form.refine_iters}
               onChange={(e) => setForm((s) => ({ ...s, refine_iters: Number(e.target.value) }))}
               onBlur={(e) => {

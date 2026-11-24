@@ -73,7 +73,7 @@ const Num = ({ label, value, onChange, step = 1, min, max, onBlur }: NumProps) =
       step={step}
       {...(min !== undefined ? { min } : {})}
       {...(max !== undefined ? { max } : {})}
-      className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-pink-400 font-mono outline-none focus:border-pink-500"
+      className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-pink-500"
       value={value ?? ''}
       onChange={(e) => { const raw = e.target.value; if (raw === '') onChange(''); else onChange(raw); }}
       onMouseDown={stopAll} onClick={stopAll} onDoubleClick={stopAll} onKeyDown={stopKeys}
@@ -87,7 +87,7 @@ const Select = ({ label, value, onChange, options }: SelectProps) => (
   <label className="block">
     <span className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">{label}</span>
     <select
-      className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-pink-400 font-mono outline-none focus:border-pink-500"
+      className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-pink-500"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onMouseDown={stopAll} onClick={stopAll} onDoubleClick={stopAll} onKeyDown={stopKeys}
