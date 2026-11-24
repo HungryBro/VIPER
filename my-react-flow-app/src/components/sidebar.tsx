@@ -283,7 +283,7 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templa
                 const palette = GROUP_PALETTE[job.name] ?? FALLBACK_PALETTE;
                 return (
                   <div key={job.name} style={{ '--group-fill': palette.fill, '--group-dark': palette.dark, '--group-light': palette.light } as React.CSSProperties} className="mb-[9px] overflow-hidden rounded-md border border-[var(--lab-line)] bg-[var(--lab-subtle)]">
-                    <button type="button" aria-expanded={Boolean(isOpen)} className="flex min-h-10 w-full touch-manipulation items-center justify-between gap-2 px-[11px] py-[13px] text-left text-xs font-bold uppercase text-[var(--group-dark)] [[data-lab-theme=light]_&]:text-[var(--group-light)]" onClick={() => toggleNodeGroup(job.name)}>
+                    <button type="button" aria-expanded={Boolean(isOpen)} className="flex min-h-10 w-full touch-manipulation items-center justify-between gap-2 px-[11px] py-[13px] text-left text-xs font-bold uppercase text-[var(--group-dark)]" onClick={() => toggleNodeGroup(job.name)}>
                       <span>{job.name}</span>
                       <ChevronDown size={14} className={`transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
                     </button>

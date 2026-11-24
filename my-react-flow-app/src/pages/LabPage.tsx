@@ -409,6 +409,8 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
           <span className="workflow-control-label">{isRunning ? 'Stop' : 'Start'}</span>
         </button>
       </div>
+      {/* พื้นที่ทำงานใช้ชุดสีมืดเสมอ ส่วนแถวหัวด้านบนยังตามธีมแพลตฟอร์ม */}
+      <div data-lab-theme="dark" className="contents">
       <WorkflowTabs tabs={tabs.map(t => ({ id: t.id, name: t.name }))} activeTabId={activeTabId} onSwitch={handleSwitchTab} onAdd={handleAddTab} onClose={handleCloseTab} onRename={handleRenameTab} />
       <div className="viper-canvas-toolbar flex items-center border-b border-[var(--lab-line)] bg-[var(--lab-panel)] px-3 py-1">
         <span className="rounded-[5px] border border-[var(--lab-line)] px-2 py-0.5 text-[11px] font-medium text-[var(--lab-muted)]">{activeTab?.nodes.length ?? 0} โหนด</span>
@@ -425,6 +427,7 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
             <FlowCanvas ref={canvasRef} isRunning={isRunning} onPipelineDone={handleStop} onFlowChange={handleFlowChange} currentTabName={activeTabName} active={active && !saveTemplateOpen && !helpOpen} />
           </div>
         </ReactFlowProvider>
+      </div>
       </div>
       {labNotice && (
         <div

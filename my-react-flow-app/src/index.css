@@ -13,8 +13,10 @@ body {
 }
 
 /* ตัวแปรสีของ Lab (รอบ 2) ดึงจาก outputs/viper-learning-v2/src/Theme.css ของ mockup: ชุดมืด = html[data-theme=dark], ชุดสว่าง = html
-   ผูกกับธีมแพลตฟอร์มผ่าน data-lab-theme บน .viper-app (LabPage) ใช้ผ่าน Tailwind เช่น bg-[var(--lab-panel)] */
-.viper-app {
+   ผูกกับธีมแพลตฟอร์มผ่าน data-lab-theme บน .viper-app (LabPage) ใช้ผ่าน Tailwind เช่น bg-[var(--lab-panel)]
+   พื้นที่ทำงาน (แท็บ แถบจำนวนโหนด คลัง canvas แผงบันทึก) ครอบด้วย data-lab-theme='dark' จึงใช้ชุดมืดเสมอแม้ธีมสว่าง */
+.viper-app,
+.viper-app [data-lab-theme='dark'] {
   --lab-bg: #151821;
   --lab-panel: #1c202b;
   --lab-subtle: #222735;
