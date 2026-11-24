@@ -375,7 +375,8 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, onAddN
                             aria-label={`เพิ่ม ${alg.label} ลง canvas`}
                             className="block min-h-11 w-full touch-manipulation rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-blue-soft)] px-[9px] py-2 text-center text-xs font-bold uppercase tracking-[0.03em] text-[var(--lab-blue-ink)] hover:bg-[var(--lab-action)] hover:text-white focus-visible:bg-[var(--lab-action)] focus-visible:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lab-blue)] active:bg-[var(--lab-action)] active:text-white md:min-h-[34px] [@media(pointer:coarse)]:min-h-11 md:cursor-grab md:active:cursor-grabbing"
                           >
-                            {alg.label}
+                            {/* a name with a bracket, such as "Snake (Active Contour)", keeps the bracket on a second line */}
+                            {alg.label.split(/ (?=\()/).map((part, i) => <React.Fragment key={i}>{i > 0 && <br />}{part}</React.Fragment>)}
                           </button>
                         ))}
                       </div>
