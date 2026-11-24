@@ -15,11 +15,17 @@ NOW = datetime(2026, 11, 21, 12, 0, tzinfo=timezone.utc)
 ADMIN = {"id": 2, "email": "admin@example.com", "display_name": "Admin", "avatar_url": None, "role": "admin",
          "status": "active", "banned_until": None, "can_teach": False}
 results = []
+skipped = []
 
 
 def check(name, ok, detail=""):
     results.append((name, bool(ok), detail))
     print(("PASS " if ok else "FAIL ") + name + (f"  [{detail}]" if detail else ""))
+
+
+def skip(name, reason):
+    skipped.append(name)
+    print(f"SKIP: {reason}  [{name}]")
 
 
 def iso(minutes=0):
@@ -263,43 +269,47 @@ def run():
         ctx, page, _ = new_page(browser, api)
         page.goto(f"{BASE}/lab")
         page.wait_for_selector(".react-flow__node")
-        page.get_by_role("button", name="Templates", exact=False).first.click()
-        page.wait_for_timeout(800)
-        official_gets = lambda: sum(1 for c in api.calls if c[0] == "GET" and c[1] == "/api/templates/official")
-        before_save = official_gets()
-        page.get_by_role("button", name="เก็บ Template").click()
-        dialog = page.locator("[aria-modal='true']")
-        dialog.locator("input").first.fill("From Lab")
-        dialog.get_by_role("button", name="บันทึก").last.click()
-        page.wait_for_timeout(800)
-        check("A4f library list reloads after SAVE TEMPLATE", official_gets() > before_save,
-              f"{before_save}->{official_gets()}")
-        if page.locator("[aria-modal='true']").count():
-            page.keyboard.press("Escape")
-            page.wait_for_timeout(200)
-        if page.locator("[aria-modal='true']").count():
-            page.locator("[aria-modal='true']").get_by_role("button").first.click()
-        before_nav = official_gets()
-        page.evaluate("window.history.pushState({}, '', '/templates'); dispatchEvent(new PopStateEvent('popstate'))")
-        page.wait_for_timeout(800)
-        page.evaluate("window.history.pushState({}, '', '/lab'); dispatchEvent(new PopStateEvent('popstate'))")
-        page.wait_for_timeout(1000)
-        check("A4f library list reloads when returning to /lab", official_gets() > before_nav,
-              f"{before_nav}->{official_gets()}")
+        # A4e/A4f need the library TEMPLATES tab; it is hidden while SHOW_LAB_TEMPLATES_TAB=false in sidebar.tsx
+        if page.locator("aside button", has_text="TEMPLATES").count() == 0:
+            skip("A4e/A4f", "แท็บ Templates ถูกซ่อน (SHOW_LAB_TEMPLATES_TAB=false)")
+        else:
+            page.get_by_role("button", name="Templates", exact=False).first.click()
+            page.wait_for_timeout(800)
+            official_gets = lambda: sum(1 for c in api.calls if c[0] == "GET" and c[1] == "/api/templates/official")
+            before_save = official_gets()
+            page.get_by_role("button", name="เก็บ Template").click()
+            dialog = page.locator("[aria-modal='true']")
+            dialog.locator("input").first.fill("From Lab")
+            dialog.get_by_role("button", name="บันทึก").last.click()
+            page.wait_for_timeout(800)
+            check("A4f library list reloads after SAVE TEMPLATE", official_gets() > before_save,
+                  f"{before_save}->{official_gets()}")
+            if page.locator("[aria-modal='true']").count():
+                page.keyboard.press("Escape")
+                page.wait_for_timeout(200)
+            if page.locator("[aria-modal='true']").count():
+                page.locator("[aria-modal='true']").get_by_role("button").first.click()
+            before_nav = official_gets()
+            page.evaluate("window.history.pushState({}, '', '/templates'); dispatchEvent(new PopStateEvent('popstate'))")
+            page.wait_for_timeout(800)
+            page.evaluate("window.history.pushState({}, '', '/lab'); dispatchEvent(new PopStateEvent('popstate'))")
+            page.wait_for_timeout(1000)
+            check("A4f library list reloads when returning to /lab", official_gets() > before_nav,
+                  f"{before_nav}->{official_gets()}")
 
-        settings = page.get_by_role("button", name="Template settings").first
-        patches = lambda: sum(1 for c in api.calls if c[0] == "PATCH" and c[1].startswith("/api/templates/"))
-        page.once("dialog", lambda d: d.dismiss())
-        settings.click()
-        page.get_by_role("button", name="UPDATE CANVAS").first.click()
-        page.wait_for_timeout(500)
-        cancelled = patches()
-        page.once("dialog", lambda d: d.accept())
-        settings.click()
-        page.get_by_role("button", name="UPDATE CANVAS").first.click()
-        page.wait_for_timeout(800)
-        check("A4e Official UPDATE CANVAS: cancel sends 0 PATCH, confirm sends 1", cancelled == 0 and patches() == 1,
-              f"cancel={cancelled} confirm={patches()}")
+            settings = page.get_by_role("button", name="Template settings").first
+            patches = lambda: sum(1 for c in api.calls if c[0] == "PATCH" and c[1].startswith("/api/templates/"))
+            page.once("dialog", lambda d: d.dismiss())
+            settings.click()
+            page.get_by_role("button", name="UPDATE CANVAS").first.click()
+            page.wait_for_timeout(500)
+            cancelled = patches()
+            page.once("dialog", lambda d: d.accept())
+            settings.click()
+            page.get_by_role("button", name="UPDATE CANVAS").first.click()
+            page.wait_for_timeout(800)
+            check("A4e Official UPDATE CANVAS: cancel sends 0 PATCH, confirm sends 1", cancelled == 0 and patches() == 1,
+                  f"cancel={cancelled} confirm={patches()}")
 
         # A4d: a pending template is dropped on logout
         page.evaluate("window.history.pushState({}, '', '/templates'); dispatchEvent(new PopStateEvent('popstate'))")
@@ -362,7 +372,7 @@ def run():
 
         browser.close()
     failed = [name for name, ok, _ in results if not ok]
-    print(f"\n{len(results) - len(failed)}/{len(results)} passed")
+    print(f"\n{len(results) - len(failed)}/{len(results)} passed" + (f", skipped: {', '.join(skipped)}" if skipped else ""))
     sys.exit(1 if failed else 0)
 
 

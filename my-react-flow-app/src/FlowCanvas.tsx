@@ -388,7 +388,10 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
         setNodes(nodesWithFunc);
         setEdges(newEdges);
         if (newViewport === 'fit') fitPendingRef.current = true;
-        else setViewport(newViewport);
+        else {
+          setViewport(newViewport);
+          verifyViewportRef.current = true;
+        }
       },
       fitView: fitWorkflowToCanvas,
       addNode: addNodeFromLibrary,
@@ -402,6 +405,33 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       if (nodes.some((n) => !n.width || !n.height)) return;
       fitPendingRef.current = false;
       fitWorkflowToCanvas();
+    }, [nodes, fitWorkflowToCanvas]);
+
+    // A restored (remembered) viewport may predate the current layout and leave nodes under the
+    // MiniMap/Controls or fully outside the pane. Refit only then; any other viewport is the user's.
+    const verifyViewportRef = useRef(false);
+    useEffect(() => {
+      if (!verifyViewportRef.current || nodes.length === 0) return;
+      if (nodes.some((n) => !n.width || !n.height)) return;
+      verifyViewportRef.current = false;
+      // Wait (up to ~1s) until React Flow has rendered every node at the restored viewport.
+      let tries = 0;
+      const check = () => {
+        const pane = document.querySelector('.react-flow')?.getBoundingClientRect();
+        const rects = Array.from(document.querySelectorAll('.react-flow__node')).map((el) => el.getBoundingClientRect());
+        // React Flow applies the restored viewport (and may adjust it) over the next frames: settle first
+        if (!pane || pane.width === 0 || rects.length < nodes.length || tries < 20) {
+          if (++tries < 80) requestAnimationFrame(check);
+          return;
+        }
+        const obstacles = ['.react-flow__minimap', '.react-flow__controls']
+          .map((selector) => document.querySelector(selector)?.getBoundingClientRect())
+          .filter((rect): rect is DOMRect => !!rect && rect.width > 0 && rect.height > 0);
+        const underObstacle = rects.some((r) => obstacles.some((o) => r.right > o.left && r.left < o.right && r.bottom > o.top && r.top < o.bottom));
+        const noneVisible = rects.every((r) => r.right < pane.left || r.left > pane.right || r.bottom < pane.top || r.top > pane.bottom);
+        if (underObstacle || noneVisible) fitWorkflowToCanvas();
+      };
+      requestAnimationFrame(check);
     }, [nodes, fitWorkflowToCanvas]);
 
     useFlowHotkeys({ getPastePosition: () => lastMousePosRef.current, runNodeById, undo, redo, enabled: active });

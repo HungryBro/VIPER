@@ -120,8 +120,8 @@ export const TEMPLATE_INFO: TemplateInfo[] = [
       "th": "สร้างชุดข้อมูลรูปทรงจากภาพที่ติดป้ายกำกับไว้ เทรน YOLO วัดผล แล้วตรวจจับและอธิบายผลด้วย Grad-CAM"
     },
     "longDescription": {
-      "en": "Fine-tunes a selected YOLO base model for 100 epochs using nine annotated Shapes images. Detect, Grad-CAM and both evaluations use the newly trained weights. The bundled Shapes model is a fast starting point; when choosing a general-purpose model such as YOLOv8, YOLO11 or YOLO12, keep the 100-epoch setting or add more varied labelled images.",
-      "th": "Fine-tune โมเดล YOLO ที่เลือกเป็นเวลา 100 รอบด้วยภาพ Shapes ที่มีป้ายกำกับ 9 ภาพ แล้วส่งโมเดลที่เทรนใหม่ไป Detect, Grad-CAM และ Evaluation ทั้งสองแบบ โมเดล Shapes ที่มากับระบบจะเริ่มต้นได้เร็ว ส่วนโมเดลทั่วไปอย่าง YOLOv8, YOLO11 หรือ YOLO12 ควรใช้ 100 รอบตามค่าเริ่มต้น หรือเพิ่มภาพที่ติดป้ายกำกับให้หลากหลายขึ้น"
+      "en": "Fine-tunes a selected YOLO base model for 10 epochs using nine annotated Shapes images. Detect, Grad-CAM and both evaluations use the newly trained weights. The bundled Shapes model is a fast starting point; when choosing a general-purpose model such as YOLOv8, YOLO11 or YOLO12, keep the 10-epoch setting or add more varied labelled images.",
+      "th": "Fine-tune โมเดล YOLO ที่เลือกเป็นเวลา 10 รอบด้วยภาพ Shapes ที่มีป้ายกำกับ 9 ภาพ แล้วส่งโมเดลที่เทรนใหม่ไป Detect, Grad-CAM และ Evaluation ทั้งสองแบบ โมเดล Shapes ที่มากับระบบจะเริ่มต้นได้เร็ว ส่วนโมเดลทั่วไปอย่าง YOLOv8, YOLO11 หรือ YOLO12 ควรใช้ 10 รอบตามค่าเริ่มต้น หรือเพิ่มภาพที่ติดป้ายกำกับให้หลากหลายขึ้น"
     },
     "color": "cyan",
     "enabled": true

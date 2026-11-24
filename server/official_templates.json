@@ -927,11 +927,11 @@
           "data": {
             "label": "Train Shapes YOLO",
             "status": "idle",
-            "description": "Fine-tunes the selected base model for 100 epochs on the annotated sample images.",
+            "description": "Fine-tunes the selected base model for 10 epochs on the annotated sample images.",
             "payload": {
               "params": {
                 "model_path": "models/yolo11n.pt",
-                "epochs": 100,
+                "epochs": 10,
                 "image_size": 640,
                 "batch": 4
               }
