@@ -107,16 +107,17 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
 - ไฟล์: `pages/LabPage.tsx`, `components/WorkflowControls.tsx`, `index.css`
 - ผลตรวจ: CHECK PASS · เบราว์เซอร์ (admin) ธีมมืดและสว่างตามตัวแปร `--lab-*` (เพิ่มใน `index.css`, `data-lab-theme` บน `.viper-app`) หัวใหม่ใช้ไอคอน lucide (ArrowLeft, CircleHelp, Save, Play/Square) · ภาพเทียบ mockup เก็บตอน T9
 
-### [ ] T7 คลังโหนด
+### [x] T7 คลังโหนด
 - เกณฑ์รับ
-  - [ ] กว้างตาม mockup (240px) · หัว "VIPER LIBRARY" 12px ตัวอักษรห่าง สี blue-ink · ปุ่มพับเป็นไอคอน
-  - [ ] Open all/Close all ปุ่มเล็กแบบ `.real-group-tools`
-  - [ ] หัวกลุ่มตัวเล็ก พับได้ ลูกศรหมุน สีตามหมวด (INPUT = teal, EVALUATION = amber, อื่น = blue-ink) กรอบมุมโค้ง 6px พื้น subtle
-  - [ ] ปุ่มโหนดในกลุ่มเป็นรายการโหนดจริงชุดเดิม (22 ชนิด ลากลง canvas ได้ ปุ่ม + ADD บนจอแคบยังอยู่) หน้าตาแบบ `.real-add-node`
-  - [ ] ข้อความช่วยใต้กลุ่ม + footer ALL NODES
-  - [ ] ค่าคงที่ `SHOW_LAB_TEMPLATES_TAB` / `SHOW_LEGACY_TEMPLATE_LIST` / `NODE_GROUPS` และโค้ด templates ยังอยู่ครบ
+  - [x] กว้างตาม mockup (240px) · หัว "VIPER LIBRARY" 12px ตัวอักษรห่าง สี blue-ink · ปุ่มพับเป็นไอคอน
+  - [x] Open all/Close all ปุ่มเล็กแบบ `.real-group-tools`
+  - [x] หัวกลุ่มตัวเล็ก พับได้ ลูกศรหมุน สีตามหมวด (INPUT = teal, EVALUATION = amber, อื่น = blue-ink) กรอบมุมโค้ง 6px พื้น subtle
+  - [x] ปุ่มโหนดในกลุ่มเป็นรายการโหนดจริงชุดเดิม (22 ชนิด ลากลง canvas ได้ ปุ่ม + ADD บนจอแคบยังอยู่) หน้าตาแบบ `.real-add-node`
+  - [x] ข้อความช่วยใต้กลุ่ม + footer ALL NODES
+  - [x] ค่าคงที่ `SHOW_LAB_TEMPLATES_TAB` / `SHOW_LEGACY_TEMPLATE_LIST` / `NODE_GROUPS` และโค้ด templates ยังอยู่ครบ
 - ตรวจ: นับปุ่มโหนด = 22, Open/Close all, ลากโหนดลง canvas, 375px (คลังเป็น overlay), สองธีม
 - ไฟล์: `components/sidebar.tsx`, `index.css`
+- ผลตรวจ: CHECK PASS · เบราว์เซอร์: Open all เปิด 10 กลุ่ม = 22 รายการโหนด ลากโหนดลง canvas ยังใช้ได้ footer "All Nodes" กว้าง 240px ทั้งสองธีมใช้ `--lab-*` · หมายเหตุ: ปุ่ม "Open all/Close all" เปลี่ยนข้อความเป็นตัวพิมพ์เล็กตาม mockup
 
 ### [ ] T8 canvas
 - เกณฑ์รับ
