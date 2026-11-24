@@ -77,10 +77,6 @@ export default function WorkflowTabs({
               `}
               title={isEditing ? '' : "Right-click to rename"}
             >
-              <span className={`mr-2 ${isActive ? 'opacity-100' : 'opacity-50'}`}>
-                📄
-              </span>
-
               {isEditing ? (
                 <input
                   ref={inputRef}
