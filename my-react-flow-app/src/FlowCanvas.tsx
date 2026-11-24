@@ -559,7 +559,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
 
     return (
       <div className="relative flex-1 h-full flex flex-col">
-        <div className="viper-canvas-actions absolute left-16 right-3 top-2.5 z-10 flex justify-end gap-[7px]">
+        <div className="viper-canvas-actions viper-lab-canvas absolute left-16 right-3 top-2.5 z-10 flex justify-end gap-[7px]">
           <button type="button" onClick={() => fitWorkflowToCanvas()} title="Fit workflow to canvas" aria-label="Fit workflow to canvas" className="viper-fit-canvas-button flex min-h-8 min-w-8 touch-manipulation items-center justify-center gap-[5px] rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2 text-xs text-[var(--lab-ink)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] sm:px-[9px]">
             <Maximize2 size={15} aria-hidden="true" />
           </button>
@@ -569,7 +569,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleFileChange} />
         </div>
 
-        <div className="flex-1 relative min-h-0 bg-[var(--lab-canvas)]">
+        <div className="viper-lab-canvas flex-1 relative min-h-0 bg-[var(--lab-canvas)]">
           <ReactFlow
             nodes={nodes} edges={edges}
             onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
