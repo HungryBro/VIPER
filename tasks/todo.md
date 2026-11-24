@@ -119,16 +119,17 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
 - ไฟล์: `components/sidebar.tsx`, `index.css`
 - ผลตรวจ: CHECK PASS · เบราว์เซอร์: Open all เปิด 10 กลุ่ม = 22 รายการโหนด ลากโหนดลง canvas ยังใช้ได้ footer "All Nodes" กว้าง 240px ทั้งสองธีมใช้ `--lab-*` · หมายเหตุ: ปุ่ม "Open all/Close all" เปลี่ยนข้อความเป็นตัวพิมพ์เล็กตาม mockup
 
-### [ ] T8 canvas
+### [x] T8 canvas
 - เกณฑ์รับ
-  - [ ] ปุ่ม Fit / Save / Load / Clear ขนาดเล็กมีไอคอนแบบ `.canvas-file-actions` (คงปุ่ม fit ข้าง Save) Clear ขอบสี danger
-  - [ ] Controls เป็นกล่องเดียวสีเข้มแบบ mockup (คงปุ่ม lock)
-  - [ ] MiniMap เล็กอยู่มุมขวาล่าง
-  - [ ] ฉากหลังเป็นจุดตามสี canvas ของ mockup
-  - [ ] `fitWorkflowToCanvas` เว้นที่ตามตำแหน่งใหม่ของ MiniMap (ขวาล่าง) และ Controls (ซ้ายล่าง): เลือกพื้นที่ปลอดภัยที่ได้ zoom มากสุด · ตรวจ refit หลัง restore (verifyViewportRef) ยังทำงาน
-  - [ ] หน้าตาโหนดไม่เปลี่ยน
+  - [x] ปุ่ม Fit / Save / Load / Clear ขนาดเล็กมีไอคอนแบบ `.canvas-file-actions` (คงปุ่ม fit ข้าง Save) Clear ขอบสี danger
+  - [x] Controls เป็นกล่องเดียวสีเข้มแบบ mockup (คงปุ่ม lock)
+  - [x] MiniMap เล็กอยู่มุมขวาล่าง
+  - [x] ฉากหลังเป็นจุดตามสี canvas ของ mockup
+  - [x] `fitWorkflowToCanvas` เว้นที่ตามตำแหน่งใหม่ของ MiniMap (ขวาล่าง) และ Controls (ซ้ายล่าง): เลือกพื้นที่ปลอดภัยที่ได้ zoom มากสุด · ตรวจ refit หลัง restore (verifyViewportRef) ยังทำงาน
+  - [x] หน้าตาโหนดไม่เปลี่ยน
 - ตรวจ: fit view แล้วไม่มีโหนดทับ MiniMap/Controls ที่ 1440/800/375, undo/redo/save/load/clear ยังใช้ได้
 - ไฟล์: `FlowCanvas.tsx`, `index.css`
+- ผลตรวจ: CHECK PASS · เบราว์เซอร์ 800/1440/375px: fit แล้วโหนดไม่ทับ Controls/MiniMap/แถวปุ่ม Fit-Save-Load-Clear และไม่ล้นพื้นที่ (ผมเพิ่มแถวปุ่มบนขวาเป็นสิ่งกีดขวางของ fit ด้วย เพราะเดิมโหนดบนสุดถูกปุ่มบัง) ไม่มีปุ่ม fit ของ Lab บนเดสก์ท็อปเมาส์ (กฎเดิมใน index.css ซ่อนไว้ ≥1024px) จึงตรวจ fit ผ่านปุ่มที่ 800px และ refit ตอนโหลด ฉากหลังจุดสีตามธีม (`--lab-dots`) พื้น canvas `--lab-canvas`
 
 ### [ ] T9 แผงล่าง + ตรวจรวม
 - เกณฑ์รับ

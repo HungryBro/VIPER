@@ -219,3 +219,45 @@ input[type="number"] {
   stroke: transparent !important;
   cursor: pointer;
 }
+
+/* Controls / MiniMap ของ React Flow แบบ mockup (รอบ 2): Controls เป็นกล่องเดียว MiniMap เล็กอยู่มุมขวาล่าง */
+.viper-app .react-flow__controls {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 12px 12px;
+  overflow: hidden;
+  border: 1px solid var(--lab-line);
+  border-radius: 6px;
+  background: var(--lab-panel);
+  box-shadow: none;
+}
+.viper-app .react-flow__controls-button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-bottom: 1px solid var(--lab-line);
+  background: var(--lab-panel);
+  color: var(--lab-ink);
+}
+.viper-app .react-flow__controls-button:last-child {
+  border-bottom: 0;
+}
+.viper-app .react-flow__controls-button:hover {
+  background: var(--lab-subtle);
+}
+.viper-app .react-flow__controls-button svg {
+  max-width: 13px;
+  max-height: 13px;
+  fill: currentColor;
+}
+.viper-app .react-flow__minimap {
+  margin: 0 12px 12px 0;
+  overflow: hidden;
+  border: 1px solid var(--lab-line);
+  border-radius: 6px;
+  background: var(--lab-panel);
+}
+.viper-app .react-flow__attribution {
+  background: transparent;
+  color: var(--lab-muted);
+}

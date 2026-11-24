@@ -1,4 +1,5 @@
 // File: src/FlowCanvas.tsx
+import { Maximize2, Save, Trash2, Upload } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import ReactFlow, {
   MiniMap, Controls, Background, useNodesState, useEdgesState,
@@ -297,7 +298,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       const flowPane = document.querySelector('.react-flow');
 
       // Fit inside the visible canvas on every breakpoint. The sidebar overlay and the
-      // MiniMap/Controls (bottom-left) are excluded from the fit area; the log panel sits below the canvas, outside .react-flow.
+      // MiniMap/Controls are excluded from the fit area; the log panel sits below the canvas, outside .react-flow.
       if (flowPane instanceof HTMLElement && nodes.length > 0) {
         const paneRect = flowPane.getBoundingClientRect();
         const sidebarRect = document.querySelector('.viper-sidebar')?.getBoundingClientRect();
@@ -324,26 +325,32 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           bottom: contentBottom,
         }];
 
-        // MiniMap and Controls sit side by side at the bottom-left: treat them as one obstacle
-        // and pick the larger safe rectangle, above it or to its right (MiniMap is hidden on compact mobile).
-        const obstacleRects = ['.react-flow__minimap', '.react-flow__controls']
-          .map((selector) => document.querySelector(selector)?.getBoundingClientRect())
-          .filter((rect): rect is DOMRect => !!rect && rect.width > 0 && rect.height > 0);
-        if (obstacleRects.length > 0) {
-          const obstacle = {
-            left: Math.min(...obstacleRects.map((rect) => rect.left)),
-            top: Math.min(...obstacleRects.map((rect) => rect.top)),
-            right: Math.max(...obstacleRects.map((rect) => rect.right)),
-          };
-          const base = fitAreas[0];
-          const overlaps = obstacle.right > base.left && obstacle.left < base.right && obstacle.top < base.bottom;
-          if (overlaps) {
-            const around = [
-              { ...base, bottom: obstacle.top - 12 },
-              { ...base, left: Math.max(base.left, obstacle.right + 12) },
-            ].filter((area) => area.bottom - area.top > 1 && area.right - area.left > 1);
-            if (around.length > 0) fitAreas.splice(0, fitAreas.length, ...around);
-          }
+        // Overlays inside the pane are obstacles: the Fit/Save/Load/Clear row (top-right), Controls (bottom-left)
+        // and the MiniMap (bottom-right; hidden on compact mobile). Pick the safe rectangle with the larger zoom:
+        // the band between the top and bottom obstacles, or the full-height gap between the bottom-left and bottom-right ones.
+        const obstacleRects = ['.viper-canvas-actions button', '.react-flow__minimap', '.react-flow__controls']
+          .flatMap((selector) => Array.from(document.querySelectorAll(selector)).map((el) => el.getBoundingClientRect()))
+          .filter((rect) => rect.width > 0 && rect.height > 0);
+        const base = fitAreas[0];
+        const blocking = obstacleRects.filter((o) => o.right > base.left && o.left < base.right && o.bottom > base.top && o.top < base.bottom);
+        if (blocking.length > 0) {
+          const midY = (base.top + base.bottom) / 2;
+          const midX = (base.left + base.right) / 2;
+          const topObs = blocking.filter((o) => (o.top + o.bottom) / 2 < midY);
+          const bottomObs = blocking.filter((o) => (o.top + o.bottom) / 2 >= midY);
+          const top = topObs.length ? Math.max(base.top, ...topObs.map((o) => o.bottom + 12)) : base.top;
+          const leftSide = bottomObs.filter((o) => (o.left + o.right) / 2 < midX);
+          const rightSide = bottomObs.filter((o) => (o.left + o.right) / 2 >= midX);
+          const around = [
+            { ...base, top, bottom: bottomObs.length ? Math.min(...bottomObs.map((o) => o.top - 12)) : base.bottom },
+            {
+              ...base,
+              top,
+              left: leftSide.length ? Math.max(base.left, ...leftSide.map((o) => o.right + 12)) : base.left,
+              right: rightSide.length ? Math.min(base.right, ...rightSide.map((o) => o.left - 12)) : base.right,
+            },
+          ].filter((area) => area.bottom - area.top > 1 && area.right - area.left > 1);
+          if (around.length > 0) fitAreas.splice(0, fitAreas.length, ...around);
         }
 
         const nodeBounds = getNodesBounds(nodes);
@@ -424,9 +431,9 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           if (++tries < 80) requestAnimationFrame(check);
           return;
         }
-        const obstacles = ['.react-flow__minimap', '.react-flow__controls']
-          .map((selector) => document.querySelector(selector)?.getBoundingClientRect())
-          .filter((rect): rect is DOMRect => !!rect && rect.width > 0 && rect.height > 0);
+        const obstacles = ['.viper-canvas-actions button', '.react-flow__minimap', '.react-flow__controls']
+          .flatMap((selector) => Array.from(document.querySelectorAll(selector)).map((el) => el.getBoundingClientRect()))
+          .filter((rect) => rect.width > 0 && rect.height > 0);
         const underObstacle = rects.some((r) => obstacles.some((o) => r.right > o.left && r.left < o.right && r.bottom > o.top && r.top < o.bottom));
         const noneVisible = rects.every((r) => r.right < pane.left || r.left > pane.right || r.bottom < pane.top || r.top > pane.bottom);
         if (underObstacle || noneVisible) fitWorkflowToCanvas();
@@ -527,20 +534,17 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
 
     return (
       <div className="relative flex-1 h-full flex flex-col">
-        <div className="viper-canvas-actions absolute left-16 right-2 top-2 z-10 flex justify-end gap-1 sm:left-auto sm:gap-2">
-          <button type="button" onClick={fitWorkflowToCanvas} title="Fit workflow to canvas" aria-label="Fit workflow to canvas" className="viper-fit-canvas-button flex min-h-9 min-w-9 touch-manipulation items-center justify-center rounded border border-slate-600 bg-slate-800/80 px-2 text-white shadow-sm hover:bg-slate-700 sm:px-3">
-            <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M8 3H3v5M16 3h5v5M21 16v5h-5M3 16v5h5" />
-              <path d="m3 3 6 6M21 3l-6 6M3 21l6-6M21 21l-6-6" />
-            </svg>
+        <div className="viper-canvas-actions absolute left-16 right-3 top-2.5 z-10 flex justify-end gap-[7px]">
+          <button type="button" onClick={fitWorkflowToCanvas} title="Fit workflow to canvas" aria-label="Fit workflow to canvas" className="viper-fit-canvas-button flex min-h-8 min-w-8 touch-manipulation items-center justify-center gap-[5px] rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2 text-xs text-[var(--lab-ink)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] sm:px-[9px]">
+            <Maximize2 size={15} aria-hidden="true" />
           </button>
-          <button type="button" onClick={saveWorkflow} className="flex min-h-9 min-w-9 touch-manipulation items-center justify-center rounded border border-slate-600 bg-slate-800/80 px-2 text-[10px] shadow-sm hover:bg-slate-700 sm:px-3 sm:text-xs">💾 <span className="ml-1 hidden sm:inline">SAVE</span></button>
-          <button type="button" onClick={triggerLoadWorkflow} className="flex min-h-9 min-w-9 touch-manipulation items-center justify-center rounded border border-slate-600 bg-slate-800/80 px-2 text-[10px] shadow-sm hover:bg-slate-700 sm:px-3 sm:text-xs">📂 <span className="ml-1 hidden sm:inline">LOAD</span></button>
-          <button type="button" onClick={handleClearWorkflow} className="flex min-h-9 min-w-9 touch-manipulation items-center justify-center rounded border border-red-700 bg-red-900/80 px-2 text-[10px] shadow-sm hover:bg-red-700 sm:px-3 sm:text-xs">🗑️ <span className="ml-1 hidden sm:inline">CLEAR</span></button>
+          <button type="button" onClick={saveWorkflow} className="flex min-h-8 min-w-8 touch-manipulation items-center justify-center gap-[5px] rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2 text-xs text-[var(--lab-ink)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] sm:px-[9px]"><Save size={15} aria-hidden="true" /><span className="hidden sm:inline">Save</span></button>
+          <button type="button" onClick={triggerLoadWorkflow} className="flex min-h-8 min-w-8 touch-manipulation items-center justify-center gap-[5px] rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2 text-xs text-[var(--lab-ink)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] sm:px-[9px]"><Upload size={15} aria-hidden="true" /><span className="hidden sm:inline">Load</span></button>
+          <button type="button" onClick={handleClearWorkflow} className="flex min-h-8 min-w-8 touch-manipulation items-center justify-center gap-[5px] rounded-[5px] border border-[color-mix(in_srgb,var(--lab-danger)_35%,var(--lab-line))] bg-[var(--lab-panel)] px-2 text-xs text-[var(--lab-ink)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] sm:px-[9px] text-[var(--lab-danger)]"><Trash2 size={15} aria-hidden="true" /><span className="hidden sm:inline">Clear</span></button>
           <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleFileChange} />
         </div>
 
-        <div className="flex-1 relative min-h-0">
+        <div className="flex-1 relative min-h-0 bg-[var(--lab-canvas)]">
           <ReactFlow
             nodes={nodes} edges={edges}
             onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
@@ -557,22 +561,17 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
             deleteKeyCode={active ? 'Backspace' : null}
           >
             <MiniMap
-              position="bottom-left"
-              style={{
-                background: 'rgba(15,23,42,0.9)',
-                left: 50,
-                bottom: -2
-              }}
-              maskColor="rgba(0,0,0,0.6)"
+              position="bottom-right"
+              pannable
+              zoomable
+              style={{ width: 120, height: 76 }}
+              maskColor="color-mix(in srgb, var(--lab-bg) 70%, transparent)"
               nodeColor={(n) => n.data?.status === 'success' ? '#22c55e' : '#94a3b8'}
             />
 
-            <Controls
-              position="bottom-left"
-              style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '22px' }}
-            />
+            <Controls position="bottom-left" />
 
-            <Background variant={BackgroundVariant.Dots} gap={12} size={1} color="#334155" />
+            <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="var(--lab-dots)" />
           </ReactFlow>
         </div>
         <LogPanel logs={logs} onClear={() => setLogs([])} />
