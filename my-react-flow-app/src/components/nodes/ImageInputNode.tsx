@@ -5,7 +5,7 @@ import type { CustomNodeData } from '../../types';
 import { uploadImages, abs } from '../../lib/api';
 
 const statusDot = (active: boolean, color: string) =>
-  `h-2.5 w-2.5 rounded-full ${active ? color : 'bg-gray-600'} flex-shrink-0 shadow-inner transition-colors duration-200`;
+  `h-[6.5px] w-[6.5px] rounded-full ${active ? color : 'bg-gray-600'} flex-shrink-0 shadow-inner transition-colors duration-200`;
 
 type Props = NodeProps<CustomNodeData>;
 
