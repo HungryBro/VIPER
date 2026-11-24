@@ -34,6 +34,9 @@ body {
   --lab-danger: #f2a1a1;
   --lab-on-danger: #1c202b;
   --lab-dots: #333b4d;
+  /* พื้นหลังของ scrollbar ใช้สีของบริเวณนั้น (ไม่ใช่สีขาวของ color-scheme: light ที่ .viper-platform ตั้งไว้) */
+  color-scheme: dark;
+  scrollbar-color: var(--lab-line) transparent;
 }
 .viper-app[data-lab-theme='light'] {
   --lab-bg: #f2f3f7;
@@ -53,6 +56,8 @@ body {
   --lab-danger: #b74646;
   --lab-on-danger: #ffffff;
   --lab-dots: #d4d8e3;
+  color-scheme: light;
+  scrollbar-color: var(--lab-line) transparent;
 }
 
 button,
