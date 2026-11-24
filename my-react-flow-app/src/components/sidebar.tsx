@@ -33,6 +33,24 @@ const SHOW_LEGACY_TEMPLATE_LIST: boolean = false;
 // โค้ด TemplatePlatformLibrary ยังอยู่ครบ ตั้งเป็น true เพื่อเปิดแท็บ TEMPLATES กลับมา
 const SHOW_LAB_TEMPLATES_TAB: boolean = false;
 
+// Solid button fill per group: the darker shade of the group's catalog colour, so white text passes AA.
+// dark/light are the heading colours on the dark and light Lab theme.
+const GROUP_PALETTE: Record<string, { fill: string; dark: string; light: string }> = {
+  'Input': { fill: '#0f766e', dark: '#2dd4bf', light: '#0f766e' },
+  'Enhancement': { fill: '#4f46e5', dark: '#818cf8', light: '#4338ca' },
+  'Restoration': { fill: '#b91c1c', dark: '#f87171', light: '#b91c1c' },
+  'Segmentation': { fill: '#a16207', dark: '#facc15', light: '#a16207' },
+  'Feature Extraction': { fill: '#15803d', dark: '#4ade80', light: '#15803d' },
+  'Matching': { fill: '#c2410c', dark: '#fb923c', light: '#c2410c' },
+  'Object Alignment': { fill: '#9333ea', dark: '#c084fc', light: '#7e22ce' },
+  'Classification': { fill: '#db2777', dark: '#f472b6', light: '#be185d' },
+  'Evaluation': { fill: '#b45309', dark: '#fbbf24', light: '#b45309' },
+  'Object Detection & XAI': { fill: '#0e7490', dark: '#22d3ee', light: '#0e7490' },
+  'Quality Assessment': { fill: '#2563eb', dark: '#60a5fa', light: '#1d4ed8' },
+  'Saver': { fill: '#4b5563', dark: '#9ca3af', light: '#374151' },
+};
+const FALLBACK_PALETTE = { fill: '#4b5563', dark: '#9ca3af', light: '#374151' };
+
 // --- Icons ---
 const Icons: Record<string, React.FC<{ className?: string }>> = {
   Input: (p) => (
@@ -262,10 +280,10 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templa
 
             {activeTab === 'nodes' && jobs.map(job => {
                 const isOpen = openNodeGroups[job.name];
-                const groupColor = job.name.toLowerCase() === 'input' ? 'var(--lab-teal)' : job.name.toLowerCase() === 'evaluation' ? 'var(--lab-amber)' : 'var(--lab-blue-ink)';
+                const palette = GROUP_PALETTE[job.name] ?? FALLBACK_PALETTE;
                 return (
-                  <div key={job.name} style={{ '--group-color': groupColor } as React.CSSProperties} className="mb-[9px] overflow-hidden rounded-md border border-[var(--lab-line)] bg-[var(--lab-subtle)]">
-                    <button type="button" aria-expanded={Boolean(isOpen)} className="flex min-h-10 w-full touch-manipulation items-center justify-between gap-2 px-[11px] py-[13px] text-left text-xs font-semibold uppercase text-[var(--group-color)]" onClick={() => toggleNodeGroup(job.name)}>
+                  <div key={job.name} style={{ '--group-fill': palette.fill, '--group-dark': palette.dark, '--group-light': palette.light } as React.CSSProperties} className="mb-[9px] overflow-hidden rounded-md border border-[var(--lab-line)] bg-[var(--lab-subtle)]">
+                    <button type="button" aria-expanded={Boolean(isOpen)} className="flex min-h-10 w-full touch-manipulation items-center justify-between gap-2 px-[11px] py-[13px] text-left text-xs font-bold uppercase text-[var(--group-dark)] [[data-lab-theme=light]_&]:text-[var(--group-light)]" onClick={() => toggleNodeGroup(job.name)}>
                       <span>{job.name}</span>
                       <ChevronDown size={14} className={`transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
                     </button>
@@ -276,14 +294,14 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templa
                             key={alg.type}
                             draggable
                             onDragStart={(e) => onDragStart(e, alg.type)}
-                            className="group rounded-[5px] border border-[color-mix(in_srgb,var(--group-color)_35%,var(--lab-line))] bg-[color-mix(in_srgb,var(--group-color)_11%,var(--lab-panel))] px-[9px] py-2.5 text-left text-xs text-[var(--group-color)] md:cursor-grab md:active:cursor-grabbing flex items-center justify-between gap-2"
+                            className="group flex min-h-[34px] items-center justify-between gap-2 rounded-[5px] bg-[var(--group-fill)] px-[9px] py-2 text-center text-xs font-bold uppercase tracking-[0.03em] text-white hover:brightness-110 md:cursor-grab md:active:cursor-grabbing"
                           >
-                            <span className="block min-w-0 flex-1">{alg.label}</span>
+                            <span className="block min-w-0 flex-1 text-center">{alg.label}</span>
                             <button
                               type="button"
                               onClick={() => addNodeFromLibrary(alg.type)}
                               aria-label={`Add ${alg.label} to canvas`}
-                              className="flex min-h-9 min-w-9 shrink-0 touch-manipulation items-center justify-center rounded border border-[color-mix(in_srgb,var(--group-color)_35%,var(--lab-line))] px-2 text-base font-semibold leading-none md:hidden"
+                              className="flex min-h-9 min-w-9 shrink-0 touch-manipulation items-center justify-center rounded border border-white/40 px-2 text-base font-semibold leading-none md:hidden"
                             >
                               +
                             </button>
