@@ -245,7 +245,7 @@ def run():
         page.wait_for_timeout(200)
         if page.locator("[aria-modal='true']").count():
             page.locator("[aria-modal='true']").get_by_role("button", name="ยกเลิก").click()
-        page.locator(".react-flow__node").first.click()
+        page.locator(".react-flow__node").first.click(position={"x": 6, "y": 6})
         page.keyboard.press("Delete")
         page.wait_for_timeout(200)
         after = page.locator(".react-flow__node").count()
