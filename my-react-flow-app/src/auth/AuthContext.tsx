@@ -9,6 +9,7 @@ import {
 } from 'react';
 
 import { apiFetch } from '../lib/http';
+import { clearLabStorage } from '../lib/labStorage';
 
 
 export type AuthUser = {
@@ -98,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await apiFetch('/api/auth/logout', { method: 'POST' });
     } finally {
+      clearLabStorage();
       setUser(null);
       setError(null);
     }

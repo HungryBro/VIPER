@@ -138,3 +138,10 @@ def test_public_session_secret_is_allowed_on_this_machine(backend_url):
 
 def test_a_set_session_secret_is_allowed_anywhere():
     check_session_secret(replace(settings, session_secret="real-secret", backend_url="https://viper.example.org"))
+
+
+@pytest.mark.parametrize("field, value", [("epochs", 301), ("batch", 129), ("image_size", 1281)])
+def test_training_settings_have_upper_limits(client, field, value):
+    # One shared worker trains for everyone; an oversized job would block the class.
+    response = client.post("/api/detection/train/start", json={"dataset_yaml": "x.yaml", field: value})
+    assert response.status_code == 422
