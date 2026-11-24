@@ -10,7 +10,7 @@ export default function LabHelpDialog({ onClose }: { onClose: () => void }) {
     <div className="viper-platform" data-theme={theme}>
       <Modal title="เริ่มใช้ VIPER Lab" onClose={onClose}>
         <div className="modal-body">
-          <p>1. ลากโหนดจากคลังทางซ้ายลงบน canvas (บนมือถือกดปุ่ม “+” ข้างชื่อโหนดที่ต้องการ)</p>
+          <p>1. ลากโหนดจากคลังทางซ้ายลงบน canvas (บนมือถือแตะที่ปุ่มโหนดที่ต้องการ)</p>
           <p>2. ลากจากจุด Output ด้านขวาของโหนดไปยัง Input ด้านซ้ายของโหนดถัดไป ชนิดข้อมูลต้องตรงกัน</p>
           <p>
             3. ตั้งค่าพารามิเตอร์ในโหนดได้ทันที ลากหัวโหนดเพื่อย้าย ลากพื้นที่ว่างเพื่อเลื่อน หรือกด Fit view

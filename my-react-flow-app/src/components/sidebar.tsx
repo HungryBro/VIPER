@@ -290,22 +290,20 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templa
                     {isOpen && (
                       <div className="flex flex-col gap-[7px] px-2 pb-[9px]">
                         {job.algorithms.map(alg => (
-                          <div
+                          <button
                             key={alg.type}
+                            type="button"
                             draggable
                             onDragStart={(e) => onDragStart(e, alg.type)}
-                            className="group flex min-h-[34px] items-center justify-between gap-2 rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-blue-soft)] px-[9px] py-2 text-center text-xs font-bold uppercase tracking-[0.03em] text-[var(--lab-blue-ink)] hover:bg-[var(--lab-action)] hover:text-white focus-within:bg-[var(--lab-action)] focus-within:text-white md:cursor-grab md:active:cursor-grabbing"
+                            // Touch screens cannot drag an HTML5 element, so a tap adds the node; with a mouse the button is drag-only.
+                            onClick={() => {
+                              if (window.matchMedia(COMPACT_MOBILE_QUERY).matches || window.matchMedia('(pointer: coarse)').matches) addNodeFromLibrary(alg.type);
+                            }}
+                            aria-label={`เพิ่ม ${alg.label} ลง canvas`}
+                            className="block min-h-11 w-full touch-manipulation rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-blue-soft)] px-[9px] py-2 text-center text-xs font-bold uppercase tracking-[0.03em] text-[var(--lab-blue-ink)] hover:bg-[var(--lab-action)] hover:text-white focus-visible:bg-[var(--lab-action)] focus-visible:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lab-blue)] active:bg-[var(--lab-action)] active:text-white md:min-h-[34px] [@media(pointer:coarse)]:min-h-11 md:cursor-grab md:active:cursor-grabbing"
                           >
-                            <span className="block min-w-0 flex-1 text-center">{alg.label}</span>
-                            <button
-                              type="button"
-                              onClick={() => addNodeFromLibrary(alg.type)}
-                              aria-label={`Add ${alg.label} to canvas`}
-                              className="flex min-h-9 min-w-9 shrink-0 touch-manipulation items-center justify-center rounded border border-[color-mix(in_srgb,currentColor_40%,transparent)] px-2 text-base font-semibold leading-none md:hidden"
-                            >
-                              +
-                            </button>
-                          </div>
+                            {alg.label}
+                          </button>
                         ))}
                       </div>
                     )}
@@ -314,7 +312,7 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templa
               })}
 
             {activeTab === 'nodes' && (
-              <p className="px-1 pt-2 text-xs leading-relaxed text-[var(--lab-muted)]">ลากโหนดจากคลังลงบน Canvas แล้วลากสายเชื่อมเอง (บนจอแคบกดปุ่ม + ข้างชื่อโหนด)</p>
+              <p className="px-1 pt-2 text-xs leading-relaxed text-[var(--lab-muted)]">ลากโหนดจากคลังลงบน Canvas แล้วลากสายเชื่อมเอง (บนจอสัมผัสแตะที่ปุ่มโหนดเพื่อเพิ่ม)</p>
             )}
 
             {SHOW_LEGACY_TEMPLATE_LIST && activeTab === 'templates' && templateView === 'official' && templateJobs.map(job => {
