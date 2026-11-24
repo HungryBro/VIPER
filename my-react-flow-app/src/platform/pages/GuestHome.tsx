@@ -2,54 +2,17 @@
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
-  BarChart3,
   BookOpen,
-  CheckCircle2,
   GraduationCap,
-  Image as ImageIcon,
   Library,
   LogIn,
-  ScanLine,
   ShieldCheck,
   Workflow,
 } from 'lucide-react';
 
 import { useAuth } from '../../auth/AuthContext';
-import { Badge, Empty, cx } from '../ui';
-
-// ภาพประกอบคงที่ของ workflow (ไม่ใช่ข้อมูลจริง ไม่มีผลทดลอง)
-const PREVIEW_NODES = [
-  { category: 'Input', title: 'Sample Dataset', Icon: ImageIcon },
-  { category: 'Model', title: 'Object Detector', Icon: ScanLine },
-  { category: 'Evaluation', title: 'Detection Evaluation', Icon: BarChart3 },
-];
-
-function WorkflowPreview() {
-  return (
-    <div className="mini-workflow blue">
-      <svg viewBox="0 0 330 220" className="mini-lines">
-        <path d="M90 65H170Q185 65 185 80V140Q185 155 200 155H245" />
-        <circle cx="185" cy="112" r="5" />
-      </svg>
-      {PREVIEW_NODES.map(({ category, title, Icon }, i) => (
-        <div className={cx('mini-node', `node-${i}`)} key={title}>
-          <span>
-            <Icon size={17} />
-          </span>
-          <div>
-            <small>{category}</small>
-            <strong>{title}</strong>
-          </div>
-          <CheckCircle2 size={12} />
-        </div>
-      ))}
-      <span className="mini-note">
-        <span className="tiny-dot" />
-        Image processing workflow
-      </span>
-    </div>
-  );
-}
+import { Badge, Empty } from '../ui';
+import homeDetection from '../assets/home-detection.jpg';
 
 export default function GuestHome() {
   const { error } = useAuth();
@@ -101,11 +64,11 @@ export default function GuestHome() {
             <span>Object Detection</span>
           </div>
           <div className="guest-lab-canvas">
-            <WorkflowPreview />
+            <img src={homeDetection} alt="" />
           </div>
           <div className="guest-lab-caption">
             <span className="tiny-dot" />
-            ภาพประกอบ Workflow
+            ตัวอย่างผลตรวจจับวัตถุ
           </div>
         </div>
       </section>

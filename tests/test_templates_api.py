@@ -625,7 +625,7 @@ def test_learner_cannot_create_or_edit_official_and_own_templates_still_work():
             seeded = db.get(Template, seeded_id)
             assert seeded.is_official is True
             assert seeded.name != "Hijacked"
-            assert seeded.cover_url is None
+            assert seeded.cover_url.startswith("/static/samples/covers/")  # the seeded cover, not a learner upload
             assert seeded.comments_enabled is True
             assert db.scalar(select(Template).where(Template.name == "Sneaky")) is None
             # The rejected promotions changed nothing, so nothing was logged for them.
@@ -1112,7 +1112,7 @@ def test_deleted_templates_are_hidden_from_every_list_and_endpoint():
                 saved = db.get(Template, template_id)
                 assert saved.deleted_at is not None
                 assert saved.name != "Revived"
-                assert saved.cover_url is None
+                assert (saved.cover_url or "").startswith("/static/samples/covers/") == (template_id == official_id)
             assert db.get(Template, official_id).comments_enabled is True
             # Soft delete keeps the comments; they are only unreachable.
             assert db.get(Comment, comment_id) is not None
