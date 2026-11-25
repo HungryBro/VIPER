@@ -1,5 +1,5 @@
 // File: src/FlowCanvas.tsx
-import { Maximize2, Save, Trash2, Upload } from 'lucide-react';
+import { Maximize2, Trash2, Upload } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import ReactFlow, {
   MiniMap, Controls, Background, useNodesState, useEdgesState,
@@ -32,6 +32,8 @@ export interface FlowCanvasHandle {
   restoreSnapshot: (nodes: RFNode[], edges: Edge[], viewport: Viewport | 'fit') => void;
   fitView: () => void;
   addNode: (nodeType: string) => void;
+  /** Download the workflow as a .json file (the old Save button; now offered in the Save Template dialog). */
+  saveFile: () => void;
   /** Add a node of this type under a screen point (a drop from the library) and fit the view. */
   addNodeAt: (nodeType: string, clientX: number, clientY: number) => void;
 }
@@ -428,8 +430,9 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       },
       fitView: () => fitWorkflowToCanvas(),
       addNode: addNodeFromLibrary,
+      saveFile: saveWorkflow,
       addNodeAt: addNodeAtScreenPoint,
-    }), [addNodeAtScreenPoint, addNodeFromLibrary, cancelNodeById, edges, fitWorkflowToCanvas, getViewport, runNodeById, setEdges, setNodes, setViewport, nodes]);
+    }), [saveWorkflow, addNodeAtScreenPoint, addNodeFromLibrary, cancelNodeById, edges, fitWorkflowToCanvas, getViewport, runNodeById, setEdges, setNodes, setViewport, nodes]);
 
     // A restore with 'fit' or an add waits until React Flow has measured every node:
     // fitting earlier would use the wrong bounds.
@@ -563,7 +566,6 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           <button type="button" onClick={() => fitWorkflowToCanvas()} title="Fit workflow to canvas" aria-label="Fit workflow to canvas" className="viper-fit-canvas-button flex min-h-8 min-w-8 touch-manipulation items-center justify-center gap-[5px] rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2 text-xs text-[var(--lab-ink)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] sm:px-[9px]">
             <Maximize2 size={15} aria-hidden="true" />
           </button>
-          <button type="button" onClick={saveWorkflow} className="flex min-h-8 min-w-8 touch-manipulation items-center justify-center gap-[5px] rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2 text-xs text-[var(--lab-ink)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] sm:px-[9px]"><Save size={15} aria-hidden="true" /><span className="hidden sm:inline">Save</span></button>
           <button type="button" onClick={triggerLoadWorkflow} className="flex min-h-8 min-w-8 touch-manipulation items-center justify-center gap-[5px] rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2 text-xs text-[var(--lab-ink)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] sm:px-[9px]"><Upload size={15} aria-hidden="true" /><span className="hidden sm:inline">Load</span></button>
           <button type="button" onClick={handleClearWorkflow} className="flex min-h-8 min-w-8 touch-manipulation items-center justify-center gap-[5px] rounded-[5px] border border-[color-mix(in_srgb,var(--lab-danger)_35%,var(--lab-line))] bg-[var(--lab-panel)] px-2 text-xs text-[var(--lab-ink)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] sm:px-[9px] text-[var(--lab-danger)]"><Trash2 size={15} aria-hidden="true" /><span className="hidden sm:inline">Clear</span></button>
           <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleFileChange} />

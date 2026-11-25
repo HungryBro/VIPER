@@ -453,7 +453,7 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
       )}
       {helpOpen && <LabHelpDialog onClose={() => setHelpOpen(false)} />}
       {saveTemplateOpen && (
-        <SaveTemplateDialog getCurrentWorkflow={getCurrentWorkflow} onClose={() => setSaveTemplateOpen(false)} onSaved={bumpTemplateList} />
+        <SaveTemplateDialog getCurrentWorkflow={getCurrentWorkflow} onSaveFile={() => canvasRef.current?.saveFile()} onClose={() => setSaveTemplateOpen(false)} onSaved={bumpTemplateList} />
       )}
     </div>
   );

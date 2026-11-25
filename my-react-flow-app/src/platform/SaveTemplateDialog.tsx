@@ -3,7 +3,7 @@
 // /lab อยู่นอก Layout ของแพลตฟอร์ม จึงห่อด้วย .viper-platform เองเพื่อให้ Modal มีสไตล์
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Globe2, LockKeyhole, Save, ShieldCheck } from 'lucide-react';
+import { Download, Globe2, LockKeyhole, Save, ShieldCheck } from 'lucide-react';
 
 import { useAuth } from '../auth/AuthContext';
 import './styles/index.css';
@@ -16,10 +16,13 @@ type Choice = 'private' | 'public' | 'official';
 
 export default function SaveTemplateDialog({
   getCurrentWorkflow,
+  onSaveFile,
   onClose,
   onSaved,
 }: {
   getCurrentWorkflow: () => CurrentWorkflow | null;
+  /** ดาวน์โหลด workflow เป็นไฟล์ .json (ปุ่ม Save เดิมบน canvas ย้ายมาไว้ที่นี่) */
+  onSaveFile?: () => void;
   onClose: () => void;
   onSaved?: () => void;
 }) {
@@ -123,6 +126,14 @@ export default function SaveTemplateDialog({
                   </label>
                 )}
               </fieldset>
+              {onSaveFile && (
+                <div style={{ marginTop: 14 }}>
+                  <Button kind="secondary" type="button" disabled={empty} onClick={onSaveFile}>
+                    <Download size={15} />
+                    บันทึกเป็นไฟล์ .json
+                  </Button>
+                </div>
+              )}
               {empty && <p className="muted small">ยังไม่มีโหนดบน canvas จึงยังบันทึกไม่ได้</p>}
               {error && (
                 <p className="auth-error" role="alert">
