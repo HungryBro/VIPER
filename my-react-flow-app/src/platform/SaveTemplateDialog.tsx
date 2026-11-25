@@ -1,20 +1,27 @@
 // บันทึก Workflow ใน Lab เป็น Template (C-12) ย้ายจาก SaveTemplateDialog ของ mockup ต่อ createPlatformTemplate
 // (log template.create) ไม่ย้ายช่องผูกบทเรียน; Official แสดงเฉพาะ admin/ผู้สอน
 // /lab อยู่นอก Layout ของแพลตฟอร์ม จึงห่อด้วย .viper-platform เองเพื่อให้ Modal มีสไตล์
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Download, FileJson, Globe2, LockKeyhole, Save, ShieldCheck } from 'lucide-react';
+import { Download, FileJson, Globe2, LockKeyhole, Save, ShieldCheck, Upload } from 'lucide-react';
 
 import { useAuth } from '../auth/AuthContext';
 import './styles/index.css';
 import './styles/SaveTemplate.css';
 import { createPlatformTemplate, uploadTemplateCover, type CurrentWorkflow } from '../lib/templateApi';
+import ImportWorkflowPanel, { useWorkflowImport, type ImportTarget, type ImportedWorkflow } from './ImportWorkflowPanel';
 import { canTeach, isAdmin } from './permissions';
 import SaveTemplateCover, { useCoverPick } from './SaveTemplateCover';
 import { usePlatformTheme } from './theme';
 import { Button, Modal } from './ui';
 
 type Choice = 'private' | 'public' | 'official';
+export type DialogTab = 'save' | 'import';
+
+const TABS: Array<{ id: DialogTab; label: string }> = [
+  { id: 'save', label: 'บันทึก / ส่งออก' },
+  { id: 'import', label: 'นำเข้า' },
+];
 
 const CHOICES: Array<{ value: Choice; label: string; hint: string; Icon: typeof Globe2 }> = [
   { value: 'private', label: 'Private', hint: 'เห็นเฉพาะคุณ', Icon: LockKeyhole },
@@ -32,12 +39,17 @@ const StepTitle = ({ n, children }: { n: number; children: React.ReactNode }) =>
 export default function SaveTemplateDialog({
   getCurrentWorkflow,
   onSaveFile,
+  onImport,
+  initialTab = 'save',
   onClose,
   onSaved,
 }: {
   getCurrentWorkflow: () => CurrentWorkflow | null;
   /** ดาวน์โหลด workflow เป็นไฟล์ .json (ปุ่ม Save เดิมบน canvas ย้ายมาไว้ที่นี่) */
   onSaveFile?: () => void;
+  /** เปิด workflow จากไฟล์ .json (ปุ่ม Load เดิมบน canvas ย้ายมาไว้ที่แท็บนำเข้า) */
+  onImport: (imported: ImportedWorkflow, target: ImportTarget) => void;
+  initialTab?: DialogTab;
   onClose: () => void;
   onSaved?: () => void;
 }) {
@@ -52,6 +64,10 @@ export default function SaveTemplateDialog({
   const [savedName, setSavedName] = useState<string | null>(null);
   const [coverFailure, setCoverFailure] = useState('');
   const cover = useCoverPick();
+  const [tab, setTab] = useState<DialogTab>(initialTab);
+  const tabRefs = useRef<Partial<Record<DialogTab, HTMLButtonElement | null>>>({});
+  const importer = useWorkflowImport();
+  const [importTarget, setImportTarget] = useState<ImportTarget>('new');
   const officialAllowed = isAdmin(user) || canTeach(user);
   const empty = !current || current.workflow.nodes.length === 0;
   const summary = current
@@ -64,6 +80,10 @@ export default function SaveTemplateDialog({
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (tab === 'import') {
+      if (importer.imported) onImport(importer.imported, importTarget);
+      return;
+    }
     if (busy) return;
     // อ่าน workflow ตอนกดบันทึกอีกครั้ง เพื่อให้ได้สถานะล่าสุดของ canvas
     const latest = getCurrentWorkflow();
@@ -100,7 +120,7 @@ export default function SaveTemplateDialog({
 
   return (
     <div className="viper-platform" data-theme={theme}>
-      <Modal title="บันทึกเป็น Template" subtitle={savedName === null ? summary : undefined} onClose={onClose} wide>
+      <Modal title="Template และไฟล์ workflow" subtitle={savedName === null ? summary : undefined} onClose={onClose} wide>
         {savedName !== null ? (
           <>
             <div className="modal-body" role="status">
@@ -121,6 +141,36 @@ export default function SaveTemplateDialog({
             </div>
           </>
         ) : (
+          <>
+          <div
+            className="save-template-tabs"
+            role="tablist"
+            aria-label="Template และไฟล์ workflow"
+            onKeyDown={(event) => {
+              if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+              event.preventDefault();
+              const step = event.key === 'ArrowRight' ? 1 : -1;
+              const next = TABS[(TABS.findIndex((item) => item.id === tab) + step + TABS.length) % TABS.length].id;
+              setTab(next);
+              tabRefs.current[next]?.focus();
+            }}
+          >
+            {TABS.map((item) => (
+              <button
+                key={item.id}
+                ref={(element) => { tabRefs.current[item.id] = element; }}
+                type="button"
+                role="tab"
+                id={`save-template-tab-${item.id}`}
+                aria-selected={tab === item.id}
+                aria-controls="save-template-panel"
+                tabIndex={tab === item.id ? 0 : -1}
+                onClick={() => setTab(item.id)}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
           <form
             className="save-template-form"
             onSubmit={(event) => void submit(event)}
@@ -128,7 +178,23 @@ export default function SaveTemplateDialog({
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => event.preventDefault()}
           >
-            <div className="modal-body save-template-body">
+            <div
+              className="modal-body save-template-body"
+              id="save-template-panel"
+              role="tabpanel"
+              aria-labelledby={`save-template-tab-${tab}`}
+              key={tab}
+            >
+              {tab === 'import' ? (
+                <ImportWorkflowPanel
+                  importer={importer}
+                  target={importTarget}
+                  onTargetChange={setImportTarget}
+                  currentNodes={current?.workflow.nodes.length ?? 0}
+                  onClose={onClose}
+                />
+              ) : (
+                <>
               <section className="save-template-section" aria-labelledby="save-template-info">
                 <h3 id="save-template-info" className="save-template-title">
                   <StepTitle n={1}>ข้อมูล Template</StepTitle>
@@ -202,7 +268,7 @@ export default function SaveTemplateDialog({
                     <FileJson size={24} aria-hidden="true" />
                     <span>
                       <strong>ดาวน์โหลดเป็นไฟล์ .json</strong>
-                      <small className="muted">ไม่ขึ้นระบบ เปิดกลับได้ด้วยปุ่ม Load บน canvas</small>
+                      <small className="muted">ไม่ขึ้นระบบ เปิดกลับได้ที่แท็บ "นำเข้า"</small>
                     </span>
                     <Button kind="secondary" disabled={empty} onClick={onSaveFile}>
                       <Download size={15} />
@@ -211,8 +277,10 @@ export default function SaveTemplateDialog({
                   </div>
                 </section>
               )}
+                </>
+              )}
             </div>
-            {(empty || error) && (
+            {tab === 'save' && (empty || error) && (
               <div className="save-template-notes">
                 {empty && <p className="muted small">ยังไม่มีโหนดบน canvas จึงยังบันทึกไม่ได้</p>}
                 {error && (
@@ -226,12 +294,20 @@ export default function SaveTemplateDialog({
               <Button kind="secondary" type="button" onClick={onClose}>
                 ยกเลิก
               </Button>
-              <Button type="submit" disabled={!name.trim() || busy || empty}>
-                <Save size={15} />
-                {busy ? 'กำลังบันทึก…' : 'บันทึก Template'}
-              </Button>
+              {tab === 'save' ? (
+                <Button key="save" type="submit" disabled={!name.trim() || busy || empty}>
+                  <Save size={15} />
+                  {busy ? 'กำลังบันทึก…' : 'บันทึก Template'}
+                </Button>
+              ) : (
+                <Button key="import" type="submit" disabled={!importer.imported}>
+                  <Upload size={15} />
+                  นำเข้า
+                </Button>
+              )}
             </div>
           </form>
+          </>
         )}
       </Modal>
     </div>

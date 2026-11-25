@@ -16,6 +16,7 @@ import { nodeSpec } from '../lib/nodeCatalog';
 import { labBridge } from '../platform/labBridge';
 import { usePlatformTheme } from '../platform/theme';
 import SaveTemplateDialog from '../platform/SaveTemplateDialog';
+import type { ImportTarget, ImportedWorkflow } from '../platform/ImportWorkflowPanel';
 import type { WorkflowTab, NodeStatus } from '../types'; 
 
 const STORAGE_KEY_APP_TABS = 'n2n_app_tabs';
@@ -311,6 +312,14 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
     };
   }, [activeTabName]);
 
+  // นำเข้าไฟล์ .json จาก dialog: เปิดเป็นแท็บใหม่ (ทางเดียวกับ template) หรือแทนแท็บปัจจุบัน (ทางเดิมของปุ่ม Load)
+  const handleImportWorkflow = useCallback((imported: ImportedWorkflow, target: ImportTarget) => {
+    if (target === 'new') handleLoadTemplate(imported);
+    else canvasRef.current?.importWorkflow(imported.nodes, imported.edges);
+    canvasRef.current?.log(`Imported ${imported.fileName}`);
+    setSaveTemplateOpen(false);
+  }, [handleLoadTemplate]);
+
   const handleLoadPlatformTemplate = useCallback((template: TemplateDetail) => {
     handleLoadTemplate({ name: template.name, nodes: template.workflow.nodes, edges: template.workflow.edges });
   }, [handleLoadTemplate]);
@@ -406,7 +415,7 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
         <button
           type="button"
           onClick={() => setSaveTemplateOpen(true)}
-          disabled={isRunning || !activeTab?.nodes.length}
+          disabled={isRunning}
           aria-label="เก็บ Template"
           title="Template"
           className="flex h-8 shrink-0 touch-manipulation items-center justify-center gap-1.5 rounded-md border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2.5 text-xs font-semibold text-[var(--lab-ink)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] disabled:cursor-not-allowed disabled:opacity-45"
@@ -453,7 +462,7 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
       )}
       {helpOpen && <LabHelpDialog onClose={() => setHelpOpen(false)} />}
       {saveTemplateOpen && (
-        <SaveTemplateDialog getCurrentWorkflow={getCurrentWorkflow} onSaveFile={() => canvasRef.current?.saveFile()} onClose={() => setSaveTemplateOpen(false)} onSaved={bumpTemplateList} />
+        <SaveTemplateDialog getCurrentWorkflow={getCurrentWorkflow} onSaveFile={() => canvasRef.current?.saveFile()} onImport={handleImportWorkflow} onClose={() => setSaveTemplateOpen(false)} onSaved={bumpTemplateList} />
       )}
     </div>
   );
