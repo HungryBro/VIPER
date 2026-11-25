@@ -80,22 +80,26 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
 - [x] `CHECK PASS`, tsc ไม่มี error และสคริปต์ UI ผ่าน
 - [ ] **ให้ผู้ใช้ดูภาพ `/teach` และ CourseForm ก่อนทำ T3**
 
-### [ ] T3 Backend: บทเรียน
+### [x] T3 Backend: บทเรียน
 - เกณฑ์รับ
-  - [ ] model `Lesson` ตาม plan และ `lessonCount` ของคอร์สนับเฉพาะบทที่ยังไม่ลบ
-  - [ ] endpoint ทั้งหมด (สิทธิ์ผู้จัดการตาม T1):
+  - [x] model `Lesson` ตาม plan และ `lessonCount` ของคอร์สนับเฉพาะบทที่ยังไม่ลบ
+  - [x] endpoint ทั้งหมด (สิทธิ์ผู้จัดการตาม T1):
     - `GET /api/courses/{id}/lessons`: ผู้จัดการได้บทเต็ม คนอื่นได้ content_md ว่าง ส่วน T6 จะเปิดให้ผู้ลงทะเบียน
     - `POST /api/courses/{id}/lessons`: ต่อท้ายที่ position N+1 และตั้งชื่อ "บทเรียนที่ N"
     - `GET /api/lessons/{id}`: ผู้จัดการได้ `{locked:false, lesson}` คอร์ส Published ได้ `{locked:true, lesson: preview}` และมองไม่เห็นได้ 404
     - `PATCH /api/lessons/{id}`: title บังคับ ≤120, subtitle ≤200, content_md ≤20000, minutes ให้อยู่ในช่วง 1–600, level ต้องเป็น 1 ใน 3 ค่า ไม่งั้น 422
     - `DELETE /api/lessons/{id}`: soft delete แล้วจัด position ที่เหลือเป็น 1..N
     - `POST /api/lessons/{id}/move` รับ `{direction:-1|1}`: ถ้าอยู่ขอบคืนค่าเดิมโดยไม่ error
-  - [ ] Lesson response มี `activity: null` เสมอ และบันทึก audit `lesson.create`, `lesson.update`, `lesson.delete` (move ไม่บันทึก)
-  - [ ] เทสต์: ผู้สอนคนอื่นแก้หรือลบบทได้ 404 ลบแล้ว position ต่อเนื่อง move ที่ขอบไม่ error และผู้ไม่ใช่ผู้จัดการได้ content_md ว่าง
+  - [x] Lesson response มี `activity: null` เสมอ และบันทึก audit `lesson.create`, `lesson.update`, `lesson.delete` (move ไม่บันทึก)
+  - [x] เทสต์: ผู้สอนคนอื่นแก้หรือลบบทได้ 404 ลบแล้ว position ต่อเนื่อง move ที่ขอบไม่ error และผู้ไม่ใช่ผู้จัดการได้ content_md ว่าง
 - ตรวจ: pytest ไฟล์เดียว แล้ว `scripts/check.sh`
 - ไฟล์: `server/models.py`, `server/schemas.py`, `server/routers/courses.py`, `tests/test_courses_api.py`
 - ขึ้นกับ: T1
 - ขนาด: M
+- ผลตรวจ (25 พ.ย. 2569)
+  - `tests/test_courses_api.py` ผ่าน 31/31 (22 เดิม + 9) · `scripts/check.sh` `CHECK PASS` (BE ผ่าน 412, ล้ม SURF 15)
+  - สร้าง ลบ แก้ และย้ายบทล็อกแถวของคอร์ส (`FOR UPDATE`) ก่อนอ่าน position กันเลขบทซ้ำเมื่อมีคำขอพร้อมกันบน PostgreSQL (SQLite ไม่สนคำสั่งนี้ และยังไม่ได้ทดสอบการชนกันจริง)
+  - `PATCH` ที่ไม่มีค่าเปลี่ยน ไม่แตะ `course.updated_at` และไม่บันทึก audit · ย้ายที่ขอบก็ไม่แตะเช่นกัน
 
 ### [ ] T4 UI: ผู้สอนจัดการบทเรียน
 - เกณฑ์รับ

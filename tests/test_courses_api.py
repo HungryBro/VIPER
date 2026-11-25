@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from server.auth import utc_now
 from server.database import Base
 from server.main import app
-from server.models import AuditLog, Course, User
+from server.models import AuditLog, Course, Lesson, User
 from server.routers import courses as courses_router
 from test_templates_api import add_user, authenticate, make_client, make_engine
 
@@ -246,3 +246,179 @@ def test_partial_unique_index_ignores_deleted_courses(env):
         db.add(Course(owner_id=users["a"].id, code="IMG-101", title="t", description="d"))
         with pytest.raises(IntegrityError):
             db.commit()
+
+
+def add_lesson(login, course_id: int, who: str = "a") -> dict:
+    response = login(who).post(f"/api/courses/{course_id}/lessons")
+    assert response.status_code == 201
+    return response.json()
+
+
+def lesson_rows(login, course_id: int, who: str | None = "a") -> list[dict]:
+    return login(who).get(f"/api/courses/{course_id}/lessons").json()
+
+
+def lesson_requests(client, course_id: int, lesson_id: int) -> list:
+    return [
+        client.post(f"/api/courses/{course_id}/lessons"),
+        client.patch(f"/api/lessons/{lesson_id}", json={"title": "x"}),
+        client.delete(f"/api/lessons/{lesson_id}"),
+        client.post(f"/api/lessons/{lesson_id}/move", json={"direction": 1}),
+    ]
+
+
+def test_new_lesson_defaults(env):
+    _, _, login = env
+    course_id = create(login).json()["id"]
+    add_lesson(login, course_id)
+    lesson = add_lesson(login, course_id, "admin")
+    assert lesson == {
+        "id": lesson["id"],
+        "course_id": course_id,
+        "position": 2,
+        "title": "บทเรียนที่ 2",
+        "subtitle": "",
+        "content_md": "",
+        "minutes": 20,
+        "level": "พื้นฐาน",
+        "color": "blue",
+        "activity": None,
+    }
+
+
+def test_other_teacher_cannot_touch_lessons(env):
+    engine, _, login = env
+    course_id = create(login).json()["id"]
+    lesson_id = add_lesson(login, course_id)["id"]
+    assert [r.status_code for r in lesson_requests(login("b"), course_id, lesson_id)] == [404] * 4
+    set_course(engine, course_id, status="published")
+    assert [r.status_code for r in lesson_requests(login("b"), course_id, lesson_id)] == [403] * 4
+    assert [r.status_code for r in lesson_requests(login(None), course_id, lesson_id)] == [401] * 4
+
+
+def test_published_content_is_hidden_from_non_managers(env):
+    engine, _, login = env
+    course_id = create(login).json()["id"]
+    lesson_id = add_lesson(login, course_id)["id"]
+    login("a").patch(f"/api/lessons/{lesson_id}", json={"content_md": "secret", "subtitle": "s"})
+    set_course(engine, course_id, status="published")
+    for who in ("learner", "b", None):
+        assert [row["content_md"] for row in lesson_rows(login, course_id, who)] == [""]
+        lookup = login(who).get(f"/api/lessons/{lesson_id}")
+        assert lookup.json() == {
+            "locked": True,
+            "lesson": {"id": lesson_id, "course_id": course_id, "title": "บทเรียนที่ 1", "subtitle": "s"},
+        }
+        assert "secret" not in lookup.text
+    for who in ("a", "admin"):
+        assert [row["content_md"] for row in lesson_rows(login, course_id, who)] == ["secret"]
+        lookup = login(who).get(f"/api/lessons/{lesson_id}").json()
+        assert (lookup["locked"], lookup["lesson"]["content_md"]) == (False, "secret")
+
+
+def test_draft_lessons_are_404_for_non_managers(env):
+    _, _, login = env
+    course_id = create(login).json()["id"]
+    lesson_id = add_lesson(login, course_id)["id"]
+    for who in ("learner", "b", None):
+        assert login(who).get(f"/api/lessons/{lesson_id}").status_code == 404
+        assert login(who).get(f"/api/courses/{course_id}/lessons").status_code == 404
+
+
+def test_delete_renumbers_and_updates_lesson_count(env):
+    _, _, login = env
+    course_id = create(login).json()["id"]
+    ids = [add_lesson(login, course_id)["id"] for _ in range(3)]
+    assert login("a").get(f"/api/courses/{course_id}").json()["lesson_count"] == 3
+    assert login("a").delete(f"/api/lessons/{ids[1]}").status_code == 204
+    assert [(r["id"], r["position"]) for r in lesson_rows(login, course_id)] == [(ids[0], 1), (ids[2], 2)]
+    assert login("a").get(f"/api/courses/{course_id}").json()["lesson_count"] == 2
+    assert login("a").get("/api/courses/managed").json()["items"][0]["lesson_count"] == 2
+    assert login("a").get(f"/api/lessons/{ids[1]}").status_code == 404
+    assert login("a").delete(f"/api/lessons/{ids[1]}").status_code == 404
+    assert add_lesson(login, course_id)["position"] == 3
+
+
+def test_move_swaps_neighbours_and_ignores_edges(env):
+    _, _, login = env
+    course_id = create(login).json()["id"]
+    first, second, third = [add_lesson(login, course_id)["id"] for _ in range(3)]
+
+    def move(lesson_id, direction):
+        response = login("a").post(f"/api/lessons/{lesson_id}/move", json={"direction": direction})
+        assert response.status_code == 200
+        assert [row["position"] for row in response.json()] == [1, 2, 3]
+        return [row["id"] for row in response.json()]
+
+    assert move(first, -1) == [first, second, third]
+    assert move(third, 1) == [first, second, third]
+    assert move(third, -1) == [first, third, second]
+    assert [row["id"] for row in lesson_rows(login, course_id)] == [first, third, second]
+    assert login("a").post(f"/api/lessons/{first}/move", json={"direction": 2}).status_code == 422
+
+
+def test_lesson_patch_validation(env):
+    _, _, login = env
+    course_id = create(login).json()["id"]
+    url = f"/api/lessons/{add_lesson(login, course_id)['id']}"
+    client = login("a")
+    assert client.patch(url, json={"minutes": 0}).json()["minutes"] == 1
+    assert client.patch(url, json={"minutes": 999}).json()["minutes"] == 600
+    edited = client.patch(url, json={"title": "  T  ", "subtitle": "  s  ", "content_md": "  ## h\n", "level": "ขั้นสูง"})
+    assert [edited.json()[k] for k in ("title", "subtitle", "content_md", "level")] == ["T", "s", "  ## h\n", "ขั้นสูง"]
+    for bad in (
+        {"level": "x"},
+        {"title": "   "},
+        {"title": "x" * 121},
+        {"subtitle": "x" * 201},
+        {"content_md": "x" * 20001},
+        {"minutes": "abc"},
+        {"minutes": None},
+        {"title": None},
+        {"position": 5},
+        {"course_id": 99},
+    ):
+        assert client.patch(url, json=bad).status_code == 422, bad
+
+
+def test_lesson_changes_are_audited_and_touch_the_course(env):
+    engine, users, login = env
+    course_id = create(login).json()["id"]
+    old = utc_now().replace(year=2000)
+
+    def touched(request) -> bool:
+        set_course(engine, course_id, updated_at=old)
+        request()
+        return not login("a").get(f"/api/courses/{course_id}").json()["updated_at"].startswith("2000")
+
+    ids = []
+    assert touched(lambda: ids.append(add_lesson(login, course_id)["id"]))
+    assert touched(lambda: ids.append(add_lesson(login, course_id)["id"]))
+    assert touched(lambda: login("a").patch(f"/api/lessons/{ids[0]}", json={"title": "New", "minutes": 20}))
+    assert touched(lambda: login("a").post(f"/api/lessons/{ids[0]}/move", json={"direction": 1}))
+    assert touched(lambda: login("a").delete(f"/api/lessons/{ids[0]}"))
+    with Session(engine) as db:
+        rows = db.scalars(select(AuditLog).where(AuditLog.target_type == "lesson").order_by(AuditLog.id)).all()
+        assert [(row.action, row.target_id, row.status_code) for row in rows] == [
+            ("lesson.create", str(ids[0]), 201),
+            ("lesson.create", str(ids[1]), 201),
+            ("lesson.update", str(ids[0]), 200),
+            ("lesson.delete", str(ids[0]), 204),
+        ]
+        assert rows[2].details == {"fields": ["title"]}
+        assert {row.actor_id for row in rows} == {users["a"].id}
+
+
+def test_deleted_course_hides_every_lesson_endpoint(env):
+    engine, _, login = env
+    course_id = create(login).json()["id"]
+    lesson_id = add_lesson(login, course_id)["id"]
+    set_course(engine, course_id, deleted_at=utc_now())
+    client = login("admin")
+    responses = lesson_requests(client, course_id, lesson_id) + [
+        client.get(f"/api/courses/{course_id}/lessons"),
+        client.get(f"/api/lessons/{lesson_id}"),
+    ]
+    assert [r.status_code for r in responses] == [404] * 6
+    with Session(engine) as db:
+        assert db.get(Lesson, lesson_id).deleted_at is None

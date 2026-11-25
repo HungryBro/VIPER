@@ -169,6 +169,49 @@ class Course(Base):
     )
 
     owner = relationship("User")
+    # Soft-deleted lessons are filtered by the queries (_lesson_query), not here.
+    lessons = relationship(
+        "Lesson",
+        back_populates="course",
+        order_by="Lesson.position",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class Lesson(Base):
+    __tablename__ = "lessons"
+    __table_args__ = (
+        CheckConstraint(
+            "level IN ('พื้นฐาน','ปานกลาง','ขั้นสูง')",
+            name="ck_lessons_level",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    course_id = Column(
+        Integer,
+        ForeignKey("courses.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    position = Column(Integer, nullable=False)
+    title = Column(String(120), nullable=False)
+    subtitle = Column(String(200), nullable=False, default="", server_default="")
+    content_md = Column(Text, nullable=False, default="", server_default="")
+    minutes = Column(Integer, nullable=False, default=20, server_default="20")
+    level = Column(String(16), nullable=False, default="พื้นฐาน", server_default="พื้นฐาน")
+    color = Column(String(16), nullable=False, default="blue", server_default="blue")
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    course = relationship("Course", back_populates="lessons")
 
 
 class Comment(Base):

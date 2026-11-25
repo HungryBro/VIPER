@@ -124,6 +124,7 @@ app.include_router(admin.router)
 app.include_router(me.router)
 app.include_router(templates.router)
 app.include_router(courses.router)
+app.include_router(courses.lessons_router)
 processing_audit_required = [Depends(audit_processing_activity)]
 app.include_router(features.router,       prefix="/api/feature", dependencies=processing_audit_required)
 app.include_router(matching.router,       prefix="/api/match", dependencies=processing_audit_required)

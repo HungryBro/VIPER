@@ -295,3 +295,66 @@ class CoursePublic(BaseModel):
 class CoursePage(BaseModel):
     items: list[CoursePublic]
     next: str | None
+
+
+LessonLevel = Literal["พื้นฐาน", "ปานกลาง", "ขั้นสูง"]
+
+
+class LessonUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: str | None = Field(default=None, min_length=1, max_length=120)
+    subtitle: str | None = Field(default=None, max_length=200)
+    # Markdown keeps its leading and trailing whitespace.
+    content_md: str | None = Field(default=None, max_length=20000)
+    minutes: int | None = None
+    level: LessonLevel | None = None
+
+    _text = field_validator("title", "subtitle", mode="before")(_strip_course_text)
+
+    @field_validator("minutes")
+    @classmethod
+    def clamp_minutes(cls, value: int | None) -> int | None:
+        return None if value is None else max(1, min(600, value))
+
+    @model_validator(mode="after")
+    def reject_null(self):
+        if any(getattr(self, field) is None for field in self.model_fields_set):
+            raise ValueError("Lesson fields cannot be null")
+        return self
+
+
+class LessonPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    course_id: int
+    position: int
+    title: str
+    subtitle: str
+    content_md: str
+    minutes: int
+    level: LessonLevel
+    color: str
+    # Lab activities do not exist yet.
+    activity: None = None
+
+
+class LessonPreviewPublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+    id: int
+    course_id: int
+    title: str
+    subtitle: str
+
+
+class LessonLookupPublic(BaseModel):
+    locked: bool
+    lesson: LessonPublic | LessonPreviewPublic
+
+
+class LessonMove(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    direction: Literal[-1, 1]
