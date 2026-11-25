@@ -69,7 +69,8 @@ textarea {
 }
 
 @media (max-width: 639px) {
-  .react-flow__minimap {
+  .react-flow__minimap,
+  .viper-app .viper-minimap-toggle {
     display: none;
   }
 }
@@ -173,7 +174,8 @@ textarea {
   padding: 0;
 }
 
-.compact-mobile .react-flow__minimap {
+.compact-mobile .react-flow__minimap,
+.viper-app.compact-mobile .viper-minimap-toggle {
   display: none;
 }
 
@@ -266,6 +268,33 @@ input[type="number"] {
   border: 1px solid var(--lab-line);
   border-radius: 6px;
   background: var(--lab-panel);
+}
+/* ปุ่มเปิด/ปิด MiniMap: ตอนปิดอยู่มุมขวาล่างเหนือข้อความ React Flow ตอนเปิดซ้อนมุมขวาบนของแผนที่ */
+.viper-app .viper-minimap-toggle {
+  position: absolute;
+  z-index: 6;
+  right: 12px;
+  bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--lab-line);
+  border-radius: 6px;
+  background: var(--lab-panel);
+  color: var(--lab-ink);
+  touch-action: manipulation;
+}
+.viper-app .viper-minimap-toggle-open {
+  right: 17px;
+  bottom: 125px; /* 12px ขอบ + แผนที่สูง 146px - ปุ่ม 28px - เว้น 5px */
+  width: 28px;
+  height: 28px;
+}
+.viper-app .viper-minimap-toggle:hover {
+  border-color: var(--lab-blue);
+  background: var(--lab-subtle);
 }
 .viper-app .react-flow__attribution {
   background: transparent;

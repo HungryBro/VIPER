@@ -1,5 +1,5 @@
 // File: src/FlowCanvas.tsx
-import { Maximize2, Trash2 } from 'lucide-react';
+import { Map as MapIcon, Maximize2, Minus, Trash2 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import ReactFlow, {
   MiniMap, Controls, Background, useNodesState, useEdgesState,
@@ -99,6 +99,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [logs, setLogs] = useState<LogEntry[]>([]);
 
+    const [mapOpen, setMapOpen] = useState(true);
     const isDraggingRef = useRef(false);
     const isCanceledRef = useRef(false);
 
@@ -360,7 +361,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
         // Overlays inside the pane are obstacles: the Fit/Save/Load/Clear row (top-right), Controls (bottom-left)
         // and the MiniMap (bottom-right; hidden on compact mobile). Pick the safe rectangle with the larger zoom:
         // the band between the top and bottom obstacles, or the full-height gap between the bottom-left and bottom-right ones.
-        const obstacleRects = ['.viper-canvas-actions button', '.react-flow__minimap', '.react-flow__controls']
+        const obstacleRects = ['.viper-canvas-actions button', '.react-flow__minimap', '.viper-minimap-toggle', '.react-flow__controls']
           .flatMap((selector) => Array.from(document.querySelectorAll(selector)).map((el) => el.getBoundingClientRect()))
           .filter((rect) => rect.width > 0 && rect.height > 0);
         const base = fitAreas[0];
@@ -470,7 +471,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           if (++tries < 80) requestAnimationFrame(check);
           return;
         }
-        const obstacles = ['.viper-canvas-actions button', '.react-flow__minimap', '.react-flow__controls']
+        const obstacles = ['.viper-canvas-actions button', '.react-flow__minimap', '.viper-minimap-toggle', '.react-flow__controls']
           .flatMap((selector) => Array.from(document.querySelectorAll(selector)).map((el) => el.getBoundingClientRect()))
           .filter((rect) => rect.width > 0 && rect.height > 0);
         const underObstacle = rects.some((r) => obstacles.some((o) => r.right > o.left && r.left < o.right && r.bottom > o.top && r.top < o.bottom));
@@ -592,19 +593,31 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
             // the editor is hidden or a Lab dialog is open (active is false then), as useFlowHotkeys does.
             deleteKeyCode={active ? 'Backspace' : null}
           >
-            <MiniMap
-              position="bottom-right"
-              pannable
-              zoomable
-              style={{ width: 192, height: 144 }}
-              maskColor="color-mix(in srgb, var(--lab-bg) 70%, transparent)"
-              nodeColor={(n) => n.data?.status === 'success' ? '#22c55e' : '#94a3b8'}
-            />
+            {mapOpen && (
+              <MiniMap
+                position="bottom-right"
+                pannable
+                zoomable
+                style={{ width: 192, height: 144 }}
+                maskColor="color-mix(in srgb, var(--lab-bg) 70%, transparent)"
+                nodeColor={(n) => n.data?.status === 'success' ? '#22c55e' : '#94a3b8'}
+              />
+            )}
 
             <Controls position="bottom-left" />
 
             <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="var(--lab-dots)" />
           </ReactFlow>
+          <button
+            type="button"
+            onClick={() => setMapOpen((open) => !open)}
+            className={`viper-minimap-toggle${mapOpen ? ' viper-minimap-toggle-open' : ''}`}
+            title={mapOpen ? 'ซ่อนแผนที่ย่อ' : 'แสดงแผนที่ย่อ'}
+            aria-label={mapOpen ? 'ซ่อนแผนที่ย่อ' : 'แสดงแผนที่ย่อ'}
+            aria-expanded={mapOpen}
+          >
+            {mapOpen ? <Minus size={15} aria-hidden="true" /> : <MapIcon size={15} aria-hidden="true" />}
+          </button>
         </div>
         <LogPanel logs={logs} onClear={() => setLogs([])} />
       </div>
