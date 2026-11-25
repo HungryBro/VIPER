@@ -28,14 +28,15 @@ import {
   listLessons,
   listManagedCourses,
   moveLesson,
+  setCourseStatus,
   updateCourse,
   updateLesson,
 } from '../../lib/learningApi';
 import { canTeach, isAdmin } from '../permissions';
 import { errorText, useLoaded } from '../useLoaded';
 import { useToast } from '../toast';
-import { courseStatusBadge, type Course, type Lesson, type LessonLevel } from '../types';
-import { Badge, Button, Empty, Markdown, Modal, cx } from '../ui';
+import { courseStatusBadge, type Course, type CourseStatus, type Lesson, type LessonLevel } from '../types';
+import { Badge, Button, Empty, Markdown, Modal, cx, time } from '../ui';
 import { CourseTabs } from './CoursesPage';
 
 // ตอนนี้ไม่มีที่ใช้ในหน้านี้ เก็บไว้ใช้กับปุ่มของระบบที่ยังไม่มี
@@ -435,6 +436,80 @@ function LessonSection({ courseId, onChanged }: { courseId: string; onChanged: (
   );
 }
 
+const STATUS_ACTIONS = {
+  publish: {
+    to: 'published',
+    ask: 'Publish คอร์สนี้? ผู้เรียนจะเห็นคอร์สและลงทะเบียนได้',
+    done: 'Publish คอร์สแล้ว',
+  },
+  unpublish: {
+    to: 'draft',
+    ask: 'Unpublish คอร์สนี้? คอร์สจะกลับเป็น Draft ผู้ที่ยังไม่ลงทะเบียนจะไม่เห็นคอร์ส',
+    done: 'Unpublish เป็น Draft แล้ว',
+  },
+  archive: {
+    to: 'archived',
+    ask: 'Archive คอร์สนี้? คอร์สจะปิดรับผู้ลงทะเบียนใหม่',
+    done: 'Archive คอร์สแล้ว',
+  },
+} satisfies Record<string, { to: CourseStatus; ask: string; done: string }>;
+
+function CourseStatusPanel({ course, onChange }: { course: Course; onChange: (next: Course) => void }) {
+  const notify = useToast();
+  const [busy, setBusy] = useState(false);
+  const blockers = course.status === 'published' ? [] : (course.publishBlockers ?? []);
+  const apply = async ({ to, ask, done }: (typeof STATUS_ACTIONS)[keyof typeof STATUS_ACTIONS]) => {
+    if (!window.confirm(ask)) return;
+    setBusy(true);
+    try {
+      onChange(await setCourseStatus(course.id, to));
+      notify(done);
+    } catch (failure) {
+      notify(errorText(failure, 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง'));
+      // ค่าบนหน้าอาจเก่า (เช่น blocker เพิ่งเกิด) โหลดใหม่ ; โหลดไม่ได้ก็คงค่าเดิม
+      const latest = await getCourse(course.id).catch(() => null);
+      if (latest) onChange(latest);
+    }
+    setBusy(false);
+  };
+  return (
+    <section className="panel course-status-panel">
+      <div className="section-title">
+        <div>
+          <h2>สถานะคอร์ส</h2>
+          <p>
+            {course.enrolledCount} ผู้ลงทะเบียน · แก้ไขล่าสุด {time(course.updatedAt)}
+          </p>
+        </div>
+      </div>
+      {blockers.length > 0 && (
+        <div className="validation-message" role="status">
+          {blockers.map((blocker) => (
+            <span key={blocker}>{blocker}</span>
+          ))}
+        </div>
+      )}
+      <div className="course-heading-actions">
+        {(course.status === 'draft' || course.status === 'archived') && (
+          <Button disabled={busy || blockers.length > 0} onClick={() => void apply(STATUS_ACTIONS.publish)}>
+            {course.status === 'draft' ? 'Publish' : 'Publish อีกครั้ง'}
+          </Button>
+        )}
+        {course.status === 'published' && (
+          <>
+            <Button kind="secondary" disabled={busy} onClick={() => void apply(STATUS_ACTIONS.unpublish)}>
+              Unpublish เป็น Draft
+            </Button>
+            <Button kind="secondary" disabled={busy} onClick={() => void apply(STATUS_ACTIONS.archive)}>
+              Archive
+            </Button>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
+
 function CourseEditor({ courseId }: { courseId: string }) {
   const course = useLoaded(() => getCourse(courseId), 'โหลดคอร์สไม่สำเร็จ');
   const notify = useToast();
@@ -489,14 +564,7 @@ function CourseEditor({ courseId }: { courseId: string }) {
           </Link>
         </div>
       </div>
-      <section className="panel course-status-panel">
-        <div className="section-title">
-          <div>
-            <h2>สถานะคอร์ส</h2>
-            <p>{found.enrolledCount} ผู้ลงทะเบียน</p>
-          </div>
-        </div>
-      </section>
+      <CourseStatusPanel course={found} onChange={setSaved} />
       <LessonSection
         courseId={found.id}
         onChanged={async () => {

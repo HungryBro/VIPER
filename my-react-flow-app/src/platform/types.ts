@@ -35,6 +35,8 @@ export type Course = {
   enrolled: boolean;
   // ผู้เปิดอยู่จัดการคอร์สนี้ได้ (เจ้าของหรือผู้ดูแล)
   canManage: boolean;
+  // เหตุที่ยัง Publish ไม่ได้ server ส่งมาเฉพาะผู้จัดการคอร์ส
+  publishBlockers?: string[];
 };
 
 export type LessonColor = 'blue' | 'teal' | 'violet' | (string & {});

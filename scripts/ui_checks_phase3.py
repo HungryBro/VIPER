@@ -14,6 +14,7 @@ export async function listManagedCourses() { return page([course('c2', 'retired'
 export async function getCourse(id) { return id === 'c2' ? course('c2', 'retired') : null; }
 export async function createCourse() { return course('c9', 'draft'); }
 export async function updateCourse() { return course('c9', 'draft'); }
+export async function setCourseStatus() { return course('c9', 'published'); }
 export async function listLessons() { return []; }
 export async function createLesson() { return null; }
 export async function updateLesson() { return null; }

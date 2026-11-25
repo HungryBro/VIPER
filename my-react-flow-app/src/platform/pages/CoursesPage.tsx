@@ -1,6 +1,6 @@
 // หน้า Courses / Course / Lesson (T19) ย้ายจาก CourseCatalog, CoursePage, LessonPage ของ mockup v2
 // route: /courses, /courses/:courseId, /lessons/:lessonId ข้อมูลทั้งหมดมาจาก src/lib/learningApi.ts เท่านั้น
-// ตอนนี้ระบบคอร์สยังไม่มี learningApi คืนว่าง หน้าจึงแสดงสถานะว่างที่บอกว่าจะเพิ่มภายหลัง
+// คอร์สและบทเรียนมาจาก server แล้ว ส่วนการลงทะเบียนยังไม่มี
 // ปุ่มลงทะเบียน/จัดการ/ตัวออกแบบ Lab ไม่เปิดใช้ (ว่างตามแผน) แต่คงโครงไว้ให้ระบบคอร์สรอบหน้าต่อได้
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -130,7 +130,7 @@ export default function CoursesPage() {
       </div>
       {!loading && !error && !courses.length && (
         <Empty icon={BookOpen} title="ไม่พบคอร์ส">
-          ยังไม่มีคอร์สที่เผยแพร่ในตอนนี้ {COMING_LATER} ลองเปลี่ยนคำค้น หรือรอผู้สอนเผยแพร่คอร์สใหม่
+          ยังไม่มีคอร์สที่เผยแพร่ในตอนนี้ ลองเปลี่ยนคำค้น หรือรอผู้สอนเผยแพร่คอร์สใหม่
         </Empty>
       )}
     </div>
@@ -155,7 +155,7 @@ function CourseView({ courseId }: { courseId: string }) {
             </Link>
           }
         >
-          {course.error ?? `คอร์สนี้ยังไม่เผยแพร่หรือไม่มีอยู่ (${COMING_LATER})`}
+          {course.error ?? 'คอร์สนี้ยังไม่เผยแพร่หรือไม่มีอยู่'}
         </Empty>
       </div>
     );
@@ -249,7 +249,7 @@ function LessonView({ lessonId }: { lessonId: string }) {
             </Link>
           }
         >
-          {lesson.error ?? `บทเรียนนี้ไม่มีอยู่หรือยังไม่เผยแพร่ (${COMING_LATER})`}
+          {lesson.error ?? 'บทเรียนนี้ไม่มีอยู่หรือยังไม่เผยแพร่'}
         </Empty>
       </div>
     );

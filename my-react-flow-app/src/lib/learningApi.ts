@@ -9,6 +9,7 @@
 import type {
   Announcement,
   Course,
+  CourseStatus,
   GradeRow,
   LearningScope,
   Lesson,
@@ -37,6 +38,7 @@ type RawCourse = {
   enrolled_count: number;
   enrolled: boolean;
   can_manage: boolean;
+  publish_blockers: string[] | null;
 };
 
 type CourseFields = { code?: string; title: string; description: string };
@@ -56,6 +58,7 @@ function toCourse(raw: RawCourse): Course {
     enrolledCount: raw.enrolled_count,
     enrolled: raw.enrolled,
     canManage: raw.can_manage,
+    ...(raw.publish_blockers ? { publishBlockers: raw.publish_blockers } : {}),
   };
 }
 
@@ -169,6 +172,23 @@ export async function createCourse(fields: CourseFields): Promise<Course> {
 
 export async function updateCourse(courseId: string, fields: Partial<CourseFields>): Promise<Course> {
   return sendCourse(`/api/courses/${encodeURIComponent(courseId)}`, 'PATCH', fields);
+}
+
+export async function setCourseStatus(courseId: string, status: CourseStatus): Promise<Course> {
+  const response = await courseFetch(`/api/courses/${encodeURIComponent(courseId)}/status`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+  // 409 ของ endpoint นี้ไม่ใช่รหัสซ้ำ: อ่านเหตุจาก body ก่อนใช้ตารางข้อความ
+  if (response.status === 409) {
+    const body = await response.clone().json().catch(() => null);
+    if (body?.detail?.code === 'publish_blocked') {
+      throw new Error(`Publish ไม่ได้: ${body.detail.blockers.join(' · ')}`);
+    }
+    throw new Error(COURSE_ERROR_OTHER);
+  }
+  return toCourse(await readCourseJson<RawCourse>(response));
 }
 
 // บทเรียนของคอร์ส เรียงตาม position

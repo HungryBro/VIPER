@@ -290,6 +290,14 @@ class CoursePublic(BaseModel):
     enrolled_count: int
     enrolled: bool
     can_manage: bool
+    # Sent to the course's managers only; others get null.
+    publish_blockers: list[str] | None = None
+
+
+class CourseStatusUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: Literal["draft", "published", "archived"]
 
 
 class CoursePage(BaseModel):

@@ -422,3 +422,99 @@ def test_deleted_course_hides_every_lesson_endpoint(env):
     assert [r.status_code for r in responses] == [404] * 6
     with Session(engine) as db:
         assert db.get(Lesson, lesson_id).deleted_at is None
+
+
+def change_status(login, course_id: int, value: str, who: str | None = "a"):
+    return login(who).post(f"/api/courses/{course_id}/status", json={"status": value})
+
+
+def publishable(login) -> tuple[int, int]:
+    course_id = create(login).json()["id"]
+    lesson_id = add_lesson(login, course_id)["id"]
+    login("a").patch(f"/api/lessons/{lesson_id}", json={"content_md": "## content"})
+    return course_id, lesson_id
+
+
+def blocked(response) -> list[str]:
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "publish_blocked"
+    return response.json()["detail"]["blockers"]
+
+
+def test_publish_needs_a_lesson_with_content(env):
+    _, _, login = env
+    course = create(login).json()
+    course_id = course["id"]
+    no_lesson = ["ต้องมีบทเรียนอย่างน้อย 1 บท"]
+    no_content = ["ต้องมีบทที่มีเนื้อหาอย่างน้อย 1 บท"]
+    assert course["publish_blockers"] == no_lesson
+    assert blocked(change_status(login, course_id, "published")) == no_lesson
+    lesson_id = add_lesson(login, course_id)["id"]
+    login("a").patch(f"/api/lessons/{lesson_id}", json={"content_md": "  \n\t "})
+    assert blocked(change_status(login, course_id, "published")) == no_content
+    assert login("a").get("/api/courses/managed").json()["items"][0]["publish_blockers"] == no_content
+    login("a").patch(f"/api/lessons/{lesson_id}", json={"content_md": "text"})
+    published = change_status(login, course_id, "published")
+    assert (published.status_code, published.json()["status"], published.json()["publish_blockers"]) == (200, "published", [])
+
+
+def test_deleted_lesson_does_not_satisfy_publish(env):
+    _, _, login = env
+    course_id, lesson_id = publishable(login)
+    login("a").delete(f"/api/lessons/{lesson_id}")
+    assert blocked(change_status(login, course_id, "published")) == ["ต้องมีบทเรียนอย่างน้อย 1 บท"]
+
+
+def test_status_changes_visibility(env):
+    _, _, login = env
+    course_id, _ = publishable(login)
+
+    def visible(who=None) -> tuple[bool, int]:
+        listed = course_id in [item["id"] for item in login(who).get("/api/courses").json()["items"]]
+        return listed, login(who).get(f"/api/courses/{course_id}").status_code
+
+    assert visible() == (False, 404)
+    change_status(login, course_id, "published")
+    assert visible() == (True, 200)
+    learner = login("learner").get(f"/api/courses/{course_id}").json()
+    assert (learner["can_manage"], learner["publish_blockers"]) == (False, None)
+    assert login("learner").get("/api/courses").json()["items"][0]["publish_blockers"] is None
+    for hidden in ("draft", "archived"):
+        change_status(login, course_id, "published")
+        assert change_status(login, course_id, hidden).json()["status"] == hidden
+        assert visible() == (False, 404)
+        assert visible("a") == (False, 200)
+    assert change_status(login, course_id, "published").status_code == 200
+    assert visible() == (True, 200)
+
+
+def test_status_permissions_and_validation(env):
+    _, _, login = env
+    course_id, _ = publishable(login)
+    assert change_status(login, course_id, "published", "b").status_code == 404
+    assert change_status(login, course_id, "published", None).status_code == 401
+    assert change_status(login, course_id, "x").status_code == 422
+    assert login("a").post(f"/api/courses/{course_id}/status", json={"status": "draft", "x": 1}).status_code == 422
+    assert change_status(login, course_id, "published", "admin").status_code == 200
+    assert change_status(login, course_id, "draft", "b").status_code == 403
+
+
+def test_status_audit_skips_unchanged_status(env):
+    engine, _, login = env
+    course_id, _ = publishable(login)
+    for value in ("draft", "published", "published", "archived"):
+        assert change_status(login, course_id, value).status_code == 200
+    with Session(engine) as db:
+        rows = db.scalars(select(AuditLog).where(AuditLog.action == "course.status").order_by(AuditLog.id)).all()
+        assert [row.details for row in rows] == [
+            {"from": "draft", "to": "published"},
+            {"from": "published", "to": "archived"},
+        ]
+
+
+def test_publish_requires_lab_switch_is_wired(env, monkeypatch):
+    _, _, login = env
+    course_id, _ = publishable(login)
+    monkeypatch.setattr(courses_router, "PUBLISH_REQUIRES_LAB", True)
+    with pytest.raises(NotImplementedError):
+        change_status(login, course_id, "published")

@@ -126,26 +126,35 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
   - ภาพ: `outputs/course-system/T4__*`
   - พบแต่ยังไม่แก้: ปิด LessonEditor (กดพื้นหลัง, Esc, ยกเลิก) ทิ้งข้อความที่ยังไม่บันทึกโดยไม่ถาม · พรีวิว Markdown ไม่แสดงจุดนำหน้ารายการ
 
-### [ ] T5 Publish / Unpublish / Archive
+### [x] T5 Publish / Unpublish / Archive
 - เกณฑ์รับ
-  - [ ] `POST /api/courses/{id}/status` รับ `{status}` (ต้องเป็นผู้จัดการ) ถ้า Publish แล้วติด blocker ตอบ 409 พร้อมรายการ blocker และบันทึก audit `course.status` พร้อม details `{from,to}`
-  - [ ] ค่าคงที่ `PUBLISH_REQUIRES_LAB = False` อยู่บนสุดของ `courses.py` พร้อมคอมเมนต์:
+  - [x] `POST /api/courses/{id}/status` รับ `{status}` (ต้องเป็นผู้จัดการ) ถ้า Publish แล้วติด blocker ตอบ 409 พร้อมรายการ blocker และบันทึก audit `course.status` พร้อม details `{from,to}`
+  - [x] ค่าคงที่ `PUBLISH_REQUIRES_LAB = False` อยู่บนสุดของ `courses.py` พร้อมคอมเมนต์:
     - เมื่อเป็น False: blocker คือ "ต้องมีบทเรียนอย่างน้อย 1 บท" และ "ต้องมีบทที่มีเนื้อหาอย่างน้อย 1 บท"
     - เมื่อเป็น True: ให้ raise `NotImplementedError` (รอ lab_activities)
-  - [ ] response ของคอร์สมี `publishBlockers: string[]` ส่งเฉพาะผู้จัดการ และใน `types.ts` เพิ่มเป็น field optional
-  - [ ] แผง "สถานะคอร์ส" แสดง "แก้ไขล่าสุด <เวลา>" ถ้ามี blocker ให้แสดงใน `.validation-message` และปิดปุ่ม Publish ปุ่มตามสถานะ (ทุกปุ่มถาม confirm ก่อน ข้อความ Publish คือ "Publish คอร์สนี้? ผู้เรียนจะเห็นคอร์สและลงทะเบียนได้"):
+  - [x] response ของคอร์สมี `publishBlockers: string[]` ส่งเฉพาะผู้จัดการ และใน `types.ts` เพิ่มเป็น field optional
+  - [x] แผง "สถานะคอร์ส" แสดง "แก้ไขล่าสุด <เวลา>" ถ้ามี blocker ให้แสดงใน `.validation-message` และปิดปุ่ม Publish ปุ่มตามสถานะ (ทุกปุ่มถาม confirm ก่อน ข้อความ Publish คือ "Publish คอร์สนี้? ผู้เรียนจะเห็นคอร์สและลงทะเบียนได้"):
     - Draft → Publish
     - Published → Unpublish เป็น Draft, Archive
     - Archived → Publish อีกครั้ง
-  - [ ] `CoursesPage.tsx`: ข้อความที่ :133, :158 และ :252 ให้ตัดวงเล็บ `COMING_LATER` ออก และผู้สอนต้องพรีวิว `/courses/:id` ของคอร์ส Draft ได้ (`canManage`)
-  - [ ] เทสต์: Publish ตอนไม่มีบทได้ 409 มีบทแต่เนื้อหาว่างได้ 409 เพิ่มเนื้อหาแล้วผ่าน หลัง Publish `GET /api/courses` ของผู้เยี่ยมชมเห็นคอร์ส และหลัง Unpublish หรือ Archive ผู้เยี่ยมชมไม่เห็น
+  - [x] `CoursesPage.tsx`: ข้อความที่ :133, :158 และ :252 ให้ตัดวงเล็บ `COMING_LATER` ออก และผู้สอนต้องพรีวิว `/courses/:id` ของคอร์ส Draft ได้ (`canManage`)
+  - [x] เทสต์: Publish ตอนไม่มีบทได้ 409 มีบทแต่เนื้อหาว่างได้ 409 เพิ่มเนื้อหาแล้วผ่าน หลัง Publish `GET /api/courses` ของผู้เยี่ยมชมเห็นคอร์ส และหลัง Unpublish หรือ Archive ผู้เยี่ยมชมไม่เห็น
 - ตรวจ: เบราว์เซอร์ ทำ flow ผู้สอนครบ (สร้าง → บท → blocker → Publish → ผู้เยี่ยมชมเห็นใน `/courses` → Unpublish → Archive) และใช้ getComputedStyle ยืนยันว่าปุ่ม Publish ที่ disabled ใช้สไตล์ disabled เดิม
 - ไฟล์: `server/routers/courses.py`, `server/schemas.py`, `tests/test_courses_api.py`, `src/platform/types.ts`, `src/platform/pages/TeachPage.tsx`, `src/platform/pages/CoursesPage.tsx`
 - ขึ้นกับ: T4
 - ขนาด: M
+- ผลตรวจ (25 พ.ย. 2569)
+  - `tests/test_courses_api.py` ผ่าน 37/37 (22 เดิม + T3 9 + T5 6) · `CHECK PASS` (BE ผ่าน 418, ล้ม SURF 15) · tsc ไม่มี error · `ui_checks.py` 18/18 (ข้าม 1) · phase3 23/23 · touch 19/19
+  - field ใน API ใช้ชื่อ `publish_blockers` (snake_case) แล้ว `learningApi.ts` แปลงเป็น `publishBlockers`
+  - เบราว์เซอร์ (ฐานชั่วคราว ตรวจ `/api/auth/me` ทุกครั้งที่เปิดบทบาท) a–h ผ่านครบ · ปุ่ม Publish ที่ disabled ได้ opacity 0.48, cursor not-allowed · 409 รหัสซ้ำยังเป็น "รหัสคอร์สนี้ถูกใช้แล้ว" และ 409 ของ Publish เป็น "Publish ไม่ได้: …"
+  - 1440/375 มืด/สว่าง ของ `/teach/:id` (3 บท + blocker), LessonEditor และ `/courses/:id` (ผู้สอน, ผู้เยี่ยมชม): ไม่มี scroll แนวนอน · modal ที่ 375 left=16 right=359 · ปุ่มไอคอนไม่ซ้อน `h3` · ชื่อติดกัน 120 ตัวไม่ล้นใน `/teach`, `/teach/:id`, `/courses/:id`
+  - เพิ่มจากเกณฑ์: เมื่อเปลี่ยนสถานะไม่สำเร็จ หน้าโหลดคอร์สใหม่ให้ blocker ตรงกับ server · เพิ่มระยะห่างรอบแผงสถานะใน `Density.css`
+  - console: มีเฉพาะบรรทัด network ของ 409/403/404 ที่ตั้งใจให้เกิด และ 401 `/api/auth/me` ของผู้เยี่ยมชม
+  - เงื่อนไข Publish ตรวจตอนเปลี่ยนเป็น Published เท่านั้น คอร์สที่ Published แล้วยังลบหรือล้างเนื้อหาบทจนไม่เหลือได้
+  - ภาพ: `outputs/course-system/T5__*` (ข้อ a อยู่ใน `T4__a-*`)
 
 ### จุดตรวจ 2: flow ผู้สอนครบ
-- [ ] `CHECK PASS`, tsc และสคริปต์ UI ผ่าน
+- [x] `CHECK PASS`, tsc และสคริปต์ UI ผ่าน
 - [ ] **ให้ผู้ใช้ดูภาพ flow ผู้สอนทั้งชุดก่อนทำ T6**
 
 ### [ ] T6 Backend: ลงทะเบียนและยกเลิก

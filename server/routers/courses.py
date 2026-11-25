@@ -12,6 +12,7 @@ from ..schemas import (
     CourseCreate,
     CoursePage,
     CoursePublic,
+    CourseStatusUpdate,
     CourseUpdate,
     LessonLookupPublic,
     LessonMove,
@@ -28,6 +29,9 @@ lessons_router = APIRouter(prefix="/api/lessons", tags=["lessons"])
 CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
 CODE_ATTEMPTS = 10
 LIST_LIMIT = 100
+# False: publishing needs one lesson with content. True is the mockup rule (platform.mjs
+# publishBlockers: at least one lesson with a complete Lab); turn it on once lab_activities exists.
+PUBLISH_REQUIRES_LAB = False
 
 
 def _can_create(user: User) -> bool:
@@ -124,7 +128,23 @@ def _lesson_counts(db: Session, course_ids: list[int]) -> dict[int, int]:
     return dict(rows.all())
 
 
-def _public(course: Course, user: User | None, lesson_count: int) -> CoursePublic:
+def _blockers_for(contents: list[str]) -> list[str]:
+    if PUBLISH_REQUIRES_LAB:
+        raise NotImplementedError("PUBLISH_REQUIRES_LAB needs lab_activities")
+    if not contents:
+        return ["ต้องมีบทเรียนอย่างน้อย 1 บท"]
+    if not any(content.strip() for content in contents):
+        return ["ต้องมีบทที่มีเนื้อหาอย่างน้อย 1 บท"]
+    return []
+
+
+def _publish_blockers(db: Session, course: Course) -> list[str]:
+    return _blockers_for([lesson.content_md for lesson in _course_lessons(db, course.id)])
+
+
+def _public(
+    course: Course, user: User | None, lesson_count: int, publish_blockers: list[str] | None
+) -> CoursePublic:
     return CoursePublic(
         id=course.id,
         owner_id=course.owner_id,
@@ -140,18 +160,36 @@ def _public(course: Course, user: User | None, lesson_count: int) -> CoursePubli
         enrolled_count=0,
         enrolled=False,
         can_manage=_can_manage(user, course),
+        publish_blockers=publish_blockers,
     )
 
 
 def _public_one(db: Session, course: Course, user: User | None) -> CoursePublic:
-    return _public(course, user, _lesson_counts(db, [course.id]).get(course.id, 0))
+    blockers = _publish_blockers(db, course) if _can_manage(user, course) else None
+    return _public(course, user, _lesson_counts(db, [course.id]).get(course.id, 0), blockers)
 
 
 def _page(db: Session, query, user: User | None) -> CoursePage:
     courses = db.scalars(query.order_by(Course.updated_at.desc(), Course.id.desc())).all()
     counts = _lesson_counts(db, [course.id for course in courses])
+    # One query for the lesson contents of every course this user manages (publish blockers).
+    contents: dict[int, list[str]] = {course.id: [] for course in courses if _can_manage(user, course)}
+    for course_id, content in db.execute(
+        select(Lesson.course_id, Lesson.content_md).where(
+            Lesson.course_id.in_(list(contents)), Lesson.deleted_at.is_(None)
+        )
+    ):
+        contents[course_id].append(content)
     return CoursePage(
-        items=[_public(course, user, counts.get(course.id, 0)) for course in courses],
+        items=[
+            _public(
+                course,
+                user,
+                counts.get(course.id, 0),
+                _blockers_for(contents[course.id]) if course.id in contents else None,
+            )
+            for course in courses
+        ],
         next=None,
     )
 
@@ -310,6 +348,40 @@ def update_course(
             target_id=course.id,
             request=request,
             details={"fields": list(changes)},
+        )
+        db.commit()
+    return _public_one(db, db.scalar(_course_query().where(Course.id == course_id)), user)
+
+
+@router.post("/{course_id}/status", response_model=CoursePublic)
+def set_course_status(
+    course_id: int,
+    payload: CourseStatusUpdate,
+    request: Request,
+    user: User = Depends(require_active_user),
+    db: Session = Depends(get_db),
+):
+    course = _require_managed_course(db, course_id, user)
+    # Same lock as lesson edits, so the blockers cannot change while publishing.
+    _lock_lessons(db, course.id)
+    db.refresh(course, attribute_names=["status"])
+    previous = course.status
+    if payload.status != previous:
+        if payload.status == "published":
+            blockers = _publish_blockers(db, course)
+            if blockers:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={"code": "publish_blocked", "blockers": blockers},
+                )
+        course.status = payload.status
+        _add_audit(
+            db,
+            actor_id=user.id,
+            action="course.status",
+            target_id=course.id,
+            request=request,
+            details={"from": previous, "to": payload.status},
         )
         db.commit()
     return _public_one(db, db.scalar(_course_query().where(Course.id == course_id)), user)
