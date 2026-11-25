@@ -15,6 +15,10 @@ export async function getCourse(id) { return id === 'c2' ? course('c2', 'retired
 export async function createCourse() { return course('c9', 'draft'); }
 export async function updateCourse() { return course('c9', 'draft'); }
 export async function listLessons() { return []; }
+export async function createLesson() { return null; }
+export async function updateLesson() { return null; }
+export async function deleteLesson() {}
+export async function moveLesson() { return []; }
 export async function getLesson(id) { return id === 'locked' ? { locked: true, lesson: { id, courseId: 'c1', title: 'Locked lesson', subtitle: '' } } : null; }
 const sub = { id: 's1', lessonId: 'l1', lessonTitle: 'L1', courseId: 'c1', courseTitle: 'C', learnerId: '9', learnerName: 'Learner', activityVersion: 1, at: '2026-11-01T00:00:00Z', result: { settings: 'k=3', metrics: [91.5, 40], metricLabels: ['Accuracy'] }, autoCheck: null, nodes: [], reflection: '', hints: 0 };
 export async function listSubmissions(scope) { return page([{ ...sub, learnerName: scope }]); }

@@ -1,6 +1,6 @@
 // learningApi.ts (T18): แหล่งข้อมูลเดียวของคอร์ส บทเรียน งานที่ส่ง คะแนน ประกาศ และการแจ้งเตือน
 // ทุกหน้าและ Header ต้องอ่านข้อมูลกลุ่มนี้ผ่านไฟล์นี้เท่านั้น ห้ามใส่ข้อมูลตัวอย่างจาก mockup ที่อื่น
-// คอร์สเรียก server จริงแล้ว ส่วนที่เหลือ (บทเรียน งานที่ส่ง ฯลฯ) ยังคืนรายการว่าง (list) หรือ null (ค้นทีละรายการ)
+// คอร์สและบทเรียนเรียก server จริงแล้ว ส่วนที่เหลือ (งานที่ส่ง คะแนน ฯลฯ) ยังคืนรายการว่าง (list) หรือ null (ค้นทีละรายการ)
 // ระบบคอร์สรอบหน้าให้เปลี่ยนเฉพาะ "ตัวฟังก์ชัน" เป็นการเรียก apiFetch ไป /api/... โดยคง signature และ type เดิม
 // (เพิ่มได้แต่ field แบบ optional ห้ามเปลี่ยนหรือลบ field ที่มีอยู่) หน้าจอจึงไม่ต้องแก้
 // ความล้มเหลวของ server ให้ throw Error ที่มีข้อความภาษาไทย เหมือน meApi.ts / templateApi.ts
@@ -13,6 +13,7 @@ import type {
   LearningScope,
   Lesson,
   LessonLookup,
+  LessonPreview,
   ListPage,
   PageQuery,
   PlatformNotification,
@@ -65,6 +66,7 @@ const COURSE_ERRORS: Record<number, string> = {
   422: 'ข้อมูลคอร์สไม่ถูกต้อง',
 };
 const COURSE_ERROR_OTHER = 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง';
+const LESSON_ERRORS: Record<number, string> = { ...COURSE_ERRORS, 422: 'ข้อมูลบทเรียนไม่ถูกต้อง' };
 
 // เครือข่ายล้ม (fetch reject) ต้องได้ข้อความไทยเหมือนกัน
 async function courseFetch(path: string, init?: RequestInit): Promise<Response> {
@@ -75,8 +77,12 @@ async function courseFetch(path: string, init?: RequestInit): Promise<Response> 
   }
 }
 
-async function readCourseJson<T>(response: Response): Promise<T> {
-  if (!response.ok) throw new Error(COURSE_ERRORS[response.status] ?? COURSE_ERROR_OTHER);
+function checkResponse(response: Response, errors: Record<number, string>): void {
+  if (!response.ok) throw new Error(errors[response.status] ?? COURSE_ERROR_OTHER);
+}
+
+async function readCourseJson<T>(response: Response, errors = COURSE_ERRORS): Promise<T> {
+  checkResponse(response, errors);
   return (await response.json()) as T;
 }
 
@@ -94,6 +100,44 @@ async function sendCourse(path: string, method: 'POST' | 'PATCH', fields: Partia
   });
   return toCourse(await readCourseJson<RawCourse>(response));
 }
+
+// รูปแบบบทเรียนที่ server ส่งมา (LessonPublic / LessonLookupPublic ใน server/schemas.py)
+type RawLessonPreview = { id: number; course_id: number; title: string; subtitle: string };
+type RawLesson = RawLessonPreview & {
+  position: number;
+  content_md: string;
+  minutes: number;
+  level: Lesson['level'];
+  color: Lesson['color'];
+  activity: Lesson['activity'];
+};
+type RawLessonLookup = { locked: false; lesson: RawLesson } | { locked: true; lesson: RawLessonPreview };
+
+type LessonFields = Partial<Pick<Lesson, 'title' | 'subtitle' | 'contentMd' | 'minutes' | 'level'>>;
+
+function toLessonPreview(raw: RawLessonPreview): LessonPreview {
+  return { id: String(raw.id), courseId: String(raw.course_id), title: raw.title, subtitle: raw.subtitle };
+}
+
+function toLesson(raw: RawLesson): Lesson {
+  return {
+    ...toLessonPreview(raw),
+    position: raw.position,
+    contentMd: raw.content_md,
+    minutes: raw.minutes,
+    level: raw.level,
+    color: raw.color,
+    activity: raw.activity,
+  };
+}
+
+function toLessonLookup(raw: RawLessonLookup): LessonLookup {
+  return raw.locked
+    ? { locked: true, lesson: toLessonPreview(raw.lesson) }
+    : { locked: false, lesson: toLesson(raw.lesson) };
+}
+
+const lessonPath = (lessonId: string) => `/api/lessons/${encodeURIComponent(lessonId)}`;
 
 // รายการที่แบ่งหน้า: ตอนนี้คืนหน้าเดียวที่ว่าง (next = null)
 function emptyPage<T>(query?: PageQuery): ListPage<T> {
@@ -129,14 +173,46 @@ export async function updateCourse(courseId: string, fields: Partial<CourseField
 
 // บทเรียนของคอร์ส เรียงตาม position
 export async function listLessons(courseId: string): Promise<Lesson[]> {
-  void courseId;
-  return [];
+  const response = await courseFetch(`/api/courses/${encodeURIComponent(courseId)}/lessons`);
+  if (response.status === 404) return [];
+  return (await readCourseJson<RawLesson[]>(response, LESSON_ERRORS)).map(toLesson);
 }
 
 // null = ไม่พบ ; { locked: true } = มีอยู่แต่ผู้เปิดยังไม่ได้ลงทะเบียน (เห็นแค่ชื่อและคำโปรย)
 export async function getLesson(lessonId: string): Promise<LessonLookup | null> {
-  void lessonId;
-  return null;
+  const response = await courseFetch(lessonPath(lessonId));
+  if (response.status === 404) return null;
+  return toLessonLookup(await readCourseJson<RawLessonLookup>(response, LESSON_ERRORS));
+}
+
+// ต่อท้ายคอร์ส server ตั้งชื่อ "บทเรียนที่ N" ให้
+export async function createLesson(courseId: string): Promise<Lesson> {
+  const response = await courseFetch(`/api/courses/${encodeURIComponent(courseId)}/lessons`, { method: 'POST' });
+  return toLesson(await readCourseJson<RawLesson>(response, LESSON_ERRORS));
+}
+
+export async function updateLesson(lessonId: string, fields: LessonFields): Promise<Lesson> {
+  const { contentMd, ...rest } = fields;
+  const response = await courseFetch(lessonPath(lessonId), {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...rest, content_md: contentMd }),
+  });
+  return toLesson(await readCourseJson<RawLesson>(response, LESSON_ERRORS));
+}
+
+export async function deleteLesson(lessonId: string): Promise<void> {
+  checkResponse(await courseFetch(lessonPath(lessonId), { method: 'DELETE' }), LESSON_ERRORS);
+}
+
+// คืนบทเรียนทั้งคอร์สตามลำดับใหม่ (ย้ายที่ขอบ = ลำดับเดิม)
+export async function moveLesson(lessonId: string, direction: -1 | 1): Promise<Lesson[]> {
+  const response = await courseFetch(`${lessonPath(lessonId)}/move`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ direction }),
+  });
+  return (await readCourseJson<RawLesson[]>(response, LESSON_ERRORS)).map(toLesson);
 }
 
 // งานที่ส่ง เรียงล่าสุดก่อน: mine = ของตัวเอง, teaching = ของผู้เรียนในคอร์สที่ตัวเองสอน
