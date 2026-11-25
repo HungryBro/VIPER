@@ -436,6 +436,7 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
       <WorkflowTabs tabs={tabs.map(t => ({ id: t.id, name: t.name }))} activeTabId={activeTabId} onSwitch={handleSwitchTab} onAdd={handleAddTab} onClose={handleCloseTab} onRename={handleRenameTab} />
       <div className="viper-canvas-toolbar flex items-center border-b border-[var(--lab-line)] bg-[var(--lab-panel)] px-3 py-1">
         <span className="rounded-[5px] border border-[var(--lab-line)] px-2 py-0.5 text-[11px] font-medium text-[var(--lab-muted)]">{activeTab?.nodes.length ?? 0} โหนด</span>
+        <a href="https://reactflow.dev" target="_blank" rel="noopener noreferrer" aria-label="React Flow attribution" className="viper-flow-attribution ml-auto text-[10px] text-[var(--lab-muted)] hover:text-[var(--lab-ink)]">React Flow</a>
       </div>
       <div className="flex flex-grow overflow-hidden relative">
         <ReactFlowProvider>

@@ -1,5 +1,5 @@
 // File: src/FlowCanvas.tsx
-import { Map as MapIcon, Maximize2, Minus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Map as MapIcon, Maximize2, Trash2 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import ReactFlow, {
   MiniMap, Controls, Background, useNodesState, useEdgesState,
@@ -585,6 +585,8 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
             nodeTypes={nodeTypes} defaultEdgeOptions={defaultEdgeOptions}
             connectionLineType={ConnectionLineType.SmoothStep}
             fitView minZoom={0.08} maxZoom={5}
+            // ลิงก์ "React Flow" ย้ายไปอยู่ชิดขวาของแถบเหนือ canvas (LabPage .viper-canvas-toolbar)
+            proOptions={{ hideAttribution: true }}
             onNodeDragStart={() => (isDraggingRef.current = true)}
             onNodeDragStop={() => (isDraggingRef.current = false)}
             isValidConnection={onValidateConnection}
@@ -598,7 +600,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
                 position="bottom-right"
                 pannable
                 zoomable
-                style={{ width: 192, height: 144 }}
+                style={{ width: 192, height: 118 }}
                 maskColor="color-mix(in srgb, var(--lab-bg) 70%, transparent)"
                 nodeColor={(n) => n.data?.status === 'success' ? '#22c55e' : '#94a3b8'}
               />
@@ -611,12 +613,16 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           <button
             type="button"
             onClick={() => setMapOpen((open) => !open)}
-            className={`viper-minimap-toggle${mapOpen ? ' viper-minimap-toggle-open' : ''}`}
+            // nokey: React Flow ดัก Space ไว้เลื่อน canvas (preventDefault) คลาสนี้ทำให้ Space กดปุ่มได้
+            className={`viper-minimap-toggle nokey${mapOpen ? ' viper-minimap-toggle-open' : ''}`}
             title={mapOpen ? 'ซ่อนแผนที่ย่อ' : 'แสดงแผนที่ย่อ'}
             aria-label={mapOpen ? 'ซ่อนแผนที่ย่อ' : 'แสดงแผนที่ย่อ'}
             aria-expanded={mapOpen}
           >
-            {mapOpen ? <Minus size={15} aria-hidden="true" /> : <MapIcon size={15} aria-hidden="true" />}
+            <span className="viper-minimap-label"><MapIcon size={13} aria-hidden="true" />MiniMap</span>
+            {mapOpen
+              ? <span className="viper-minimap-chevron"><ChevronDown size={14} aria-hidden="true" /></span>
+              : <ChevronUp size={12} aria-hidden="true" />}
           </button>
         </div>
         <LogPanel logs={logs} onClear={() => setLogs([])} />
