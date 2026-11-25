@@ -2,6 +2,7 @@ import { memo, useMemo, useState, type PointerEvent as ReactPointerEvent } from 
 import { Handle, Position, type NodeProps, useEdges, useNodes, useReactFlow } from 'reactflow';
 import type { CustomNodeData } from '../../types';
 import { abs } from '../../lib/api';
+import { useNodeStatus } from '../../hooks/useNodeStatus';
 
 type Annotation = {
   class_id: number;
@@ -40,6 +41,7 @@ const YoloDatasetNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>)
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState('');
   const payload = data?.payload || {};
+  const { isSuccess, isFault, statusDot } = useNodeStatus(data);
   const inputNode = edges
     .filter((edge) => edge.target === id)
     .map((edge) => nodes.find((node) => node.id === edge.source))
@@ -164,6 +166,13 @@ const YoloDatasetNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>)
         <p className="text-[10px] text-gray-400">{images.length} image(s) · {annotationCount} box(es). Select a class, then drag on an image to draw a box.</p>
         {payload.dataset_yaml && <p className="text-[10px] text-green-400">Dataset ready — connect this node to YOLO Train.</p>}
         {error && <p className="text-[10px] text-red-400">{error}</p>}
+      </div>
+
+      <div className="grid grid-cols-4 border-t-2 border-gray-700 px-1 pb-2 pt-1.5 text-xs font-medium">
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-red-400">start</span><div className={statusDot(data?.status === 'start', 'bg-red-500')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-cyan-400">running</span><div className={statusDot(data?.status === 'running', 'bg-cyan-400 animate-pulse')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-green-400">success</span><div className={statusDot(isSuccess, 'bg-green-500')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-yellow-400">fault</span><div className={statusDot(isFault, 'bg-yellow-500')} /></div>
       </div>
     </div>
   );

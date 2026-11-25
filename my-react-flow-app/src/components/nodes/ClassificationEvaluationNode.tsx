@@ -2,6 +2,7 @@ import { memo, useCallback, useMemo, useState, type ChangeEvent } from 'react';
 import { Handle, Position, type NodeProps, useEdges, useNodes, useReactFlow } from 'reactflow';
 import type { CustomNodeData } from '../../types';
 import { compactPath } from '../../lib/compactPath';
+import { useNodeStatus } from '../../hooks/useNodeStatus';
 
 const EXAMPLE_INPUT = { class_names: ['negative', 'positive'], y_true: [0, 1, 1, 0], y_pred: [0, 1, 0, 0], y_scores: [0.05, 0.95, 0.4, 0.2] };
 const CURVE_COLOURS = ['#fbbf24', '#38bdf8', '#c084fc', '#4ade80', '#fb7185'];
@@ -16,6 +17,7 @@ const ClassificationEvaluationNode = memo(({ id, data, selected }: NodeProps<Cus
   const [showNormalized, setShowNormalized] = useState(false);
   const isRunning = data.status === 'start' || data.status === 'running';
   const isSuccess = data.status === 'success';
+  const { statusDot } = useNodeStatus(data);
   const result = data.payload?.evaluation_result || data.payload?.json;
   const classNames = Array.isArray(result?.class_names) ? result.class_names : [];
   const matrix = showNormalized ? result?.normalized_confusion_matrix : result?.confusion_matrix;
@@ -67,6 +69,12 @@ const ClassificationEvaluationNode = memo(({ id, data, selected }: NodeProps<Cus
       </div>}
       {!isSuccess && <p className={`text-xs ${data.status === 'fault' ? 'text-red-400' : 'text-gray-400'}`}>{data.description || (inputMode === 'yolo' ? 'Connect Dataset Builder, YOLO Train and Test Image, then run evaluation.' : 'Choose a JSON file, then run evaluation.')}</p>}
     </div><div className="border-t border-gray-700 px-3 py-2 text-[10px] text-gray-500">Output: evaluation metrics</div>
+    <div className="grid grid-cols-4 border-t-2 border-gray-700 px-1 pb-2 pt-1.5 text-xs font-medium">
+      <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-red-400">start</span><div className={statusDot(data?.status === 'start', 'bg-red-500')} /></div>
+      <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-cyan-400">running</span><div className={statusDot(data?.status === 'running', 'bg-cyan-400 animate-pulse')} /></div>
+      <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-green-400">success</span><div className={statusDot(isSuccess, 'bg-green-500')} /></div>
+      <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-yellow-400">fault</span><div className={statusDot(data.status === 'fault', 'bg-yellow-500')} /></div>
+    </div>
   </div>;
 });
 

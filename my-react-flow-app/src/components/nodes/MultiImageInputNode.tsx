@@ -2,6 +2,7 @@ import { memo, useRef, useState, type ChangeEvent } from 'react';
 import { Handle, Position, type NodeProps, useReactFlow } from 'reactflow';
 import type { CustomNodeData } from '../../types';
 import { abs, uploadImages } from '../../lib/api';
+import { useNodeStatus } from '../../hooks/useNodeStatus';
 
 // จำนวนไฟล์ต่อคำขอ /api/upload (server จำกัด 200 ไฟล์และ 1 GB ต่อคำขอ)
 const UPLOAD_BATCH_SIZE = 100;
@@ -20,6 +21,11 @@ const MultiImageInputNode = memo(({ id, data, selected }: NodeProps<CustomNodeDa
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const images = (Array.isArray(data?.payload?.dataset_images) ? data.payload.dataset_images : []) as DatasetImage[];
+  const { statusDot } = useNodeStatus(data);
+  const isRunning = uploading || data?.status === 'running';
+  const isFault = !uploading && data?.status === 'fault';
+  // สถานะถูกรีเซ็ตเป็น idle ตอนสลับแท็บ ภาพที่อัปโหลดแล้วยังพร้อมใช้ จึงนับเป็น success ด้วย
+  const isSuccess = !isRunning && !isFault && data?.status !== 'start' && (data?.status === 'success' || images.length > 0);
 
   const onUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files ? Array.from(event.target.files) : [];
@@ -90,6 +96,13 @@ const MultiImageInputNode = memo(({ id, data, selected }: NodeProps<CustomNodeDa
           {images.map((image, index) => <div key={`${image.path}-${index}`} className="truncate">{index + 1}. {image.name}</div>)}
         </div>}
         {error && <p className="text-xs text-red-400">{error}</p>}
+      </div>
+
+      <div className="grid grid-cols-4 border-t-2 border-gray-700 px-1 pb-2 pt-1.5 text-xs font-medium">
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-red-400">start</span><div className={statusDot(data?.status === 'start', 'bg-red-500')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-cyan-400">running</span><div className={statusDot(isRunning, 'bg-cyan-400 animate-pulse')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-green-400">success</span><div className={statusDot(isSuccess, 'bg-green-500')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-yellow-400">fault</span><div className={statusDot(isFault, 'bg-yellow-500')} /></div>
       </div>
     </div>
   );

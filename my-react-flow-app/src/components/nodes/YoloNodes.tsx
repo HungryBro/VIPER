@@ -7,6 +7,7 @@ import { compactPath } from '../../lib/compactPath';
 import { NODE_DEFAULTS } from '../../lib/nodeDefaults';
 import Modal from '../common/Modal';
 import { SettingsSlidersIcon } from './SettingsSlidersIcon';
+import { useNodeStatus } from '../../hooks/useNodeStatus';
 
 
 type Mode = 'train' | 'detect' | 'gradcam';
@@ -104,6 +105,7 @@ function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mo
   const isRunning = data.status === 'running' || data.status === 'start';
   const isSuccess = data.status === 'success';
   const isFault = data.status === 'fault';
+  const { statusDot } = useNodeStatus(data);
   const isConnected = edges.some((edge) => edge.target === id);
   const model = resolveYoloModel(id, nodes, edges, params.model_path);
 
@@ -234,6 +236,13 @@ function YoloNode({ id, data, selected, mode }: NodeProps<CustomNodeData> & { mo
                 : `Compactness ${Number(compactness ?? 0).toFixed(3)} · ${result.detection_count ?? 0} detection(s)`
             : data.description || config.hint}
         </p>
+      </div>
+
+      <div className="grid grid-cols-4 border-t-2 border-gray-700 px-1 pb-2 pt-1.5 text-xs font-medium">
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-red-400">start</span><div className={statusDot(data?.status === 'start', 'bg-red-500')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-cyan-400">running</span><div className={statusDot(data?.status === 'running', 'bg-cyan-400 animate-pulse')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-green-400">success</span><div className={statusDot(isSuccess, 'bg-green-500')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-yellow-400">fault</span><div className={statusDot(isFault, 'bg-yellow-500')} /></div>
       </div>
 
       <Modal open={open} title={`${config.title} Settings`} onClose={() => { setForm(params); setOpen(false); }}>

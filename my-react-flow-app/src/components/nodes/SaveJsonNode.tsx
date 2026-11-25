@@ -2,6 +2,7 @@
 import { memo, useCallback, useMemo } from 'react';
 import { Handle, Position, type NodeProps, useEdges } from 'reactflow'; 
 import type { CustomNodeData } from '../../types';
+import { useNodeStatus } from '../../hooks/useNodeStatus';
 
 const SaveJsonNode = ({ id, data, selected }: NodeProps<CustomNodeData>) => {
   const edges = useEdges(); 
@@ -9,6 +10,7 @@ const SaveJsonNode = ({ id, data, selected }: NodeProps<CustomNodeData>) => {
   const isRunning = data.status === 'running';
   const isSuccess = data.status === 'success';
   const isFault = data.status === 'fault';
+  const { statusDot } = useNodeStatus(data);
 
   const isConnected = useMemo(() => edges.some(e => e.target === id), [edges, id]);
 
@@ -57,6 +59,16 @@ const SaveJsonNode = ({ id, data, selected }: NodeProps<CustomNodeData>) => {
           File: {data.output.saved_path.split(/[/\\]/).pop()}
         </div>
       )}
+
+      {/* แถวสถานะกินพื้นที่ padding ของโหนด ให้เส้นคั่นกว้างเต็มโหนดเหมือนโหนดอื่น โหนดนี้แคบ (w-48) จึงให้คอลัมน์กว้างตามข้อความ ไม่แบ่งเท่ากัน */}
+      <div className="-mx-3 -mb-3 mt-3">
+        <div className="grid grid-cols-[repeat(4,auto)] justify-between border-t-2 border-gray-700 px-2 pb-2 pt-1.5 text-xs font-medium">
+          <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-red-400">start</span><div className={statusDot(data.status === 'start', 'bg-red-500')} /></div>
+          <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-cyan-400">running</span><div className={statusDot(isRunning, 'bg-cyan-400 animate-pulse')} /></div>
+          <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-green-400">success</span><div className={statusDot(isSuccess, 'bg-green-500')} /></div>
+          <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-yellow-400">fault</span><div className={statusDot(isFault, 'bg-yellow-500')} /></div>
+        </div>
+      </div>
 
       <Handle type="target" position={Position.Left} className={handleClasses} />
     </div>
