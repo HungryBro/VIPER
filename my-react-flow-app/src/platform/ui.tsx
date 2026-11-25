@@ -75,11 +75,13 @@ const FOCUSABLE = 'button,input,select,textarea,a[href],[tabindex="0"]';
 
 export function Modal({
   title,
+  subtitle,
   children,
   onClose,
   wide = false,
 }: {
   title: string;
+  subtitle?: ReactNode;
   children?: ReactNode;
   onClose: () => void;
   wide?: boolean;
@@ -107,6 +109,10 @@ export function Modal({
       if (!items.length) {
         event.preventDefault();
         ref.current.focus();
+      } else if (!ref.current.contains(document.activeElement)) {
+        // ปุ่มที่ focus อยู่ถูกถอดออกจาก dialog: ดึง focus กลับ ไม่ให้ Tab หลุดไปหน้าด้านหลัง
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
       } else if (event.shiftKey && (document.activeElement === first || document.activeElement === ref.current)) {
         event.preventDefault();
         last.focus();
@@ -138,7 +144,14 @@ export function Modal({
         tabIndex={-1}
       >
         <header>
-          <h2>{title}</h2>
+          {subtitle ? (
+            <div className="modal-heading">
+              <h2>{title}</h2>
+              <p className="muted small">{subtitle}</p>
+            </div>
+          ) : (
+            <h2>{title}</h2>
+          )}
           <button type="button" className="icon-btn" aria-label="ปิดหน้าต่าง" onClick={onClose}>
             <X size={20} />
           </button>
