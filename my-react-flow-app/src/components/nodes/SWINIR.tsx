@@ -152,13 +152,13 @@ const SwinIRNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
         <p className="text-sm text-gray-300 break-words leading-relaxed">{caption}</p>
       </div>
 
-      <div className="border-t-2 border-gray-700 p-2 text-sm font-medium">
-        <div className="flex justify-between items-center py-1"><span className="text-red-400">start</span><div className={statusDot(data?.status === 'start', 'bg-red-500')} /></div>
-        <div className="flex justify-between items-center py-1"><span className="text-cyan-400">running</span><div className={statusDot(data?.status === 'running', 'bg-cyan-400 animate-pulse')} /></div>
-        <div className="flex justify-between items-center py-1"><span className="text-green-400">success</span>
+      <div className="grid grid-cols-4 border-t-2 border-gray-700 px-1 pb-2 pt-1.5 text-xs font-medium">
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-red-400">start</span><div className={statusDot(data?.status === 'start', 'bg-red-500')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-cyan-400">running</span><div className={statusDot(data?.status === 'running', 'bg-cyan-400 animate-pulse')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-green-400">success</span>
            <div className={statusDot(isSuccess, 'bg-green-500')} />
         </div>
-        <div className="flex justify-between items-center py-1"><span className="text-yellow-400">fault</span><div className={statusDot(isFault, 'bg-yellow-500')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-yellow-400">fault</span><div className={statusDot(isFault, 'bg-yellow-500')} /></div>
       </div>
 
       <Modal open={open} title="SwinIR Settings" onClose={handleClose}>
@@ -168,7 +168,7 @@ const SwinIRNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
               <label className="uppercase font-bold text-gray-400 text-[10px] tracking-wider">Scale Factor</label>
               <input 
                 type="number" min="1" max="4" step="1"
-                className="nodrag w-16 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-red-400 font-mono text-right outline-none focus:border-red-500"
+                className="nodrag w-16 bg-gray-900 border border-gray-700 rounded px-2 py-1 text-white font-mono text-right outline-none focus:border-red-500"
                 value={form.scale}
                 onChange={(e) => setForm((s: Params) => ({ ...s, scale: Number(e.target.value) }))}
               />

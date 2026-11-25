@@ -23,6 +23,73 @@ type SavedWorkflow = {
   edges: Edge[];
 };
 
+export type ParsedWorkflow = {
+  /** ชื่อที่เก็บในไฟล์ (ถ้ามี) */
+  name?: string;
+  nodes: RFNode[];
+  edges: Edge[];
+};
+
+/** ไฟล์ที่เปิดไม่ได้ ข้อความบอกสาเหตุให้ผู้ใช้ */
+export class WorkflowFileError extends Error {}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+
+/** แปลงและตรวจข้อความในไฟล์ workflow ใช้ร่วมกันทั้งตัวเลือกไฟล์บน canvas และแท็บนำเข้า */
+export function parseWorkflowText(text: unknown): ParsedWorkflow {
+  if (typeof text !== 'string') {
+    throw new WorkflowFileError('อ่านเนื้อหาไฟล์ไม่ได้');
+  }
+
+  let parsed: Partial<SavedWorkflow> & { name?: unknown };
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new WorkflowFileError('ไฟล์ไม่ใช่ JSON ที่อ่านได้ (ไฟล์อาจเสียหายหรือไม่ครบ)');
+  }
+
+  if (!Array.isArray(parsed?.nodes) || !Array.isArray(parsed?.edges)) {
+    throw new WorkflowFileError('ไม่ใช่ workflow ของ VIPER: ไม่มีรายการ nodes และ edges');
+  }
+  // โหนดที่ไม่มีตำแหน่งหรือชนิดทำให้ canvas พัง และจะค้างอยู่ในแท็บที่จำไว้
+  const nodeOk = (n: unknown) => isRecord(n) && typeof n.id === 'string' && typeof n.type === 'string'
+    && isRecord(n.position) && Number.isFinite(n.position.x) && Number.isFinite(n.position.y);
+  const edgeOk = (e: unknown) => isRecord(e) && typeof e.source === 'string' && typeof e.target === 'string';
+  if (!parsed.nodes.every(nodeOk) || !parsed.edges.every(edgeOk)) {
+    throw new WorkflowFileError('ไม่ใช่ workflow ของ VIPER: ข้อมูลโหนดหรือเส้นเชื่อมไม่ครบ');
+  }
+
+  const nodes: RFNode[] = parsed.nodes.map((n) => withResult({
+    ...n,
+    data: {
+      ...(n.data || ({} as CustomNodeData)),
+      status: 'idle' as NodeStatus,
+    },
+  }));
+  const edges: Edge[] = parsed.edges.map((e) => ({ ...e }));
+  const name = typeof parsed.name === 'string' && parsed.name.trim() ? parsed.name.trim() : undefined;
+
+  return { name, nodes, edges };
+}
+
+export function readWorkflowFile(file: File): Promise<ParsedWorkflow> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        resolve(parseWorkflowText(reader.result));
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = () => {
+      console.error('FileReader error:', reader.error);
+      reject(new WorkflowFileError('เกิดข้อผิดพลาดในการอ่านไฟล์ workflow'));
+    };
+    reader.readAsText(file);
+  });
+}
+
 export function useWorkflowFile({
   nodes,
   edges,
@@ -64,69 +131,46 @@ export function useWorkflowFile({
     URL.revokeObjectURL(url);
   }, [nodes, edges, flowName]);
 
-  const handleFileChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
+  /** แทนโหนดและเส้นเชื่อมของแท็บปัจจุบันด้วย workflow ที่อ่านจากไฟล์ แล้ว fit */
+  const applyWorkflow = useCallback(
+    (loadedNodes: RFNode[], loadedEdges: Edge[]) => {
+      if (isApplyingHistoryRef) {
+        isApplyingHistoryRef.current = true;
+      }
 
-      const reader = new FileReader();
-      reader.onload = () => {
-        try {
-          const text = reader.result;
-          if (typeof text !== 'string') {
-            throw new Error('Invalid file content');
-          }
+      setNodes(() => loadedNodes);
+      setEdges(() => loadedEdges);
 
-          const parsed = JSON.parse(text) as Partial<SavedWorkflow>;
+      setTimeout(() => {
+        window.requestAnimationFrame(() => {
+            fitView({ padding: 0.2, duration: 800 });
+        });
 
-          if (!Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {
-            throw new Error('Invalid workflow JSON structure');
-          }
-
-          const loadedNodes: RFNode[] = parsed.nodes.map((n) => withResult({
-            ...n,
-            data: {
-              ...(n.data || ({} as CustomNodeData)),
-              status: 'idle' as NodeStatus,
-            },
-          }));
-
-          const loadedEdges: Edge[] = parsed.edges.map((e) => ({ ...e }));
-
-          if (isApplyingHistoryRef) {
-            isApplyingHistoryRef.current = true;
-          }
-
-          setNodes(() => loadedNodes);
-          setEdges(() => loadedEdges);
-
-          setTimeout(() => {
-            window.requestAnimationFrame(() => {
-                fitView({ padding: 0.2, duration: 800 });
-            });
-            
-            if (isApplyingHistoryRef) {
-              isApplyingHistoryRef.current = false;
-            }
-          }, 50);
-
-        } catch (err) {
-          console.error('Failed to load workflow file:', err);
-          alert('โหลด workflow ไม่ได้: ไฟล์ไม่ถูกต้องหรือเสียหาย');
-        } finally {
-          event.target.value = '';
+        if (isApplyingHistoryRef) {
+          isApplyingHistoryRef.current = false;
         }
-      };
-
-      reader.onerror = () => {
-        console.error('FileReader error:', reader.error);
-        alert('เกิดข้อผิดพลาดในการอ่านไฟล์ workflow');
-        event.target.value = '';
-      };
-
-      reader.readAsText(file);
+      }, 50);
     },
     [setNodes, setEdges, isApplyingHistoryRef, fitView]
+  );
+
+  const handleFileChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const input = event.target;
+      const file = input.files?.[0];
+      if (!file) return;
+
+      readWorkflowFile(file)
+        .then(({ nodes: loadedNodes, edges: loadedEdges }) => applyWorkflow(loadedNodes, loadedEdges))
+        .catch((err) => {
+          console.error('Failed to load workflow file:', err);
+          alert('โหลด workflow ไม่ได้: ไฟล์ไม่ถูกต้องหรือเสียหาย');
+        })
+        .finally(() => {
+          input.value = '';
+        });
+    },
+    [applyWorkflow]
   );
 
   const triggerLoadWorkflow = useCallback(() => {
@@ -139,5 +183,6 @@ export function useWorkflowFile({
     triggerLoadWorkflow,
     fileInputRef,
     handleFileChange,
+    applyWorkflow,
   };
 }

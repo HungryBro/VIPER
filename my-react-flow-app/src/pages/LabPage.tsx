@@ -17,9 +17,19 @@ import { labBridge } from '../platform/labBridge';
 import { STORAGE_KEY_APP_TABS, STORAGE_KEY_ACTIVE_TAB } from '../lib/labStorage';
 import { usePlatformTheme } from '../platform/theme';
 import SaveTemplateDialog from '../platform/SaveTemplateDialog';
+import type { ImportTarget, ImportedWorkflow } from '../platform/ImportWorkflowPanel';
 import type { WorkflowTab, NodeStatus } from '../types'; 
 
 const COMPACT_MOBILE_QUERY = '(max-width: 767px), (max-height: 560px) and (pointer: coarse)';
+
+// true = พื้นที่ทำงานของ Lab ล็อกชุดสีมืดเสมอ (แบบเดิม), false = ทดลองแบบ A: ตามธีมแพลตฟอร์ม รวมโหนดบน canvas (สีโหนดธีมสว่างอยู่ใน index.css)
+const LAB_FORCE_DARK: boolean = false;
+
+// true = canvas (พื้น เส้นเชื่อม Controls MiniMap ปุ่ม Save/Load/Clear) เป็นสีมืดเสมอ กรอบรอบๆ ตามธีม, false = canvas ตามธีม
+const LAB_DARK_CANVAS: boolean = false;
+
+// true = โหนดสว่างตามธีม (แบบ A), false = โหนดสีมืดเสมอ (แบบ B) มีผลเมื่อธีมสว่างและ canvas ตามธีม
+const LAB_LIGHT_NODES: boolean = false;
 
 // `active` เป็น false เมื่อ editor ถูกเก็บ mount ไว้แต่ซ่อนอยู่หลัง route อื่น (ดู LabHost ใน src/App.tsx)
 // งานที่รัน การแก้ undo/redo, Log panel และ clipboard จึงอยู่ครบเมื่อกลับมา
@@ -301,6 +311,14 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
     };
   }, [activeTabName]);
 
+  // นำเข้าไฟล์ .json จาก dialog: เปิดเป็นแท็บใหม่ (ทางเดียวกับ template) หรือแทนแท็บปัจจุบัน (ทางเดิมของปุ่ม Load)
+  const handleImportWorkflow = useCallback((imported: ImportedWorkflow, target: ImportTarget) => {
+    if (target === 'new') handleLoadTemplate(imported);
+    else canvasRef.current?.importWorkflow(imported.nodes, imported.edges);
+    canvasRef.current?.log(`Imported ${imported.fileName}`);
+    setSaveTemplateOpen(false);
+  }, [handleLoadTemplate]);
+
   const handleLoadPlatformTemplate = useCallback((template: TemplateDetail) => {
     handleLoadTemplate({ name: template.name, nodes: template.workflow.nodes, edges: template.workflow.edges });
   }, [handleLoadTemplate]);
@@ -331,6 +349,10 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
     canvasRef.current?.addNode(nodeType);
   }, []);
 
+  const handleAddNodeAt = useCallback((nodeType: string, clientX: number, clientY: number) => {
+    canvasRef.current?.addNodeAt(nodeType, clientX, clientY);
+  }, []);
+
   // กลับมาที่ /lab: รอให้ layout คำนวณขนาด canvas ใหม่ (หน้าต่างอาจเปลี่ยนขนาดระหว่างซ่อน) แล้ว fit view
   const wasActiveRef = useRef(active);
   useEffect(() => {
@@ -352,6 +374,8 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
   return (
     <div data-lab-theme={theme} className={`viper-app w-screen h-[100dvh] flex flex-col overflow-hidden bg-[var(--lab-bg)] text-[color:var(--lab-ink)] ${isCompactMobile ? 'compact-mobile' : ''}`}>
       {/* หัวของแพลตฟอร์ม (Header) แสดงอยู่เหนือ editor ใน LabHost แล้ว (ชื่อผู้ใช้ แผงจัดการผู้ใช้ของ admin และ Log out อยู่ที่นั่น) */}
+      {/* แถวหัว Lab และพื้นที่ทำงานใช้ชุดสีมืดเสมอ แม้แพลตฟอร์มเป็นธีมสว่าง (dialog ที่เปิดจากแถวหัวยังตามธีมแพลตฟอร์ม) */}
+      <div data-lab-theme={LAB_FORCE_DARK ? 'dark' : theme} data-lab-canvas={LAB_DARK_CANVAS ? 'dark' : 'theme'} data-lab-nodes={LAB_LIGHT_NODES ? 'light' : 'dark'} className="contents">
       <div className="viper-header relative z-30 flex min-h-11 items-center gap-2 border-b border-[var(--lab-line)] bg-[var(--lab-panel)] px-3 sm:gap-3 sm:px-5">
         <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           <button
@@ -390,7 +414,7 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
         <button
           type="button"
           onClick={() => setSaveTemplateOpen(true)}
-          disabled={isRunning || !activeTab?.nodes.length}
+          disabled={isRunning}
           aria-label="เก็บ Template"
           title="Template"
           className="flex h-8 shrink-0 touch-manipulation items-center justify-center gap-1.5 rounded-md border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2.5 text-xs font-semibold text-[var(--lab-ink)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] disabled:cursor-not-allowed disabled:opacity-45"
@@ -411,6 +435,7 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
       <WorkflowTabs tabs={tabs.map(t => ({ id: t.id, name: t.name }))} activeTabId={activeTabId} onSwitch={handleSwitchTab} onAdd={handleAddTab} onClose={handleCloseTab} onRename={handleRenameTab} />
       <div className="viper-canvas-toolbar flex items-center border-b border-[var(--lab-line)] bg-[var(--lab-panel)] px-3 py-1">
         <span className="rounded-[5px] border border-[var(--lab-line)] px-2 py-0.5 text-[11px] font-medium text-[var(--lab-muted)]">{activeTab?.nodes.length ?? 0} โหนด</span>
+        <a href="https://reactflow.dev" target="_blank" rel="noopener noreferrer" aria-label="React Flow attribution" className="viper-flow-attribution ml-auto text-[10px] text-[var(--lab-muted)] hover:text-[var(--lab-ink)]">React Flow</a>
       </div>
       <div className="flex flex-grow overflow-hidden relative">
         <ReactFlowProvider>
@@ -418,12 +443,14 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
             getCurrentWorkflow={getCurrentWorkflow}
             onLoadPlatformTemplate={handleLoadPlatformTemplate}
             onAddNode={handleAddNodeFromLibrary}
+            onAddNodeAt={handleAddNodeAt}
             templateRefreshKey={templateRefreshKey}
           />
           <div className="flex-1 h-full relative">
             <FlowCanvas ref={canvasRef} isRunning={isRunning} onPipelineDone={handleStop} onFlowChange={handleFlowChange} currentTabName={activeTabName} active={active && !saveTemplateOpen && !helpOpen} />
           </div>
         </ReactFlowProvider>
+      </div>
       </div>
       {labNotice && (
         <div
@@ -435,7 +462,7 @@ export default function LabPage({ active = true, platformMenu }: { active?: bool
       )}
       {helpOpen && <LabHelpDialog onClose={() => setHelpOpen(false)} />}
       {saveTemplateOpen && (
-        <SaveTemplateDialog getCurrentWorkflow={getCurrentWorkflow} onClose={() => setSaveTemplateOpen(false)} onSaved={bumpTemplateList} />
+        <SaveTemplateDialog getCurrentWorkflow={getCurrentWorkflow} onSaveFile={() => canvasRef.current?.saveFile()} onImport={handleImportWorkflow} onClose={() => setSaveTemplateOpen(false)} onSaved={bumpTemplateList} />
       )}
     </div>
   );

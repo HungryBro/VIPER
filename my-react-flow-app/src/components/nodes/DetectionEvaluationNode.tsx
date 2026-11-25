@@ -4,6 +4,7 @@ import { Handle, Position, type NodeProps, useEdges, useNodes, useReactFlow } fr
 import type { CustomNodeData } from '../../types';
 import { compactPath } from '../../lib/compactPath';
 import { NODE_DEFAULTS } from '../../lib/nodeDefaults';
+import { useNodeStatus } from '../../hooks/useNodeStatus';
 
 
 const DEFAULTS = { ...NODE_DEFAULTS['detection-evaluation'] };
@@ -30,6 +31,7 @@ const DetectionEvaluationNode = memo(({ id, data, selected }: NodeProps<CustomNo
   const nodes = useNodes<CustomNodeData>();
   const edges = useEdges();
   const isRunning = data.status === 'start' || data.status === 'running';
+  const { statusDot } = useNodeStatus(data);
   const result = data.payload?.evaluation_result || data.payload?.json;
   const metrics = result?.metrics || {};
   const params = useMemo(
@@ -44,7 +46,7 @@ const DetectionEvaluationNode = memo(({ id, data, selected }: NodeProps<CustomNo
   const datasetReady = typeof dataset?.data?.payload?.dataset_yaml === 'string';
   const modelReady = typeof train?.data?.payload?.best_model_path === 'string';
   const border = selected
-    ? 'border-amber-300 ring-2 ring-amber-400/30'
+    ? 'border-amber-400 ring-2 ring-amber-500'
     : data.status === 'fault'
       ? 'border-red-500'
       : 'border-amber-500';
@@ -74,10 +76,10 @@ const DetectionEvaluationNode = memo(({ id, data, selected }: NodeProps<CustomNo
       <Handle type="source" position={Position.Right} id="metric" className="h-3 w-3 border-2 border-gray-400 bg-white" />
 
       <div className="flex items-center justify-between rounded-t-lg bg-gray-700 px-3 py-2">
-        <strong className="text-amber-300">Detection Evaluation</strong>
+        <strong className="text-amber-400">Detection Evaluation</strong>
         <button
           type="button"
-          className={`nodrag rounded px-2 py-1 text-xs font-semibold text-white ${isRunning ? 'cursor-wait bg-yellow-600' : 'bg-amber-600 hover:bg-amber-500'}`}
+          className={`nodrag rounded px-2 py-1 text-xs font-semibold text-white ${isRunning ? 'cursor-wait bg-yellow-600' : 'bg-amber-600 hover:bg-amber-700'}`}
           disabled={isRunning}
           onClick={() => data.onRunNode?.(id)}
         >
@@ -132,6 +134,12 @@ const DetectionEvaluationNode = memo(({ id, data, selected }: NodeProps<CustomNo
       </div>
 
       <div className="border-t border-gray-700 px-3 py-2 text-[10px] text-gray-500">Detection Rate = TP / (TP + FN) · False Detection Rate = FP / (TP + FP)</div>
+      <div className="grid grid-cols-4 border-t-2 border-gray-700 px-1 pb-2 pt-1.5 text-xs font-medium">
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-red-400">start</span><div className={statusDot(data?.status === 'start', 'bg-red-500')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-cyan-400">running</span><div className={statusDot(data?.status === 'running', 'bg-cyan-400 animate-pulse')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-green-400">success</span><div className={statusDot(data.status === 'success', 'bg-green-500')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-yellow-400">fault</span><div className={statusDot(data.status === 'fault', 'bg-yellow-500')} /></div>
+      </div>
     </div>
   );
 });

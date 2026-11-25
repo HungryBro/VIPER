@@ -115,6 +115,10 @@ export async function deletePlatformTemplate(templateId: number): Promise<void> 
   }));
 }
 
+/** ชนิดและขนาดภาพปกที่ server รับ (server/routers/templates.py) */
+export const COVER_TYPES = 'image/png,image/jpeg,image/webp';
+export const MAX_COVER_BYTES = 5 * 1024 * 1024;
+
 export async function uploadTemplateCover(
   templateId: number,
   file: File,

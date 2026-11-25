@@ -190,13 +190,13 @@ const RealESRGANNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) 
         <p className="text-sm text-gray-300 break-words leading-relaxed">{caption}</p>
       </div>
 
-      <div className="border-t-2 border-gray-700 p-2 text-sm font-medium">
-        <div className="flex justify-between items-center py-1"><span className="text-red-400">start</span><div className={statusDot(data?.status === 'start', 'bg-red-500')} /></div>
-        <div className="flex justify-between items-center py-1"><span className="text-cyan-400">running</span><div className={statusDot(data?.status === 'running', 'bg-cyan-400 animate-pulse')} /></div>
-        <div className="flex justify-between items-center py-1"><span className="text-green-400">success</span>
+      <div className="grid grid-cols-4 border-t-2 border-gray-700 px-1 pb-2 pt-1.5 text-xs font-medium">
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-red-400">start</span><div className={statusDot(data?.status === 'start', 'bg-red-500')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-cyan-400">running</span><div className={statusDot(data?.status === 'running', 'bg-cyan-400 animate-pulse')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-green-400">success</span>
            <div className={statusDot(isSuccess, 'bg-green-500')} />
         </div>
-        <div className="flex justify-between items-center py-1"><span className="text-yellow-400">fault</span><div className={statusDot(isFault, 'bg-yellow-500')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-yellow-400">fault</span><div className={statusDot(isFault, 'bg-yellow-500')} /></div>
       </div>
 
       <Modal open={open} title="Real-ESRGAN Settings" onClose={handleClose}>
@@ -213,7 +213,7 @@ const RealESRGANNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) 
               <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Scale (min 1)</label>
               <input 
                 type="number" step="0.5" min="1"
-                className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-red-400 font-mono outline-none focus:border-red-500" 
+                className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-red-500" 
                 value={form.scale} 
                 onChange={e => setForm((s: Params) => ({ ...s, scale: Number(e.target.value) }))} 
                 onBlur={(e) => setForm(s => ({ ...s, scale: Math.max(1, Number(e.target.value)) }))}
@@ -223,7 +223,7 @@ const RealESRGANNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) 
               <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Denoise (0-1)</label>
               <input 
                 type="number" step="0.1" min="0" max="1"
-                className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-red-400 font-mono outline-none focus:border-red-500" 
+                className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-red-500" 
                 value={form.denoise} 
                 onChange={e => setForm((s: Params) => ({ ...s, denoise: Number(e.target.value) }))}
                 onBlur={(e) => {

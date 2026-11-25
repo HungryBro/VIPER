@@ -1,5 +1,5 @@
 // File: src/FlowCanvas.tsx
-import { Maximize2, Save, Trash2, Upload } from 'lucide-react';
+import { ChevronDown, ChevronUp, Map as MapIcon, Maximize2, Trash2 } from 'lucide-react';
 import React, { useCallback, useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import ReactFlow, {
   MiniMap, Controls, Background, useNodesState, useEdgesState,
@@ -32,6 +32,14 @@ export interface FlowCanvasHandle {
   restoreSnapshot: (nodes: RFNode[], edges: Edge[], viewport: Viewport | 'fit') => void;
   fitView: () => void;
   addNode: (nodeType: string) => void;
+  /** Download the workflow as a .json file (the old Save button; now offered in the Save Template dialog). */
+  saveFile: () => void;
+  /** Replace this tab's nodes and edges with a workflow read from a file, then fit. */
+  importWorkflow: (nodes: RFNode[], edges: Edge[]) => void;
+  /** Add a line to the log panel. */
+  log: (message: string) => void;
+  /** Add a node of this type under a screen point (a drop from the library) and fit the view. */
+  addNodeAt: (nodeType: string, clientX: number, clientY: number) => void;
 }
 
 interface FlowCanvasProps {
@@ -91,6 +99,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
     const [edges, setEdges, onEdgesChange] = useEdgesState([]);
     const [logs, setLogs] = useState<LogEntry[]>([]);
 
+    const [mapOpen, setMapOpen] = useState(true);
     const isDraggingRef = useRef(false);
     const isCanceledRef = useRef(false);
 
@@ -116,7 +125,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
     useEffect(() => { nodesRef.current = nodes; }, [nodes]);
 
     const { undo, redo, isApplyingHistoryRef } = useFlowHistory({ nodes, edges, setNodes, setEdges, isDraggingRef });
-    const { saveWorkflow, triggerLoadWorkflow, fileInputRef, handleFileChange } = useWorkflowFile({
+    const { saveWorkflow, fileInputRef, handleFileChange, applyWorkflow } = useWorkflowFile({
       nodes, edges, setNodes, setEdges, isApplyingHistoryRef, flowName: currentTabName
     });
 
@@ -278,22 +287,46 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       }
     }, [addLog, getNodes, setNodes]);
 
+    const fitPendingRef = useRef<false | 'restore' | 'add'>(false);
+
     const addNodeFromLibrary = useCallback((nodeType: string) => {
       const id = getId();
-      const position = screenToFlowPosition({
+      const existing = getNodes();
+      let position = screenToFlowPosition({
         x: window.innerWidth * 0.6,
         y: window.innerHeight * 0.52,
       });
+      if (existing.length > 0) {
+        const b = getNodesBounds(existing);
+        const sizeOf = (n: typeof existing[number]) => ({ w: n.width ?? 0, h: n.height ?? 0 });
+        // Rows of 3, left to right; the 4th node starts a new row below.
+        const lastTop = Math.max(...existing.map((n) => n.position.y));
+        const lastRow = existing.filter((n) => n.position.y >= lastTop - 1);
+        position = lastRow.length >= 3
+          ? { x: b.x, y: b.y + b.height + 80 }
+          : { x: Math.max(...lastRow.map((n) => n.position.x + sizeOf(n).w)) + 80, y: lastTop };
+      }
       setNodes((nds) => nds.concat({
         id,
         type: nodeType,
         position,
         data: { label: nodeType.toUpperCase(), status: 'idle', onRunNode: (nodeId: string) => runNodeById(nodeId), onCancelNode: (nodeId: string) => cancelNodeById(nodeId) },
       }));
+      fitPendingRef.current = 'add';
       addLog(`Added ${nodeType}`, 'info', id);
+    }, [addLog, cancelNodeById, getNodes, runNodeById, screenToFlowPosition, setNodes]);
+
+    const addNodeAtScreenPoint = useCallback((type: string, clientX: number, clientY: number) => {
+      const id = getId();
+      setNodes((nds) => nds.concat({
+        id, type, position: screenToFlowPosition({ x: clientX, y: clientY }),
+        data: { label: type.toUpperCase(), status: 'idle', onRunNode: (id: string) => runNodeById(id), onCancelNode: (id: string) => cancelNodeById(id) },
+      }));
+      fitPendingRef.current = 'add';
+      addLog(`Added ${type}`, 'info', id);
     }, [addLog, cancelNodeById, runNodeById, screenToFlowPosition, setNodes]);
 
-    const fitWorkflowToCanvas = useCallback(() => {
+    const fitWorkflowToCanvas = useCallback((maxZoomCap?: number) => {
       const isCompactMobile = document.querySelector('.viper-app')?.classList.contains('compact-mobile');
       const flowPane = document.querySelector('.react-flow');
 
@@ -328,7 +361,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
         // Overlays inside the pane are obstacles: the Fit/Save/Load/Clear row (top-right), Controls (bottom-left)
         // and the MiniMap (bottom-right; hidden on compact mobile). Pick the safe rectangle with the larger zoom:
         // the band between the top and bottom obstacles, or the full-height gap between the bottom-left and bottom-right ones.
-        const obstacleRects = ['.viper-canvas-actions button', '.react-flow__minimap', '.react-flow__controls']
+        const obstacleRects = ['.viper-canvas-actions button', '.react-flow__minimap', '.viper-minimap-toggle', '.react-flow__controls']
           .flatMap((selector) => Array.from(document.querySelectorAll(selector)).map((el) => el.getBoundingClientRect()))
           .filter((rect) => rect.width > 0 && rect.height > 0);
         const base = fitAreas[0];
@@ -355,7 +388,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
 
         const nodeBounds = getNodesBounds(nodes);
         const minZoom = isCompactMobile ? 0.12 : 0.08;
-        const maxZoom = isCompactMobile ? 2.5 : 5;
+        const maxZoom = Math.min(isCompactMobile ? 2.5 : 5, maxZoomCap ?? Infinity);
         const padding = isCompactMobile ? 0.06 : 0.1;
         const bestFit = fitAreas
           .map((area) => {
@@ -381,7 +414,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       fitView({
         padding: isCompactMobile ? 0.06 : 0.1,
         minZoom: isCompactMobile ? 0.12 : 0.08,
-        maxZoom: isCompactMobile ? 2.5 : 5,
+        maxZoom: Math.min(isCompactMobile ? 2.5 : 5, maxZoomCap ?? Infinity),
         duration: 300,
       });
     }, [fitView, nodes, setViewport]);
@@ -394,24 +427,31 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
         }));
         setNodes(nodesWithFunc);
         setEdges(newEdges);
-        if (newViewport === 'fit') fitPendingRef.current = true;
+        if (newViewport === 'fit') fitPendingRef.current = 'restore';
         else {
           setViewport(newViewport);
           verifyViewportRef.current = true;
         }
       },
-      fitView: fitWorkflowToCanvas,
+      fitView: () => fitWorkflowToCanvas(),
       addNode: addNodeFromLibrary,
-    }), [addNodeFromLibrary, cancelNodeById, edges, fitWorkflowToCanvas, getViewport, runNodeById, setEdges, setNodes, setViewport, nodes]);
+      saveFile: saveWorkflow,
+      importWorkflow: applyWorkflow,
+      log: (message: string) => addLog(message, 'info'),
+      addNodeAt: addNodeAtScreenPoint,
+    }), [saveWorkflow, applyWorkflow, addLog, addNodeAtScreenPoint, addNodeFromLibrary, cancelNodeById, edges, fitWorkflowToCanvas, getViewport, runNodeById, setEdges, setNodes, setViewport, nodes]);
 
-    // A restore with 'fit' waits until React Flow has measured every node:
+    // A restore with 'fit' or an add waits until React Flow has measured every node:
     // fitting earlier would use the wrong bounds.
-    const fitPendingRef = useRef(false);
     useEffect(() => {
       if (!fitPendingRef.current) return;
       if (nodes.some((n) => !n.width || !n.height)) return;
+      const mode = fitPendingRef.current;
       fitPendingRef.current = false;
-      fitWorkflowToCanvas();
+      if (mode !== 'add') { fitWorkflowToCanvas(); return; }
+      // On compact mobile the library closes after an add (300ms width transition): fit once it has settled.
+      const settle = document.querySelector('.viper-app')?.classList.contains('compact-mobile') ? 350 : 0;
+      setTimeout(() => fitWorkflowToCanvas(1), settle);
     }, [nodes, fitWorkflowToCanvas]);
 
     // A restored (remembered) viewport may predate the current layout and leave nodes under the
@@ -431,7 +471,7 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
           if (++tries < 80) requestAnimationFrame(check);
           return;
         }
-        const obstacles = ['.viper-canvas-actions button', '.react-flow__minimap', '.react-flow__controls']
+        const obstacles = ['.viper-canvas-actions button', '.react-flow__minimap', '.viper-minimap-toggle', '.react-flow__controls']
           .flatMap((selector) => Array.from(document.querySelectorAll(selector)).map((el) => el.getBoundingClientRect()))
           .filter((rect) => rect.width > 0 && rect.height > 0);
         const underObstacle = rects.some((r) => obstacles.some((o) => r.right > o.left && r.left < o.right && r.bottom > o.top && r.top < o.bottom));
@@ -524,27 +564,20 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
       e.preventDefault();
       const type = e.dataTransfer.getData('application/reactflow');
       if (!type) return;
-      const id = getId();
-      setNodes((nds) => nds.concat({
-        id, type, position: screenToFlowPosition({ x: e.clientX, y: e.clientY }),
-        data: { label: type.toUpperCase(), status: 'idle', onRunNode: (id: string) => runNodeById(id), onCancelNode: (id: string) => cancelNodeById(id) },
-      }));
-      addLog(`Added ${type}`, 'info', id);
-    }, [screenToFlowPosition, setNodes, runNodeById, addLog]);
+      addNodeAtScreenPoint(type, e.clientX, e.clientY);
+    }, [addNodeAtScreenPoint]);
 
     return (
       <div className="relative flex-1 h-full flex flex-col">
-        <div className="viper-canvas-actions absolute left-16 right-3 top-2.5 z-10 flex justify-end gap-[7px]">
-          <button type="button" onClick={fitWorkflowToCanvas} title="Fit workflow to canvas" aria-label="Fit workflow to canvas" className="viper-fit-canvas-button flex min-h-8 min-w-8 touch-manipulation items-center justify-center gap-[5px] rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2 text-xs text-[var(--lab-ink)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] sm:px-[9px]">
+        <div className="viper-canvas-actions viper-lab-canvas absolute left-16 right-3 top-2.5 z-10 flex justify-end gap-[7px]">
+          <button type="button" onClick={() => fitWorkflowToCanvas()} title="Fit workflow to canvas" aria-label="Fit workflow to canvas" className="viper-fit-canvas-button flex min-h-8 min-w-8 touch-manipulation items-center justify-center gap-[5px] rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2 text-xs text-[var(--lab-ink)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] sm:px-[9px]">
             <Maximize2 size={15} aria-hidden="true" />
           </button>
-          <button type="button" onClick={saveWorkflow} className="flex min-h-8 min-w-8 touch-manipulation items-center justify-center gap-[5px] rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2 text-xs text-[var(--lab-ink)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] sm:px-[9px]"><Save size={15} aria-hidden="true" /><span className="hidden sm:inline">Save</span></button>
-          <button type="button" onClick={triggerLoadWorkflow} className="flex min-h-8 min-w-8 touch-manipulation items-center justify-center gap-[5px] rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2 text-xs text-[var(--lab-ink)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] sm:px-[9px]"><Upload size={15} aria-hidden="true" /><span className="hidden sm:inline">Load</span></button>
-          <button type="button" onClick={handleClearWorkflow} className="flex min-h-8 min-w-8 touch-manipulation items-center justify-center gap-[5px] rounded-[5px] border border-[color-mix(in_srgb,var(--lab-danger)_35%,var(--lab-line))] bg-[var(--lab-panel)] px-2 text-xs text-[var(--lab-ink)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] sm:px-[9px] text-[var(--lab-danger)]"><Trash2 size={15} aria-hidden="true" /><span className="hidden sm:inline">Clear</span></button>
+          <button type="button" onClick={handleClearWorkflow} className="flex min-h-8 min-w-8 touch-manipulation items-center justify-center gap-[5px] rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-panel)] px-2 text-xs text-[var(--lab-ink)] shadow-[0_1px_3px_rgba(0,0,0,0.12)] hover:border-[var(--lab-blue)] hover:bg-[var(--lab-subtle)] sm:px-[9px]"><Trash2 size={15} aria-hidden="true" /><span className="hidden sm:inline">Clear</span></button>
           <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleFileChange} />
         </div>
 
-        <div className="flex-1 relative min-h-0 bg-[var(--lab-canvas)]">
+        <div className="viper-lab-canvas flex-1 relative min-h-0 bg-[var(--lab-canvas)]">
           <ReactFlow
             nodes={nodes} edges={edges}
             onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
@@ -552,6 +585,8 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
             nodeTypes={nodeTypes} defaultEdgeOptions={defaultEdgeOptions}
             connectionLineType={ConnectionLineType.SmoothStep}
             fitView minZoom={0.08} maxZoom={5}
+            // ลิงก์ "React Flow" ย้ายไปอยู่ชิดขวาของแถบเหนือ canvas (LabPage .viper-canvas-toolbar)
+            proOptions={{ hideAttribution: true }}
             onNodeDragStart={() => (isDraggingRef.current = true)}
             onNodeDragStop={() => (isDraggingRef.current = false)}
             isValidConnection={onValidateConnection}
@@ -560,19 +595,35 @@ const FlowCanvas = forwardRef<FlowCanvasHandle, FlowCanvasProps>(
             // the editor is hidden or a Lab dialog is open (active is false then), as useFlowHotkeys does.
             deleteKeyCode={active ? 'Backspace' : null}
           >
-            <MiniMap
-              position="bottom-right"
-              pannable
-              zoomable
-              style={{ width: 120, height: 76 }}
-              maskColor="color-mix(in srgb, var(--lab-bg) 70%, transparent)"
-              nodeColor={(n) => n.data?.status === 'success' ? '#22c55e' : '#94a3b8'}
-            />
+            {mapOpen && (
+              <MiniMap
+                position="bottom-right"
+                pannable
+                zoomable
+                style={{ width: 192, height: 118 }}
+                maskColor="color-mix(in srgb, var(--lab-bg) 70%, transparent)"
+                nodeColor={(n) => n.data?.status === 'success' ? '#22c55e' : '#94a3b8'}
+              />
+            )}
 
             <Controls position="bottom-left" />
 
             <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="var(--lab-dots)" />
           </ReactFlow>
+          <button
+            type="button"
+            onClick={() => setMapOpen((open) => !open)}
+            // nokey: React Flow ดัก Space ไว้เลื่อน canvas (preventDefault) คลาสนี้ทำให้ Space กดปุ่มได้
+            className={`viper-minimap-toggle nokey${mapOpen ? ' viper-minimap-toggle-open' : ''}`}
+            title={mapOpen ? 'ซ่อนแผนที่ย่อ' : 'แสดงแผนที่ย่อ'}
+            aria-label={mapOpen ? 'ซ่อนแผนที่ย่อ' : 'แสดงแผนที่ย่อ'}
+            aria-expanded={mapOpen}
+          >
+            <span className="viper-minimap-label"><MapIcon size={13} aria-hidden="true" />MiniMap</span>
+            {mapOpen
+              ? <span className="viper-minimap-chevron"><ChevronDown size={14} aria-hidden="true" /></span>
+              : <ChevronUp size={12} aria-hidden="true" />}
+          </button>
         </div>
         <LogPanel logs={logs} onClear={() => setLogs([])} />
       </div>

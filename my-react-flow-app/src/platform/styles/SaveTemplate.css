@@ -1,0 +1,101 @@
+/* dialog "บันทึกเป็น Template" ใน Lab: แบ่งเป็นส่วน หัวและปุ่มท้ายอยู่กับที่ เนื้อหาตรงกลางเลื่อน ใช้ token ของ Theme.css ทั้งสองธีม */
+.viper-platform .modal-heading { min-width: 0; }
+.viper-platform .modal-heading p { margin: 2px 0 0; overflow-wrap: anywhere; }
+/* ความสูงคงที่ สลับแท็บแล้ว dialog ไม่กระโดด */
+.viper-platform .modal:has(.save-template-form) { display: flex; flex-direction: column; overflow: hidden; height: min(90dvh, 860px); }
+.viper-platform .modal:has(.save-template-form) > header { flex-shrink: 0; gap: 12px; }
+.viper-platform .save-template-form { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.viper-platform .save-template-body.modal-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0; }
+.viper-platform .save-template-form > .modal-actions { flex-shrink: 0; background: var(--panel); }
+.viper-platform .save-template-section { padding: 20px 25px; }
+.viper-platform .save-template-section + .save-template-section { border-top: 1px solid var(--line); }
+.viper-platform .save-template-section > .field:last-child { margin-bottom: 0; }
+.viper-platform .save-template-section > .field { margin-bottom: 16px; }
+.viper-platform .save-template-title { display: flex; align-items: center; gap: 9px; margin: 0 0 14px; font-size: 13px; font-weight: 650; }
+.viper-platform .save-template-title .muted { font-weight: 400; }
+.viper-platform .save-template-step { display: inline-grid; place-items: center; flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--blue-soft); color: var(--blue-ink); font-size: 12px; font-weight: 650; }
+.viper-platform .save-template-label { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.viper-platform .save-template-label .muted { font-weight: 400; }
+
+/* ภาพปก */
+.viper-platform .save-template-dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 100%; max-width: 440px; margin: 0 auto; aspect-ratio: 16 / 9; padding: 14px; border: 1.5px dashed var(--line); border-radius: 10px; background: var(--subtle); color: var(--ink); text-align: center; }
+.viper-platform .save-template-dropzone:hover, .viper-platform .save-template-dropzone.save-template-dragging { border-color: var(--blue); background: var(--blue-soft); }
+.viper-platform .save-template-dropzone:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.viper-platform .save-template-dropzone svg { color: var(--muted); }
+.viper-platform .save-template-dropzone strong { font-size: 13px; font-weight: 600; }
+.viper-platform .save-template-dropzone strong span { color: var(--blue-ink); text-decoration: underline; }
+.viper-platform .save-template-dropzone small { font-size: 12px; line-height: 1.6; color: var(--ink); opacity: .8; }
+.viper-platform .save-template-hint { margin: 8px 0 0; text-align: center; }
+.viper-platform .save-template-picked { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; align-items: start; border-radius: 10px; }
+.viper-platform .save-template-picked.save-template-dragging { outline: 2px dashed var(--blue); outline-offset: 4px; }
+.viper-platform .save-template-preview { position: relative; margin: 0; aspect-ratio: 16 / 9; overflow: hidden; border: 1px solid var(--line); border-radius: 10px; background: var(--subtle); }
+.viper-platform .save-template-preview img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.viper-platform .save-template-preview figcaption { position: absolute; top: 8px; left: 8px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); font-size: 11px; }
+.viper-platform .save-template-fileinfo { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.viper-platform .save-template-fileinfo strong { max-width: 100%; font-size: 13px; overflow-wrap: anywhere; }
+.viper-platform .save-template-fileactions { display: flex; gap: 8px; flex-wrap: wrap; }
+.viper-platform .save-template-check { display: flex; align-items: flex-start; gap: 6px; margin: 0; font-size: 12px; line-height: 1.7; }
+.viper-platform .save-template-check svg { flex-shrink: 0; margin-top: 3px; }
+.viper-platform .modal-body > p.save-template-check, .viper-platform .save-template-check.save-template-warn { color: var(--amber); }
+.viper-platform .save-template-check.save-template-ok { color: var(--teal); }
+.viper-platform .save-template-check.save-template-bad { color: var(--danger); margin-top: 8px; }
+
+/* ใครเห็นได้: การ์ด radio เรียงแถวเดียว */
+.viper-platform .save-template-visibility { display: block; min-width: 0; }
+.viper-platform .save-template-visibility legend.save-template-title { float: left; width: 100%; padding: 0; }
+.viper-platform .save-template-cards { clear: both; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 10px; }
+.viper-platform .save-template-cards label { display: flex; align-items: center; gap: 9px; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); cursor: pointer; }
+.viper-platform .save-template-cards label:hover { border-color: var(--blue); }
+.viper-platform .save-template-cards label:has(input:checked) { border-color: var(--blue); background: var(--blue-soft); box-shadow: inset 0 0 0 1px var(--blue); }
+.viper-platform .save-template-cards label:has(input:focus-visible) { outline: 2px solid var(--blue); outline-offset: 2px; }
+.viper-platform .save-template-cards label:has(input:checked) small, .viper-platform .save-template-cards label:has(input:checked) svg { color: var(--ink); }
+.viper-platform .save-template-cards input { flex-shrink: 0; }
+.viper-platform .save-template-cards svg { flex-shrink: 0; }
+.viper-platform .save-template-cards small { line-height: 1.6; }
+
+/* เก็บไว้ในเครื่อง */
+.viper-platform .save-template-divider { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; color: var(--muted); font-size: 12px; font-weight: 500; }
+.viper-platform .save-template-divider::before, .viper-platform .save-template-divider::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
+.viper-platform .save-template-download { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1.5px dashed var(--line); border-radius: 10px; }
+.viper-platform .save-template-download > svg { flex-shrink: 0; color: var(--muted); }
+.viper-platform .save-template-download > span { flex: 1; min-width: 0; }
+.viper-platform .save-template-download strong { display: block; font-size: 13px; }
+.viper-platform .save-template-download small { display: block; font-size: 12px; line-height: 1.6; }
+
+.viper-platform .save-template-notes { flex-shrink: 0; padding: 10px 25px 0; border-top: 1px solid var(--line); }
+.viper-platform .save-template-notes p { margin: 0 0 8px; }
+.viper-platform .save-template-notes + .modal-actions { border-top: 0; }
+
+/* แท็บ */
+.viper-platform .save-template-tabs { display: flex; flex-shrink: 0; gap: 4px; padding: 0 21px; border-bottom: 1px solid var(--line); }
+.viper-platform .save-template-tabs button { min-height: 44px; padding: 0 12px; border: 0; border-bottom: 2px solid transparent; background: none; color: var(--muted); font-size: 13px; font-weight: 600; }
+.viper-platform .save-template-tabs button:hover { color: var(--ink); }
+.viper-platform .save-template-tabs button[aria-selected='true'] { border-bottom-color: var(--blue); color: var(--blue-ink); }
+.viper-platform .save-template-tabs button:focus-visible { outline: 2px solid var(--blue); outline-offset: -3px; border-radius: 6px; }
+.viper-platform .modal:has(.save-template-tabs) > header { border-bottom: 0; padding-bottom: 8px; }
+
+/* แท็บนำเข้า */
+.viper-platform .save-template-dropzone.save-template-filezone { max-width: none; aspect-ratio: auto; min-height: 150px; }
+.viper-platform .save-template-file { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--subtle); }
+.viper-platform .save-template-file > svg { flex-shrink: 0; color: var(--muted); }
+.viper-platform .save-template-file > span { flex: 1; min-width: 0; }
+.viper-platform .save-template-file strong { display: block; font-size: 13px; overflow-wrap: anywhere; }
+.viper-platform .save-template-file small { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.viper-platform a.save-template-download { color: var(--ink); text-decoration: none; border-style: solid; }
+.viper-platform a.save-template-download:hover { border-color: var(--blue); background: var(--subtle); }
+.viper-platform a.save-template-download:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+@media (max-width: 699px) {
+  /* จอแคบ: เต็มจอ ปุ่มท้ายติดล่างจอ */
+  .viper-platform .modal-backdrop:has(.save-template-form) { padding: 0; }
+  .viper-platform .modal:has(.save-template-form) { height: 100dvh; max-height: 100dvh; border-radius: 0; border: 0; }
+  .viper-platform .save-template-section { padding: 18px 16px; }
+  .viper-platform .save-template-tabs { padding: 0 12px; }
+  .viper-platform .save-template-picked { grid-template-columns: minmax(0, 1fr); }
+  .viper-platform .save-template-cards { grid-auto-flow: row; }
+  .viper-platform .save-template-download { flex-wrap: wrap; }
+  .viper-platform .save-template-download > .btn { width: 100%; }
+  .viper-platform .save-template-notes { padding: 10px 16px 0; }
+  .viper-platform .save-template-form > .modal-actions { padding: 12px 16px; }
+  .viper-platform .save-template-form > .modal-actions .btn { flex: 1; }
+}

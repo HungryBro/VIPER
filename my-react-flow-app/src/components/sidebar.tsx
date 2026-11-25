@@ -1,5 +1,5 @@
 // src/components/sidebar.tsx
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { ChevronDown, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { TEMPLATE_INFO, type TemplateInfo } from '../lib/templateInfo';
 import { listOfficialTemplates, loadPlatformTemplate, type CurrentWorkflow, type TemplateDetail } from '../lib/templateApi';
@@ -20,6 +20,8 @@ interface SidebarProps {
   /** ส่งต่อให้ TemplatePlatformLibrary: เปลี่ยนค่าเมื่อรายการ template ต้องโหลดใหม่ (A4f) */
   templateRefreshKey?: number;
   onAddNode: (nodeType: string) => void;
+  /** Drop a node under a screen point: a long-press drag with a finger or pen (HTML5 drag does not work with touch). */
+  onAddNodeAt?: (nodeType: string, clientX: number, clientY: number) => void;
 }
 
 const COMPACT_MOBILE_QUERY = '(max-width: 767px), (max-height: 560px) and (pointer: coarse)';
@@ -32,6 +34,24 @@ const SHOW_LEGACY_TEMPLATE_LIST: boolean = false;
 // ปุ่ม NODES/TEMPLATES ในคลังถูกซ่อนตาม mockup v2 (เปิด template ได้จากหน้า /templates ด้วย "เปิดใน Lab")
 // โค้ด TemplatePlatformLibrary ยังอยู่ครบ ตั้งเป็น true เพื่อเปิดแท็บ TEMPLATES กลับมา
 const SHOW_LAB_TEMPLATES_TAB: boolean = false;
+
+// Library colours follow the node on the canvas: fill = {colour}-600 (the node's Run button), dark = {colour}-400 (node title,
+// group heading on the dark theme), light = {colour}-700 (group heading on the light theme and the button hover).
+const GROUP_PALETTE: Record<string, { fill: string; dark: string; light: string }> = {
+  'Input': { fill: '#0d9488', dark: '#2dd4bf', light: '#0f766e' },
+  'Enhancement': { fill: '#4f46e5', dark: '#818cf8', light: '#4338ca' },
+  'Restoration': { fill: '#dc2626', dark: '#f87171', light: '#b91c1c' },
+  'Segmentation': { fill: '#ca8a04', dark: '#facc15', light: '#a16207' },
+  'Feature Extraction': { fill: '#16a34a', dark: '#4ade80', light: '#15803d' },
+  'Matching': { fill: '#ea580c', dark: '#fb923c', light: '#c2410c' },
+  'Object Alignment': { fill: '#9333ea', dark: '#c084fc', light: '#7e22ce' },
+  'Classification': { fill: '#db2777', dark: '#f472b6', light: '#be185d' },
+  'Evaluation': { fill: '#d97706', dark: '#fbbf24', light: '#b45309' },
+  'Object Detection & XAI': { fill: '#0891b2', dark: '#22d3ee', light: '#0e7490' },
+  'Quality Assessment': { fill: '#2563eb', dark: '#60a5fa', light: '#1d4ed8' },
+  'Saver': { fill: '#4b5563', dark: '#9ca3af', light: '#374151' },
+};
+const FALLBACK_PALETTE = { fill: '#4b5563', dark: '#9ca3af', light: '#374151' };
 
 // --- Icons ---
 const Icons: Record<string, React.FC<{ className?: string }>> = {
@@ -53,7 +73,7 @@ const Icons: Record<string, React.FC<{ className?: string }>> = {
   )
 };
 
-const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templateRefreshKey }: SidebarProps) => {
+const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, onAddNodeAt, templateRefreshKey }: SidebarProps) => {
 
   const [activeTab, setActiveTab] = useState<'nodes' | 'templates'>('nodes');
   const [templateView, setTemplateView] = useState<PlatformTemplateView>('official');
@@ -130,7 +150,71 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templa
     return colorMap[color] || colorMap['teal'];
   };
 
+  // Touch/pen drag from the library: a ~250ms press picks the node up, lifting over the canvas adds it there.
+  // A quick tap still adds the node (onClick) and a swipe scrolls the list. The mouse keeps using HTML5 drag.
+  const TOUCH_PICKUP_MS = 250;
+  const lastPointerType = useRef('mouse');
+  const suppressClick = useRef(false);
+  const touchDrag = useRef<{ type: string; label: string; x: number; y: number; sx: number; sy: number; picked: boolean; timer: number } | null>(null);
+  const [ghost, setGhost] = useState<{ label: string; x: number; y: number } | null>(null);
+
+  const blockScroll = useCallback((e: TouchEvent) => {
+    if (touchDrag.current?.picked && e.cancelable) e.preventDefault();
+  }, []);
+  const endTouchDrag = useCallback(() => {
+    if (touchDrag.current) window.clearTimeout(touchDrag.current.timer);
+    touchDrag.current = null;
+    setGhost(null);
+    document.removeEventListener('touchmove', blockScroll);
+  }, [blockScroll]);
+  useEffect(() => endTouchDrag, [endTouchDrag]);
+
+  const onNodePointerDown = (e: React.PointerEvent, nodeType: string, label: string) => {
+    lastPointerType.current = e.pointerType;
+    suppressClick.current = false;
+    // iPadOS lifts a draggable element natively after a long press and cancels our pointer events: only the mouse uses HTML5 drag.
+    (e.currentTarget as HTMLElement).draggable = e.pointerType === 'mouse';
+    if (e.pointerType === 'mouse' || !onAddNodeAt || window.matchMedia(COMPACT_MOBILE_QUERY).matches) return;
+    endTouchDrag();
+    document.addEventListener('touchmove', blockScroll, { passive: false });
+    const drag = {
+      type: nodeType, label, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, picked: false,
+      timer: window.setTimeout(() => {
+        drag.picked = true;
+        suppressClick.current = true;
+        setGhost({ label, x: drag.x, y: drag.y });
+      }, TOUCH_PICKUP_MS),
+    };
+    touchDrag.current = drag;
+  };
+  const onNodePointerMove = (e: React.PointerEvent) => {
+    const drag = touchDrag.current;
+    if (!drag) return;
+    drag.x = e.clientX;
+    drag.y = e.clientY;
+    if (drag.picked) { setGhost({ label: drag.label, x: e.clientX, y: e.clientY }); return; }
+    const dx = e.clientX - drag.sx;
+    const dy = e.clientY - drag.sy;
+    if (Math.hypot(dx, dy) <= 8) return;
+    if (Math.abs(dx) > Math.abs(dy) * 1.2) {
+      // The list only scrolls up and down, so a sideways drag before the press timer is a drag out of the library: pick up at once.
+      window.clearTimeout(drag.timer);
+      drag.picked = true;
+      suppressClick.current = true;
+      setGhost({ label: drag.label, x: e.clientX, y: e.clientY });
+    } else endTouchDrag(); // a vertical swipe: let the list scroll
+  };
+  const onNodePointerUp = (e: React.PointerEvent) => {
+    const drag = touchDrag.current;
+    if (drag?.picked) {
+      const overCanvas = document.elementFromPoint(e.clientX, e.clientY)?.closest('.react-flow__pane, .react-flow__renderer');
+      if (overCanvas) onAddNodeAt?.(drag.type, e.clientX, e.clientY);
+    }
+    endTouchDrag();
+  };
+
   const onDragStart = (e: React.DragEvent, nodeType: string) => {
+    if (lastPointerType.current !== 'mouse') { e.preventDefault(); return; }
     e.dataTransfer.setData('application/reactflow', nodeType);
     e.dataTransfer.effectAllowed = 'move';
   };
@@ -262,31 +346,38 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templa
 
             {activeTab === 'nodes' && jobs.map(job => {
                 const isOpen = openNodeGroups[job.name];
-                const groupColor = job.name.toLowerCase() === 'input' ? 'var(--lab-teal)' : job.name.toLowerCase() === 'evaluation' ? 'var(--lab-amber)' : 'var(--lab-blue-ink)';
+                const palette = GROUP_PALETTE[job.name] ?? FALLBACK_PALETTE;
                 return (
-                  <div key={job.name} style={{ '--group-color': groupColor } as React.CSSProperties} className="mb-[9px] overflow-hidden rounded-md border border-[var(--lab-line)] bg-[var(--lab-subtle)]">
-                    <button type="button" aria-expanded={Boolean(isOpen)} className="flex min-h-10 w-full touch-manipulation items-center justify-between gap-2 px-[11px] py-[13px] text-left text-xs font-semibold uppercase text-[var(--group-color)]" onClick={() => toggleNodeGroup(job.name)}>
-                      <span>{job.name}</span>
-                      <ChevronDown size={14} className={`transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
+                  <div key={job.name} style={{ '--group-fill': palette.fill, '--group-dark': palette.dark, '--group-light': palette.light } as React.CSSProperties} className="mb-[9px] overflow-hidden rounded-md border border-[var(--lab-line)] bg-[var(--lab-subtle)]">
+                    <button type="button" aria-expanded={Boolean(isOpen)} className="flex min-h-10 w-full touch-manipulation items-center justify-between gap-2 px-[11px] py-[13px] text-left text-xs font-bold uppercase text-[var(--lab-ink)]" onClick={() => toggleNodeGroup(job.name)}>
+                      <span className="flex items-center gap-2"><span aria-hidden="true" className="lab-group-dot h-[7px] w-[7px] shrink-0 rounded-full" />{job.name}</span>
+                      <ChevronDown size={14} className={`text-[var(--lab-muted)] transition-transform duration-200 ${isOpen ? '' : '-rotate-90'}`} />
                     </button>
                     {isOpen && (
                       <div className="flex flex-col gap-[7px] px-2 pb-[9px]">
                         {job.algorithms.map(alg => (
-                          <div
+                          <button
                             key={alg.type}
+                            type="button"
                             draggable
                             onDragStart={(e) => onDragStart(e, alg.type)}
-                            className="group rounded-[5px] border border-[color-mix(in_srgb,var(--group-color)_35%,var(--lab-line))] bg-[color-mix(in_srgb,var(--group-color)_11%,var(--lab-panel))] px-[9px] py-2.5 text-left text-xs text-[var(--group-color)] md:cursor-grab md:active:cursor-grabbing"
+                            onPointerDown={(e) => onNodePointerDown(e, alg.type, alg.label)}
+                            onPointerMove={onNodePointerMove}
+                            onPointerUp={onNodePointerUp}
+                            onPointerCancel={endTouchDrag}
+                            onContextMenu={(e) => { if (lastPointerType.current !== 'mouse') e.preventDefault(); }}
+                            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }}
+                            // Touch screens cannot drag an HTML5 element, so a tap adds the node; with a mouse the button is drag-only.
+                            onClick={() => {
+                              if (suppressClick.current) { suppressClick.current = false; return; }
+                              if (window.matchMedia(COMPACT_MOBILE_QUERY).matches || window.matchMedia('(pointer: coarse)').matches) addNodeFromLibrary(alg.type);
+                            }}
+                            aria-label={`เพิ่ม ${alg.label} ลง canvas`}
+                            className="block min-h-11 w-full touch-manipulation rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-blue-soft)] px-[9px] py-2 text-center text-xs font-bold uppercase tracking-[0.03em] text-[var(--lab-blue-ink)] hover:bg-[var(--lab-action)] hover:text-white focus-visible:bg-[var(--lab-action)] focus-visible:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lab-blue)] active:bg-[var(--lab-action)] active:text-white md:min-h-[34px] [@media(pointer:coarse)]:min-h-11 md:cursor-grab md:active:cursor-grabbing"
                           >
-                            <span className="block w-full">{alg.label}</span>
-                            <button
-                              type="button"
-                              onClick={() => addNodeFromLibrary(alg.type)}
-                              className="mt-2 flex min-h-9 w-full touch-manipulation items-center justify-center rounded border border-[color-mix(in_srgb,var(--group-color)_35%,var(--lab-line))] px-2 text-[10px] font-semibold md:hidden"
-                            >
-                              + ADD TO CANVAS
-                            </button>
-                          </div>
+                            {/* a name with a bracket, such as "Snake (Active Contour)", keeps the bracket on a second line */}
+                            {alg.label.split(/ (?=\()/).map((part, i) => <React.Fragment key={i}>{i > 0 && <br />}{part}</React.Fragment>)}
+                          </button>
                         ))}
                       </div>
                     )}
@@ -295,7 +386,7 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templa
               })}
 
             {activeTab === 'nodes' && (
-              <p className="px-1 pt-2 text-xs leading-relaxed text-[var(--lab-muted)]">ลากโหนดจากคลังลงบน Canvas แล้วลากสายเชื่อมเอง (บนจอแคบกด + ADD TO CANVAS)</p>
+              <p className="px-1 pt-2 text-xs leading-relaxed text-[var(--lab-muted)]">ลากโหนดจากคลังลงบน Canvas แล้วลากสายเชื่อมเอง (บนจอสัมผัสแตะที่ปุ่มโหนดเพื่อเพิ่ม)</p>
             )}
 
             {SHOW_LEGACY_TEMPLATE_LIST && activeTab === 'templates' && templateView === 'official' && templateJobs.map(job => {
@@ -354,6 +445,15 @@ const Sidebar = ({ getCurrentWorkflow, onLoadPlatformTemplate, onAddNode, templa
 
       {aboutModal.visible && (
         <AlgorithmInfoModal template={aboutModal.template} onClose={() => setAboutModal({ visible: false, template: null })} />
+      )}
+      {ghost && (
+        <div
+          aria-hidden="true"
+          style={{ left: ghost.x, top: ghost.y }}
+          className="pointer-events-none fixed z-[200] -translate-x-1/2 -translate-y-[130%] rounded-[5px] border border-[var(--lab-line)] bg-[var(--lab-action)] px-3 py-2 text-xs font-bold uppercase tracking-[0.03em] text-white shadow-lg"
+        >
+          {ghost.label}
+        </div>
       )}
     </>
   );

@@ -194,13 +194,13 @@ const OtsuNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
         </p>
       </div>
 
-      <div className="border-t-2 border-gray-700 p-2 text-sm font-medium">
-        <div className="flex justify-between items-center py-1"><span className="text-red-400">start</span><div className={statusDot(data?.status === 'start', 'bg-red-500')} /></div>
-        <div className="flex justify-between items-center py-1"><span className="text-cyan-400">running</span><div className={statusDot(data?.status === 'running', 'bg-cyan-400 animate-pulse')} /></div>
-        <div className="flex justify-between items-center py-1"><span className="text-green-400">success</span>
+      <div className="grid grid-cols-4 border-t-2 border-gray-700 px-1 pb-2 pt-1.5 text-xs font-medium">
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-red-400">start</span><div className={statusDot(data?.status === 'start', 'bg-red-500')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-cyan-400">running</span><div className={statusDot(data?.status === 'running', 'bg-cyan-400 animate-pulse')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-green-400">success</span>
            <div className={statusDot(isSuccess, 'bg-green-500')} />
         </div>
-        <div className="flex justify-between items-center py-1"><span className="text-yellow-400">fault</span><div className={statusDot(data?.status === 'fault', 'bg-yellow-500')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-yellow-400">fault</span><div className={statusDot(data?.status === 'fault', 'bg-yellow-500')} /></div>
       </div>
 
       <Modal open={open} title="Otsu Settings" onClose={onClose}>
@@ -214,7 +214,7 @@ const OtsuNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
             <span className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Blur Kernel Size (odd)</span>
             <input 
               type="number" min={1} step={2} 
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-pink-400 font-mono outline-none focus:border-pink-500" 
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-pink-500" 
               value={form.blur_ksize} 
               onKeyDown={stopPropagation} 
               onChange={(e) => setForm((s: Params) => ({ ...s, blur_ksize: Number(e.target.value) }))}

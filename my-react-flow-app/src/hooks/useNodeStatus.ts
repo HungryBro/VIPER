@@ -26,7 +26,7 @@ export const useNodeStatus = (data: CustomNodeData | undefined) => {
       isFault,
       isSuccess,
       statusDot: (active: boolean, color: string) => 
-        `h-4 w-4 rounded-full ${active ? color : 'bg-gray-600'} flex-shrink-0 shadow-inner transition-colors duration-200`
+        `h-[6.5px] w-[6.5px] rounded-full ${active ? color : 'bg-gray-600'} flex-shrink-0 shadow-inner transition-colors duration-200`
     };
   }, [data]);
 };

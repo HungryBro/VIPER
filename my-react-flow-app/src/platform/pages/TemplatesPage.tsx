@@ -17,6 +17,7 @@ import {
   uploadTemplateCover,
   type TemplateSummary,
   type TemplateVisibility,
+  COVER_TYPES,
 } from '../../lib/templateApi';
 import '../styles/Templates.css';
 import { loginPathFor } from '../safeNext';
@@ -34,7 +35,6 @@ const TABS: Array<[Tab, string]> = [
   ['mine', 'ของฉัน'],
 ];
 
-const COVER_TYPES = 'image/png,image/jpeg,image/webp';
 
 function CommentSwitch({ template, on, onToggle }: { template: TemplateSummary; on: boolean; onToggle: () => void }) {
   return (

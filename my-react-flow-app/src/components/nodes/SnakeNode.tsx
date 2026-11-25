@@ -73,7 +73,7 @@ const Num = ({ label, value, onChange, step = 1, min, max, onBlur }: NumProps) =
       step={step}
       {...(min !== undefined ? { min } : {})}
       {...(max !== undefined ? { max } : {})}
-      className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-pink-400 font-mono outline-none focus:border-pink-500"
+      className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-pink-500"
       value={value ?? ''}
       onChange={(e) => { const raw = e.target.value; if (raw === '') onChange(''); else onChange(raw); }}
       onMouseDown={stopAll} onClick={stopAll} onDoubleClick={stopAll} onKeyDown={stopKeys}
@@ -87,7 +87,7 @@ const Select = ({ label, value, onChange, options }: SelectProps) => (
   <label className="block">
     <span className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">{label}</span>
     <select
-      className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-pink-400 font-mono outline-none focus:border-pink-500"
+      className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-pink-500"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onMouseDown={stopAll} onClick={stopAll} onDoubleClick={stopAll} onKeyDown={stopKeys}
@@ -455,13 +455,13 @@ const SnakeNode = memo(({ id, data, selected }: NodeProps<CustomNodeData>) => {
         {displayImage && isEditing && form.init_mode === 'bbox' && <div className="text-[10px] text-gray-400 text-center mt-1">Drag to draw bounding box</div>}
       </div>
 
-      <div className="border-t-2 border-gray-700 p-2 text-sm font-medium">
-        <div className="flex justify-between items-center py-1"><span className="text-red-400">start</span><div className={statusDot(data?.status === 'start', 'bg-red-500')} /></div>
-        <div className="flex justify-between items-center py-1"><span className="text-cyan-400">running</span><div className={statusDot(data?.status === 'running', 'bg-cyan-400 animate-pulse')} /></div>
-        <div className="flex justify-between items-center py-1"><span className="text-green-400">success</span>
+      <div className="grid grid-cols-4 border-t-2 border-gray-700 px-1 pb-2 pt-1.5 text-xs font-medium">
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-red-400">start</span><div className={statusDot(data?.status === 'start', 'bg-red-500')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-cyan-400">running</span><div className={statusDot(data?.status === 'running', 'bg-cyan-400 animate-pulse')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-green-400">success</span>
            <div className={statusDot(isSuccess, 'bg-green-500')} />
         </div>
-        <div className="flex justify-between items-center py-1"><span className="text-yellow-400">fault</span><div className={statusDot(data?.status === 'fault', 'bg-yellow-500')} /></div>
+        <div className="flex flex-col-reverse items-center gap-1 py-1"><span className="text-yellow-400">fault</span><div className={statusDot(data?.status === 'fault', 'bg-yellow-500')} /></div>
       </div>
 
       <Modal open={open} title="Snake Settings" onClose={onClose}>

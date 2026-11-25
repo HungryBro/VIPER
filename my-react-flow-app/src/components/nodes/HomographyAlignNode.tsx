@@ -135,7 +135,7 @@ const HomographyAlignNode = memo(({ id, data, selected }: NodeProps<CustomNodeDa
       <Handle type="target" position={Position.Left} className={targetHandleClass} style={{ top: '50%', transform: 'translateY(-50%)' }} />
       <Handle type="source" position={Position.Right} className={sourceHandleClass} style={{ top: '50%', transform: 'translateY(-50%)' }} />
 
-      <div className="bg-gray-700 text-purple-500 rounded-t-xl px-2 py-2 flex items-center justify-between font-bold">
+      <div className="bg-gray-700 text-purple-400 rounded-t-xl px-2 py-2 flex items-center justify-between font-bold">
         <div>Homography Align</div>
         <div className="flex items-center gap-2">
           <button
@@ -207,20 +207,20 @@ const HomographyAlignNode = memo(({ id, data, selected }: NodeProps<CustomNodeDa
         )}
       </div>
 
-      <div className="border-t-2 border-gray-700 p-2 text-sm font-medium">
-        <div className="flex justify-between items-center py-1">
+      <div className="grid grid-cols-4 border-t-2 border-gray-700 px-1 pb-2 pt-1.5 text-xs font-medium">
+        <div className="flex flex-col-reverse items-center gap-1 py-1">
           <span className="text-red-400">start</span>
           <div className={statusDot(data?.status === 'start', 'bg-red-500')} />
         </div>
-        <div className="flex justify-between items-center py-1">
+        <div className="flex flex-col-reverse items-center gap-1 py-1">
           <span className="text-cyan-400">running</span>
           <div className={statusDot(data?.status === 'running', 'bg-cyan-400 animate-pulse')} />
         </div>
-        <div className="flex justify-between items-center py-1">
+        <div className="flex flex-col-reverse items-center gap-1 py-1">
           <span className="text-green-400">success</span>
           <div className={statusDot(isSuccess, 'bg-green-500')} />
         </div>
-        <div className="flex justify-between items-center py-1">
+        <div className="flex flex-col-reverse items-center gap-1 py-1">
           <span className="text-yellow-400">fault</span>
           <div className={statusDot(data?.status === 'fault', 'bg-yellow-500')} />
         </div>
@@ -231,7 +231,7 @@ const HomographyAlignNode = memo(({ id, data, selected }: NodeProps<CustomNodeDa
           <div>
             <label className="block mb-1 font-bold text-gray-400 uppercase text-[10px] tracking-wider">Warp Mode</label>
             <select
-              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-purple-400 font-mono outline-none focus:border-purple-500"
+              className="nodrag w-full bg-gray-900 rounded border border-gray-700 p-2 text-white font-mono outline-none focus:border-purple-500"
               value={form.warp_mode}
               onChange={(e) => setForm(s => ({ ...s, warp_mode: e.target.value as Params['warp_mode'] }))}
             >
