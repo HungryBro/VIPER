@@ -24,14 +24,14 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
     6. ใช้ `context.route` ส่ง `/api/**` และ `/static/**` จาก vite :5173 เข้า TestClient (ส่งต่อ header `cookie`, `content-type`) คำขอจึงไม่ไปถึง backend :8000 ที่ต่อฐานจริง
     7. ทุกครั้งที่เปิดบทบาท ให้ fetch `/api/auth/me` แล้ว assert id, role, can_teach (ผู้เยี่ยมชมต้องได้ 401)
 
-### [ ] T1 Backend: คอร์ส (สร้าง ดู แก้)
+### [x] T1 Backend: คอร์ส (สร้าง ดู แก้)
 - เกณฑ์รับ
-  - [ ] model `Course` ใน `server/models.py` ตาม plan (CheckConstraint ของสถานะ, partial unique index ของ `code` เฉพาะแถว `deleted_at IS NULL` ที่ใช้ได้ทั้ง PostgreSQL และ SQLite)
-  - [ ] สุ่มรหัส `VP-XXXXXX` เมื่อ `code` ว่าง (ชุดอักษร `ABCDEFGHJKMNPQRSTUVWXYZ23456789`) และสุ่มใหม่ถ้าซ้ำ ส่วนรหัสที่กรอกเองให้ strip, แปลงเป็นตัวพิมพ์ใหญ่ และยาวไม่เกิน 20 ถ้าซ้ำตอบ 409
-  - [ ] endpoint `GET /api/courses` (optional user, Published เรียง updated_at ใหม่ก่อน, ตอบ `{items, next:null}`, limit ≤100 พร้อมคอมเมนต์ `# shortcut: หน้าเดียว ไม่มี cursor, ทำ cursor เมื่อคอร์สเกิน 100`), `GET /api/courses/managed` (ต้องเป็น admin หรือ can_teach ไม่งั้น 403 ผู้สอนเห็นของตัวเอง admin เห็นทั้งหมด), `POST /api/courses` (สร้างเป็น Draft ตอบ 201), `GET /api/courses/{id}` (มองไม่เห็นตอบ 404) และ `PATCH /api/courses/{id}` (แก้ code, title, description ต้องเป็นผู้จัดการ)
-  - [ ] response ใช้ชื่อแบบ snake_case ตามธรรมเนียมของ `server/schemas.py` (เช่น `TemplateSummary` :137) แล้วให้ `learningApi.ts` แปลงเป็น type `Course` (`platform/types.ts:22`) ที่ใช้ camelCase ส่วน lesson_count, enrolled_count และ enrolled ให้เป็น 0/false ไปก่อน (T3 และ T6 จะเติม) และ can_manage ต้องถูกต้อง
-  - [ ] บันทึก audit `course.create` และ `course.update` ด้วยรูปแบบ `_add_audit`
-  - [ ] เทสต์ใน `tests/test_courses_api.py` (ใช้ `make_engine`/`make_client`/`add_user`/`authenticate` แบบ `tests/test_templates_api.py:24–56`):
+  - [x] model `Course` ใน `server/models.py` ตาม plan (CheckConstraint ของสถานะ, partial unique index ของ `code` เฉพาะแถว `deleted_at IS NULL` ที่ใช้ได้ทั้ง PostgreSQL และ SQLite)
+  - [x] สุ่มรหัส `VP-XXXXXX` เมื่อ `code` ว่าง (ชุดอักษร `ABCDEFGHJKMNPQRSTUVWXYZ23456789`) และสุ่มใหม่ถ้าซ้ำ ส่วนรหัสที่กรอกเองให้ strip, แปลงเป็นตัวพิมพ์ใหญ่ และยาวไม่เกิน 20 ถ้าซ้ำตอบ 409
+  - [x] endpoint `GET /api/courses` (optional user, Published เรียง updated_at ใหม่ก่อน, ตอบ `{items, next:null}`, limit ≤100 พร้อมคอมเมนต์ `# shortcut: หน้าเดียว ไม่มี cursor, ทำ cursor เมื่อคอร์สเกิน 100`), `GET /api/courses/managed` (ต้องเป็น admin หรือ can_teach ไม่งั้น 403 ผู้สอนเห็นของตัวเอง admin เห็นทั้งหมด), `POST /api/courses` (สร้างเป็น Draft ตอบ 201), `GET /api/courses/{id}` (มองไม่เห็นตอบ 404) และ `PATCH /api/courses/{id}` (แก้ code, title, description ต้องเป็นผู้จัดการ)
+  - [x] response ใช้ชื่อแบบ snake_case ตามธรรมเนียมของ `server/schemas.py` (เช่น `TemplateSummary` :137) แล้วให้ `learningApi.ts` แปลงเป็น type `Course` (`platform/types.ts:22`) ที่ใช้ camelCase ส่วน lesson_count, enrolled_count และ enrolled ให้เป็น 0/false ไปก่อน (T3 และ T6 จะเติม) และ can_manage ต้องถูกต้อง
+  - [x] บันทึก audit `course.create` และ `course.update` ด้วยรูปแบบ `_add_audit`
+  - [x] เทสต์ใน `tests/test_courses_api.py` (ใช้ `make_engine`/`make_client`/`add_user`/`authenticate` แบบ `tests/test_templates_api.py:24–56`):
     - ไม่มี can_teach ได้ 403 ทั้ง `/managed` และ POST
     - Draft ได้ 404 สำหรับผู้เรียน ผู้สอนคนอื่น และผู้เยี่ยมชม แต่เจ้าของกับ admin เห็น
     - ถอน can_teach แล้ว PATCH ไม่ได้ทันที
@@ -41,6 +41,12 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
 - ไฟล์: `server/models.py`, `server/schemas.py`, `server/routers/courses.py` (ใหม่), `server/main.py`, `tests/test_courses_api.py` (ใหม่)
 - ขึ้นกับ: T0
 - ขนาด: M
+- ผลตรวจ (25 พ.ย. 2569)
+  - `tests/test_courses_api.py` ผ่าน 22/22 · `scripts/check.sh` `CHECK PASS` (BE ผ่าน 403 = 381 + 22, ล้ม SURF 15 เท่าเดิม)
+  - บน PostgreSQL (ฐานชั่วคราว) มี `ix_courses_code_active ... WHERE (deleted_at IS NULL)` และ `ck_courses_status` ส่วน partial index บน SQLite มีเทสต์ครอบ
+  - เรื่องถอน `can_teach`: คอร์ส Published ได้ 403 แต่คอร์ส Draft/Archived ได้ 404 ตามกติกา "มองไม่เห็นตอบ 404" (เจ้าของที่ถูกถอนสิทธิ์มองไม่เห็น Draft แล้ว) เทสต์ครอบทั้งสองกรณี เทสต์ 403 ตั้ง status ผ่าน session เพราะยังไม่มี Publish
+  - `PATCH` ที่ส่ง `code` ว่างหรือ null คงรหัสเดิม · ถ้าไม่มีค่าเปลี่ยน จะไม่บันทึก audit
+  - backend :8000 (`--reload`, ต่อ `viper_db`, `AUTO_CREATE_TABLES=true`) ถูกปิดก่อนแก้ `server/` ตามที่ผู้ใช้สั่ง ฐานจริงยังไม่มีตาราง `courses`
 
 ### [ ] T2 UI: ผู้สอนสร้างและแก้คอร์ส
 - เกณฑ์รับ

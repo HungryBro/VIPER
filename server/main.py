@@ -15,7 +15,7 @@ from .audit import audit_processing_activity
 from .config import settings
 from .utils_io import checked_upload_extension, UploadRejected, static_url, ensure_dirs, OUT, UPLOAD_DIR
 from .routers import (
-    admin, auth, me, templates,
+    admin, auth, courses, me, templates,
     features, matching, alignment, quality, 
     classification, detection, evaluation,
     # enhancement, restoration, segmentation
@@ -123,6 +123,7 @@ app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(me.router)
 app.include_router(templates.router)
+app.include_router(courses.router)
 processing_audit_required = [Depends(audit_processing_activity)]
 app.include_router(features.router,       prefix="/api/feature", dependencies=processing_audit_required)
 app.include_router(matching.router,       prefix="/api/match", dependencies=processing_audit_required)

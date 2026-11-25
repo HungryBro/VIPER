@@ -232,3 +232,66 @@ class MeSummary(BaseModel):
     last_activity_at: datetime | None
     last_login_at: datetime | None
     member_since: datetime
+
+
+def _strip_course_text(value: Any) -> Any:
+    # Runs before the length limits, so they apply to the stored value.
+    return value.strip() if isinstance(value, str) else value
+
+
+def _clean_course_code(value: Any) -> Any:
+    if isinstance(value, str):
+        return value.strip().upper() or None
+    return value
+
+
+class CourseCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    code: str | None = Field(default=None, max_length=20)
+    title: str = Field(min_length=1, max_length=120)
+    description: str = Field(min_length=1, max_length=1000)
+
+    _code = field_validator("code", mode="before")(_clean_course_code)
+    _text = field_validator("title", "description", mode="before")(_strip_course_text)
+
+
+class CourseUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    # A blank or null code means "keep the current code".
+    code: str | None = Field(default=None, max_length=20)
+    title: str | None = Field(default=None, min_length=1, max_length=120)
+    description: str | None = Field(default=None, min_length=1, max_length=1000)
+
+    _code = field_validator("code", mode="before")(_clean_course_code)
+    _text = field_validator("title", "description", mode="before")(_strip_course_text)
+
+    @model_validator(mode="after")
+    def reject_null_text(self):
+        if any(getattr(self, field) is None for field in self.model_fields_set - {"code"}):
+            raise ValueError("Course title and description cannot be null")
+        return self
+
+
+class CoursePublic(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    owner_id: int
+    owner_name: str
+    code: str
+    title: str
+    description: str
+    status: Literal["draft", "published", "archived"]
+    created_at: datetime
+    updated_at: datetime
+    lesson_count: int
+    enrolled_count: int
+    enrolled: bool
+    can_manage: bool
+
+
+class CoursePage(BaseModel):
+    items: list[CoursePublic]
+    next: str | None

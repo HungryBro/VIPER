@@ -10,6 +10,7 @@ from sqlalchemy import (
     Text,
     false,
     func,
+    text,
     true,
 )
 from sqlalchemy.dialects.postgresql import JSONB
@@ -128,6 +129,46 @@ class Template(Base):
         cascade="all, delete-orphan",
         passive_deletes=True,
     )
+
+
+class Course(Base):
+    __tablename__ = "courses"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('draft','published','archived')",
+            name="ck_courses_status",
+        ),
+        # A soft-deleted course releases its code.
+        Index(
+            "ix_courses_code_active",
+            "code",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+            sqlite_where=text("deleted_at IS NULL"),
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    owner_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    code = Column(String(20), nullable=False)
+    title = Column(String(120), nullable=False)
+    description = Column(Text, nullable=False)
+    status = Column(String(16), nullable=False, default="draft", server_default="draft")
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
+
+    owner = relationship("User")
 
 
 class Comment(Base):
