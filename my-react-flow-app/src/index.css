@@ -462,4 +462,4 @@ input[type="number"] {
 .viper-app [data-lab-theme='light'][data-lab-canvas='theme'][data-lab-nodes='light'] .react-flow__node .hover\:text-slate-200:hover, .viper-app [data-lab-theme='light'][data-lab-canvas='theme'][data-lab-nodes='light'] .react-flow__node .hover\:text-white:hover { color: #111827; }
 .viper-app [data-lab-theme='light'][data-lab-canvas='theme'][data-lab-nodes='light'] .react-flow__node [role='tooltip'] { background-color: #1f2937; }
 .viper-app .lab-group-dot { background-color: var(--group-dark); }
-.viper-app [data-lab-theme='light'] .lab-group-dot { background-color: var(--group-light); }
+.viper-app [data-lab-theme='light'][data-lab-nodes='light'] .lab-group-dot { background-color: var(--group-light); }
