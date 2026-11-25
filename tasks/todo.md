@@ -6,11 +6,23 @@
 skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementation`, `agent-skills:test-driven-development` (งาน BE), `agent-skills:frontend-ui-engineering` (งาน UI), `anthropic-skills:built-in-browser`
 ทุกงานจบด้วย commit ภาษาไทย 1 ก้อน และเขียน "ผลตรวจ" ใต้งานนั้น
 
-### [ ] T0 เตรียม
-- [ ] สร้าง branch `course-system` จาก `main` (656865ff) แล้ว commit การย้ายแผนเดิมไป `tasks/archive/lab-layout/` พร้อม `tasks/plan.md` และ `tasks/todo.md` ฉบับนี้
-- [ ] รัน `scripts/check.sh` เก็บผลเป็นเส้นฐาน (ควรเห็นเทสต์ SURF ล้ม 15 ตัวตาม `tasks/baseline/test-baseline.json`)
-- [ ] เตรียมฐานชั่วคราวพร้อมบัญชี admin, ผู้สอน A, ผู้สอน B, ผู้เรียน แล้วถ่ายภาพ `/courses`, `/teach` และ `/` ก่อนเริ่มงาน
+### [x] T0 เตรียม
+- [x] สร้าง branch `course-system` จาก `main` (656865ff) แล้ว commit การย้ายแผนเดิมไป `tasks/archive/lab-layout/` พร้อม `tasks/plan.md` และ `tasks/todo.md` ฉบับนี้
+- [x] รัน `scripts/check.sh` เก็บผลเป็นเส้นฐาน (ควรเห็นเทสต์ SURF ล้ม 15 ตัวตาม `tasks/baseline/test-baseline.json`)
+- [x] เตรียมฐานชั่วคราวพร้อมบัญชี admin, ผู้สอน A, ผู้สอน B, ผู้เรียน แล้วถ่ายภาพ `/courses`, `/teach` และ `/` ก่อนเริ่มงาน
 - ขนาด: XS
+- ผลตรวจ (25 พ.ย. 2569)
+  - ขั้นที่ 0: ผู้ใช้สร้าง branch และ commit แผนเอง (`227537f3` ย้ายแผนเดิมบน `main`, `02156b1a` แผนใหม่บน `course-system`) จึงไม่ทำ commit ซ้ำ (ผู้ใช้ตอบให้ทำต่อ)
+  - เส้นฐาน: `CHECK PASS` (BE ผ่าน 381, ล้ม 15 = SURF ชุดเดิม, node --test 9/9, lint error 0 warning 0, build ผ่าน) · `ui_checks.py` 18/18 (ข้าม 1: A4e/A4f) · `ui_checks_phase3.py` 23/23 · `ui_checks_touch.py` 19/19
+  - ภาพก่อนทำ 12 ภาพ: `outputs/course-system/T0__*` (`/courses` ผู้เยี่ยมชม, `/teach` ผู้สอน A, `/` ผู้เรียน ที่ 1440/375 มืด/สว่าง) โฟลเดอร์ `outputs/` ไม่เข้า git
+  - ฐานชั่วคราว (ใช้ซ้ำได้): ฐาน `viper_course_tmp` ใน container เดิม แยกจาก `viper_db`
+    1. สร้าง: `docker exec viper_postgres sh -c 'createdb -U "$POSTGRES_USER" viper_course_tmp'`
+    2. สคริปต์ Python ตั้ง `os.environ["DATABASE_URL"]` ก่อน import `server` โดยเอาค่าจาก `.env` แล้วเปลี่ยนชื่อฐานด้วย `make_url(raw).set(database="viper_course_tmp").render_as_string(hide_password=False)` ตั้ง `AUTO_CREATE_TABLES=true` และ `assert engine.url.database == "viper_course_tmp"`
+    3. เปิดแอปในโปรเซสด้วย `TestClient(app).__enter__()` (lifespan รัน `create_all`) จึงไม่ต้องเปิด backend อีกพอร์ต
+    4. บัญชี (id ตั้งเอง ไม่ชนกับ id 4): 101 admin (`role=admin`), 102 Teacher A, 103 Teacher B (`can_teach`), 104 Learner
+    5. login: cookie `viper_session` = `_session_cookie(user_id, settings.session_secret)` ใส่ใน Playwright context ที่ `http://localhost:5173`
+    6. ใช้ `context.route` ส่ง `/api/**` และ `/static/**` จาก vite :5173 เข้า TestClient (ส่งต่อ header `cookie`, `content-type`) คำขอจึงไม่ไปถึง backend :8000 ที่ต่อฐานจริง
+    7. ทุกครั้งที่เปิดบทบาท ให้ fetch `/api/auth/me` แล้ว assert id, role, can_teach (ผู้เยี่ยมชมต้องได้ 401)
 
 ### [ ] T1 Backend: คอร์ส (สร้าง ดู แก้)
 - เกณฑ์รับ
