@@ -1,19 +1,89 @@
 // หน้า Teach (T19) ย้ายจาก TeachHome / CourseEditor ของ mockup v2 และ guard blockedTeach ของ App
 // route: /teach (คอร์สที่ฉันสอน) และ /teach/:courseId ข้อมูลคอร์สมาจาก src/lib/learningApi.ts เท่านั้น
 // สิทธิ์: can_teach จาก /api/auth/me หรือเป็นผู้ดูแล ไม่งั้นเห็น "ต้องได้รับสิทธิ์ผู้สอน" (server ตรวจสิทธิ์จริงเมื่อมีระบบคอร์ส)
-// ปุ่มสร้างคอร์สและตัวออกแบบ Lab ไม่เปิดใช้ (ว่างตามแผน) ไม่มีฟอร์มสร้าง/แก้คอร์สหรือบทเรียนในรอบนี้
-import { Link, useParams } from 'react-router-dom';
+// สร้างและแก้ข้อมูลคอร์สได้แล้ว ตัวออกแบบ Lab ยังไม่เปิดใช้ ยังไม่มีฟอร์มบทเรียน
+import { useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, Eye, FileText, GraduationCap, LockKeyhole, Pencil, Plus } from 'lucide-react';
 
 import { useAuth } from '../../auth/AuthContext';
-import { getCourse, listManagedCourses } from '../../lib/learningApi';
+import { createCourse, getCourse, listManagedCourses, updateCourse } from '../../lib/learningApi';
 import { canTeach, isAdmin } from '../permissions';
-import { useLoaded } from '../useLoaded';
-import { courseStatusBadge } from '../types';
-import { Badge, Button, Empty } from '../ui';
+import { errorText, useLoaded } from '../useLoaded';
+import { useToast } from '../toast';
+import { courseStatusBadge, type Course } from '../types';
+import { Badge, Button, Empty, Modal } from '../ui';
 import { CourseTabs } from './CoursesPage';
 
 const COMING_LATER = 'ระบบคอร์สจะเพิ่มภายหลัง';
+const LAB_DESIGNER_LATER = 'ตัวออกแบบ Lab จะเพิ่มรอบหน้า';
+
+type CourseFields = { code: string; title: string; description: string };
+
+// onSubmit ที่สำเร็จเป็นคนปิด modal ; ถ้า throw จะ toast ข้อความ และคงค่าในฟอร์มไว้
+function CourseForm({
+  initial,
+  title,
+  submitLabel,
+  onSubmit,
+  onClose,
+}: {
+  initial: CourseFields;
+  title: string;
+  submitLabel: string;
+  onSubmit: (fields: CourseFields) => Promise<void>;
+  onClose: () => void;
+}) {
+  const notify = useToast();
+  const [fields, setFields] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const set = (key: keyof CourseFields) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setFields((previous) => ({ ...previous, [key]: event.target.value }));
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    try {
+      await onSubmit(fields);
+    } catch (failure) {
+      notify(errorText(failure, 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง'));
+      setBusy(false);
+    }
+  };
+  return (
+    <Modal title={title} onClose={onClose}>
+      <form onSubmit={submit}>
+        <div className="modal-body">
+          <label className="field">
+            รหัสคอร์ส
+            <input
+              maxLength={20}
+              value={fields.code}
+              onChange={set('code')}
+              placeholder="เว้นว่างเพื่อให้ระบบตั้งให้ เช่น VP-7K2Q9M"
+            />
+          </label>
+          <label className="field">
+            ชื่อคอร์ส
+            <input required maxLength={120} value={fields.title} onChange={set('title')} />
+          </label>
+          <label className="field">
+            คำอธิบาย
+            <textarea required maxLength={1000} rows={4} value={fields.description} onChange={set('description')} />
+          </label>
+          <p className="muted small">คอร์สใหม่เริ่มเป็น Draft ผู้เรียนยังไม่เห็นจนกว่าจะ Publish</p>
+        </div>
+        <div className="modal-actions">
+          <Button kind="secondary" onClick={onClose}>
+            ยกเลิก
+          </Button>
+          <Button type="submit" disabled={busy || !fields.title.trim() || !fields.description.trim()}>
+            {submitLabel}
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
 
 // จุดเดียวของ guard: ไม่มีสิทธิ์ผู้สอนแล้วไม่ render เนื้อหา (กันไม่ให้ยิง learningApi ของฝั่งผู้สอนโดยไม่จำเป็น)
 function TeachGuard({ children }: { children: React.ReactNode }) {
@@ -41,6 +111,9 @@ function TeachGuard({ children }: { children: React.ReactNode }) {
 function TeachHome() {
   const { user } = useAuth();
   const { data, error, loading } = useLoaded(listManagedCourses, 'โหลดคอร์สที่สอนไม่สำเร็จ');
+  const navigate = useNavigate();
+  const notify = useToast();
+  const [creating, setCreating] = useState(false);
   // แสดงหน้าแรกของรายการ (data.next ใช้ต่อเมื่อมีระบบคอร์ส)
   const courses = data?.items ?? [];
   return (
@@ -55,11 +128,11 @@ function TeachHome() {
             <FileText size={15} />
             Submissions
           </Link>
-          <Button kind="secondary" disabled title={COMING_LATER}>
+          <Button kind="secondary" disabled title={LAB_DESIGNER_LATER}>
             <Pencil size={15} />
             ออกแบบ Lab
           </Button>
-          <Button disabled title={COMING_LATER}>
+          <Button onClick={() => setCreating(true)}>
             <Plus size={15} />
             สร้างคอร์ส
           </Button>
@@ -101,14 +174,27 @@ function TeachHome() {
           icon={GraduationCap}
           title="ยังไม่มีคอร์ส"
           action={
-            <Button disabled title={COMING_LATER}>
+            <Button onClick={() => setCreating(true)}>
               <Plus size={15} />
               สร้างคอร์สแรก
             </Button>
           }
         >
-          ยังไม่มีคอร์สให้จัดการ {COMING_LATER} เมื่อพร้อมจะสร้างคอร์สเป็น Draft เพิ่มบทเรียนและ Lab แล้วค่อย Publish ได้
+          ยังไม่มีคอร์สให้จัดการ สร้างคอร์สเป็น Draft เพิ่มบทเรียน แล้วค่อย Publish
         </Empty>
+      )}
+      {creating && (
+        <CourseForm
+          title="สร้างคอร์สใหม่"
+          submitLabel="สร้างคอร์ส"
+          initial={{ code: '', title: '', description: '' }}
+          onClose={() => setCreating(false)}
+          onSubmit={async (fields) => {
+            const created = await createCourse(fields);
+            notify('สร้างคอร์ส Draft แล้ว เพิ่มบทเรียนได้เลย');
+            navigate(`/teach/${created.id}`);
+          }}
+        />
       )}
     </div>
   );
@@ -116,8 +202,12 @@ function TeachHome() {
 
 function CourseEditor({ courseId }: { courseId: string }) {
   const course = useLoaded(() => getCourse(courseId), 'โหลดคอร์สไม่สำเร็จ');
+  const notify = useToast();
+  const [editing, setEditing] = useState(false);
+  // ค่าที่ server ส่งกลับหลังบันทึก ใช้แทนค่าที่โหลดตอนแรก
+  const [saved, setSaved] = useState<Course | null>(null);
   if (course.loading) return <div className="page"><p className="muted small" role="status">กำลังโหลด...</p></div>;
-  const found = course.data;
+  const found = saved ?? course.data;
   if (!found || !found.canManage) {
     return (
       <div className="page">
@@ -150,11 +240,11 @@ function CourseEditor({ courseId }: { courseId: string }) {
           <p>{found.description}</p>
         </div>
         <div className="course-heading-actions">
-          <Button kind="secondary" disabled title={COMING_LATER}>
+          <Button kind="secondary" onClick={() => setEditing(true)}>
             <Pencil size={14} />
             แก้ข้อมูลคอร์ส
           </Button>
-          <Button kind="secondary" disabled title={COMING_LATER}>
+          <Button kind="secondary" disabled title={LAB_DESIGNER_LATER}>
             <Pencil size={14} />
             ออกแบบ Lab
           </Button>
@@ -172,6 +262,19 @@ function CourseEditor({ courseId }: { courseId: string }) {
           </div>
         </div>
       </section>
+      {editing && (
+        <CourseForm
+          title="แก้ข้อมูลคอร์ส"
+          submitLabel="บันทึก"
+          initial={{ code: found.code, title: found.title, description: found.description }}
+          onClose={() => setEditing(false)}
+          onSubmit={async (fields) => {
+            setSaved(await updateCourse(found.id, fields));
+            setEditing(false);
+            notify('บันทึกข้อมูลคอร์สแล้ว');
+          }}
+        />
+      )}
     </div>
   );
 }

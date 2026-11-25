@@ -48,29 +48,36 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
   - `PATCH` ที่ส่ง `code` ว่างหรือ null คงรหัสเดิม · ถ้าไม่มีค่าเปลี่ยน จะไม่บันทึก audit
   - backend :8000 (`--reload`, ต่อ `viper_db`, `AUTO_CREATE_TABLES=true`) ถูกปิดก่อนแก้ `server/` ตามที่ผู้ใช้สั่ง ฐานจริงยังไม่มีตาราง `courses`
 
-### [ ] T2 UI: ผู้สอนสร้างและแก้คอร์ส
+### [x] T2 UI: ผู้สอนสร้างและแก้คอร์ส
 - เกณฑ์รับ
-  - [ ] `learningApi.ts`: เปลี่ยนเนื้อ `listCourses`, `listManagedCourses` และ `getCourse` (404 ให้คืน null) เป็น apiFetch แล้วเพิ่ม `createCourse` และ `updateCourse` ข้อความ error ไทย:
+  - [x] `learningApi.ts`: เปลี่ยนเนื้อ `listCourses`, `listManagedCourses` และ `getCourse` (404 ให้คืน null) เป็น apiFetch แล้วเพิ่ม `createCourse` และ `updateCourse` ข้อความ error ไทย:
     - 403 → "ไม่มีสิทธิ์จัดการคอร์สนี้"
     - 404 → "ไม่พบคอร์สหรือบทเรียน"
     - 409 → "รหัสคอร์สนี้ถูกใช้แล้ว"
     - อื่นๆ → "บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง"
-  - [ ] `TeachPage.tsx`: เปิดปุ่ม "สร้างคอร์ส" (:62) และ "สร้างคอร์สแรก" (:104) ให้เปิด `CourseForm` modal (port จาก `Teaching.jsx:8`):
+  - [x] `TeachPage.tsx`: เปิดปุ่ม "สร้างคอร์ส" (:62) และ "สร้างคอร์สแรก" (:104) ให้เปิด `CourseForm` modal (port จาก `Teaching.jsx:8`):
     - รหัสคอร์ส maxLength 20 ไม่บังคับ placeholder "เว้นว่างเพื่อให้ระบบตั้งให้ เช่น VP-7K2Q9M"
     - ชื่อคอร์ส required ≤120
     - คำอธิบาย required ≤1000 แบบ textarea 4 แถว
     - หมายเหตุ "คอร์สใหม่เริ่มเป็น Draft ผู้เรียนยังไม่เห็นจนกว่าจะ Publish"
     - สร้างสำเร็จ: toast "สร้างคอร์ส Draft แล้ว เพิ่มบทเรียนได้เลย" แล้วไป `/teach/:id`
-  - [ ] ปุ่ม "แก้ข้อมูลคอร์ส" (:153) เปิด CourseForm พร้อมค่าเดิม บันทึกแล้ว toast "บันทึกข้อมูลคอร์สแล้ว" ระหว่างส่ง request ปุ่มต้องกดไม่ได้ ถ้า error ให้ toast และคงค่าในฟอร์มไว้
-  - [ ] ปุ่ม "ออกแบบ Lab" (:58, :157) ยังปิดอยู่ ให้ใช้ title จากค่าคงที่ใหม่ `LAB_DESIGNER_LATER = 'ตัวออกแบบ Lab จะเพิ่มรอบหน้า'`
-  - [ ] เพิ่ม stub `createCourse` และ `updateCourse` ใน `FAKE` ของ `scripts/ui_checks_phase3.py:9`
+  - [x] ปุ่ม "แก้ข้อมูลคอร์ส" (:153) เปิด CourseForm พร้อมค่าเดิม บันทึกแล้ว toast "บันทึกข้อมูลคอร์สแล้ว" ระหว่างส่ง request ปุ่มต้องกดไม่ได้ ถ้า error ให้ toast และคงค่าในฟอร์มไว้
+  - [x] ปุ่ม "ออกแบบ Lab" (:58, :157) ยังปิดอยู่ ให้ใช้ title จากค่าคงที่ใหม่ `LAB_DESIGNER_LATER = 'ตัวออกแบบ Lab จะเพิ่มรอบหน้า'`
+  - [x] เพิ่ม stub `createCourse` และ `updateCourse` ใน `FAKE` ของ `scripts/ui_checks_phase3.py:9`
 - ตรวจ: เบราว์เซอร์ ผู้สอน A สร้างคอร์สโดยเว้นรหัสว่าง (ได้ VP-) แล้วสร้างอีกคอร์สด้วยรหัสซ้ำ (ต้องเห็นข้อความ 409) admin ต้องเห็นคอร์สของ A ใน `/teach` พร้อม "ผู้สอน <ชื่อ>" ส่วนผู้สอน B เปิด `/teach/:id` ของ A ต้องเห็น "จัดการคอร์สนี้ไม่ได้" ที่จอ 375 modal ต้องไม่ล้น (`getBoundingClientRect().right ≤ 375` และ body ไม่มี scroll แนวนอน)
 - ไฟล์: `src/lib/learningApi.ts`, `src/platform/pages/TeachPage.tsx`, `scripts/ui_checks_phase3.py`
 - ขึ้นกับ: T1
 - ขนาด: M
+- ผลตรวจ (25 พ.ย. 2569)
+  - `scripts/check.sh` `CHECK PASS` (BE ผ่าน 403, ล้ม SURF 15, node --test 9/9) · `npx tsc -b` ไม่มี error · `ui_checks.py` 18/18 (ข้าม A4e/A4f เท่าเดิม) · `ui_checks_phase3.py` 23/23 · `ui_checks_touch.py` 19/19
+  - เบราว์เซอร์ (Playwright + ฐานชั่วคราว ตรวจ `/api/auth/me` ทุกครั้งที่เปิดบทบาท): a–f ผ่านครบ · 1440/375 มืด/สว่าง `/teach`, `/teach/:id`, CourseForm (สร้างและแก้) ไม่มี scroll แนวนอน และ modal ที่ 375 ได้ left=16 right=359
+  - ปุ่ม submit ระหว่างส่ง: `disabled`, opacity 1 → 0.48, cursor pointer → not-allowed
+  - console: ไม่มี error นอกจากบรรทัด network ของเบราว์เซอร์จากคำตอบที่ตั้งใจให้เกิด คือ 409 (ข้อ b), 404 (ข้อ e) และ 401 `/api/auth/me` ของผู้เยี่ยมชม
+  - ภาพ: `outputs/course-system/T2__*` (a–f ขึ้นต้นด้วย `T2__a-` ถึง `T2__f-`)
+  - พบแต่ยังไม่แก้: ชื่อหรือคำอธิบายที่ยาวต่อกันโดยไม่มีช่องว่าง ที่จอ 375 ล้นและถูกตัดใน `/teach` กับ `/teach/:id` (หน้าไม่เลื่อนแนวนอน) · ข้อความ "จัดการคอร์สนี้ไม่ได้" ยังต่อท้ายด้วย `COMING_LATER` · toast ตอน error ใช้ไอคอนเครื่องหมายถูกของ toast กลางเดิม
 
 ### จุดตรวจ 1
-- [ ] `CHECK PASS`, tsc ไม่มี error และสคริปต์ UI ผ่าน
+- [x] `CHECK PASS`, tsc ไม่มี error และสคริปต์ UI ผ่าน
 - [ ] **ให้ผู้ใช้ดูภาพ `/teach` และ CourseForm ก่อนทำ T3**
 
 ### [ ] T3 Backend: บทเรียน

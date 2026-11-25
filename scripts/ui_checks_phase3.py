@@ -12,6 +12,8 @@ const course = (id, status) => ({ id, ownerId: '1', ownerName: 'T', code: 'IP101
 export async function listCourses() { return page([course('c1', 'published'), course('c2', 'retired')]); }
 export async function listManagedCourses() { return page([course('c2', 'retired')]); }
 export async function getCourse(id) { return id === 'c2' ? course('c2', 'retired') : null; }
+export async function createCourse() { return course('c9', 'draft'); }
+export async function updateCourse() { return course('c9', 'draft'); }
 export async function listLessons() { return []; }
 export async function getLesson(id) { return id === 'locked' ? { locked: true, lesson: { id, courseId: 'c1', title: 'Locked lesson', subtitle: '' } } : null; }
 const sub = { id: 's1', lessonId: 'l1', lessonTitle: 'L1', courseId: 'c1', courseTitle: 'C', learnerId: '9', learnerName: 'Learner', activityVersion: 1, at: '2026-11-01T00:00:00Z', result: { settings: 'k=3', metrics: [91.5, 40], metricLabels: ['Accuracy'] }, autoCheck: null, nodes: [], reflection: '', hints: 0 };
