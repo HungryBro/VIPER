@@ -15,7 +15,9 @@ import { courseStatusBadge, type Course } from '../types';
 import { Badge, Button, Empty, Modal } from '../ui';
 import { CourseTabs } from './CoursesPage';
 
+// ตอนนี้ไม่มีที่ใช้ในหน้านี้ เก็บไว้ใช้กับปุ่มของระบบที่ยังไม่มี
 const COMING_LATER = 'ระบบคอร์สจะเพิ่มภายหลัง';
+void COMING_LATER;
 const LAB_DESIGNER_LATER = 'ตัวออกแบบ Lab จะเพิ่มรอบหน้า';
 
 type CourseFields = { code: string; title: string; description: string };
@@ -220,7 +222,7 @@ function CourseEditor({ courseId }: { courseId: string }) {
             </Link>
           }
         >
-          {course.error ?? `ไม่พบคอร์สนี้ หรือเฉพาะเจ้าของคอร์สและผู้ดูแลเท่านั้นที่จัดการได้ (${COMING_LATER})`}
+          {course.error ?? 'ไม่พบคอร์สนี้ หรือเฉพาะเจ้าของคอร์สและผู้ดูแลเท่านั้นที่จัดการได้'}
         </Empty>
       </div>
     );
