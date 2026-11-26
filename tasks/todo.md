@@ -78,7 +78,7 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
 
 ### จุดตรวจ 1
 - [x] `CHECK PASS`, tsc ไม่มี error และสคริปต์ UI ผ่าน
-- [ ] **ให้ผู้ใช้ดูภาพ `/teach` และ CourseForm ก่อนทำ T3**
+- [x] **ให้ผู้ใช้ดูภาพ `/teach` และ CourseForm ก่อนทำ T3** (ผู้ใช้ให้ผ่าน)
 
 ### [x] T3 Backend: บทเรียน
 - เกณฑ์รับ
@@ -155,7 +155,7 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
 
 ### จุดตรวจ 2: flow ผู้สอนครบ
 - [x] `CHECK PASS`, tsc และสคริปต์ UI ผ่าน
-- [ ] **ให้ผู้ใช้ดูภาพ flow ผู้สอนทั้งชุดก่อนทำ T6**
+- [x] **ให้ผู้ใช้ดูภาพ flow ผู้สอนทั้งชุดก่อนทำ T6** (ผู้ใช้ให้ผ่าน)
 
 ### [ ] T6 Backend: ลงทะเบียนและยกเลิก
 - เกณฑ์รับ
