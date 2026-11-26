@@ -8,8 +8,10 @@
 .viper-platform .page .page-heading>div{min-width:0}
 .viper-platform .page .page-heading h1{font-size:26px;line-height:1.4;letter-spacing:-.5px;text-wrap:balance;overflow-wrap:anywhere}
 .viper-platform .page .page-heading p{margin-top:var(--space-2);font-size:13px;line-height:1.65;overflow-wrap:anywhere}
-.viper-platform .management-row h3,.viper-platform .management-row p{overflow-wrap:anywhere}
+.viper-platform .management-row h3,.viper-platform .management-row p,.viper-platform .catalog-course h2,.viper-platform .catalog-course p{overflow-wrap:anywhere}
 .viper-platform .page .course-status-panel{margin-bottom:var(--space-4)}
+.viper-platform .page .course-roster-panel{margin-top:var(--space-4)}
+.viper-platform .page .course-roster-panel>p:last-child{margin-top:var(--space-3)}
 .viper-platform .page .course-status-panel>.course-heading-actions{margin-top:var(--space-4)}
 .viper-platform .page .eyebrow{margin-bottom:var(--space-2)}
 .viper-platform .page .section-title{gap:var(--space-3);margin-bottom:var(--space-4)}

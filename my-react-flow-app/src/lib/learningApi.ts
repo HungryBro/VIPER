@@ -9,6 +9,7 @@
 import type {
   Announcement,
   Course,
+  CourseEnrollment,
   CourseStatus,
   GradeRow,
   LearningScope,
@@ -189,6 +190,44 @@ export async function setCourseStatus(courseId: string, status: CourseStatus): P
     throw new Error(COURSE_ERROR_OTHER);
   }
   return toCourse(await readCourseJson<RawCourse>(response));
+}
+
+// 409 ของการลงทะเบียนบอกเหตุเป็น code ใน body ไม่ใช่รหัสคอร์สซ้ำ
+const ENROLL_CONFLICTS: Record<string, string> = {
+  manager_cannot_enroll: 'ผู้สอนของคอร์สลงทะเบียนเรียนไม่ได้',
+  course_closed: 'คอร์สนี้ปิดรับลงทะเบียนแล้ว',
+};
+
+async function postEnrollment(courseId: string, action: 'enroll' | 'unenroll'): Promise<Response> {
+  const response = await courseFetch(`/api/courses/${encodeURIComponent(courseId)}/${action}`, { method: 'POST' });
+  if (response.status === 409) {
+    const body = await response.clone().json().catch(() => null);
+    throw new Error(ENROLL_CONFLICTS[body?.detail?.code] ?? COURSE_ERROR_OTHER);
+  }
+  return response;
+}
+
+export async function enrollCourse(courseId: string): Promise<Course> {
+  return toCourse(await readCourseJson<RawCourse>(await postEnrollment(courseId, 'enroll')));
+}
+
+// null = ยกเลิกแล้วมองไม่เห็นคอร์สอีก (draft หรือ archived: server ตอบ 204)
+export async function unenrollCourse(courseId: string): Promise<Course | null> {
+  const response = await postEnrollment(courseId, 'unenroll');
+  if (response.status === 204) return null;
+  return toCourse(await readCourseJson<RawCourse>(response));
+}
+
+type RawEnrollment = { user_id: number; name: string; email: string; enrolled_at: string };
+
+export async function listEnrollments(courseId: string): Promise<CourseEnrollment[]> {
+  const response = await courseFetch(`/api/courses/${encodeURIComponent(courseId)}/enrollments`);
+  return (await readCourseJson<RawEnrollment[]>(response)).map((raw) => ({
+    userId: String(raw.user_id),
+    name: raw.name,
+    email: raw.email,
+    enrolledAt: raw.enrolled_at,
+  }));
 }
 
 // บทเรียนของคอร์ส เรียงตาม position

@@ -1,20 +1,40 @@
 // หน้า Courses / Course / Lesson (T19) ย้ายจาก CourseCatalog, CoursePage, LessonPage ของ mockup v2
 // route: /courses, /courses/:courseId, /lessons/:lessonId ข้อมูลทั้งหมดมาจาก src/lib/learningApi.ts เท่านั้น
-// คอร์สและบทเรียนมาจาก server แล้ว ส่วนการลงทะเบียนยังไม่มี
-// ปุ่มลงทะเบียน/จัดการ/ตัวออกแบบ Lab ไม่เปิดใช้ (ว่างตามแผน) แต่คงโครงไว้ให้ระบบคอร์สรอบหน้าต่อได้
+// คอร์ส บทเรียน และการลงทะเบียน/ยกเลิกมาจาก server แล้ว ส่วน Lab ของบทเรียนยังไม่มี
+// ปุ่ม "เปิด Lab ของบทนี้" จึงยังไม่เปิดใช้ แต่คงโครงไว้ให้รอบหน้าต่อได้
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, BookOpen, LockKeyhole, Pencil, Play } from 'lucide-react';
 
 import { useAuth } from '../../auth/AuthContext';
-import { getCourse, getLesson, listCourses, listLessons } from '../../lib/learningApi';
-import { courseStatusBadge, type Course } from '../types';
+import {
+  enrollCourse,
+  getCourse,
+  getLesson,
+  listCourses,
+  listLessons,
+  unenrollCourse,
+} from '../../lib/learningApi';
+import { courseStatusBadge, type Course, type Lesson } from '../types';
 import { canTeach, isAdmin } from '../permissions';
 import { loginPathFor } from '../safeNext';
-import { useLoaded } from '../useLoaded';
+import { errorText, useLoaded } from '../useLoaded';
+import { useToast } from '../toast';
 import { Badge, Button, Empty, Markdown, cx } from '../ui';
 
+// ตอนนี้ไม่มีที่ใช้ในหน้านี้ เก็บไว้ใช้กับปุ่มของระบบที่ยังไม่มี
 const COMING_LATER = 'ระบบคอร์สจะเพิ่มภายหลัง';
+void COMING_LATER;
+const LESSON_LAB_LATER = 'Lab ของบทเรียนจะเพิ่มรอบหน้า';
+const ENROLLED_TOAST = 'ลงทะเบียนแล้ว เริ่มเรียนได้เลย';
+const ENROLL_FAILED = 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง';
+
+// คำถามยืนยันยกเลิก: นอก Published ยกเลิกแล้วลงทะเบียนกลับเองไม่ได้ ต้องบอกก่อน
+const unenrollQuestion = (status: Course['status']): string => {
+  if (status === 'archived') return 'คอร์สนี้ปิดรับแล้ว ยกเลิกแล้วจะกลับมาอ่านไม่ได้';
+  if (status === 'draft') return 'คอร์สนี้ยังไม่เปิดรับ ยกเลิกแล้วจะกลับมาอ่านไม่ได้จนกว่าผู้สอนจะเผยแพร่';
+  return 'ยกเลิกการลงทะเบียนคอร์สนี้? เนื้อหาบทเรียนจะถูกล็อกจนกว่าจะลงทะเบียนใหม่';
+};
 
 // แท็บ "คอร์สทั้งหมด / คอร์สที่ฉันสอน" เห็นเฉพาะผู้สอน (ผู้ดูแลก็เห็น เพราะเข้า /teach ได้)
 export function CourseTabs({ active }: { active: 'courses' | 'teach' }) {
@@ -39,6 +59,19 @@ export function CourseTabs({ active }: { active: 'courses' | 'teach' }) {
 function CourseCard({ course }: { course: Course }) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const notify = useToast();
+  const [busy, setBusy] = useState(false);
+  const enroll = async () => {
+    setBusy(true);
+    try {
+      await enrollCourse(course.id);
+      notify(ENROLLED_TOAST);
+      navigate(`/courses/${course.id}`);
+    } catch (failure) {
+      notify(errorText(failure, ENROLL_FAILED));
+      setBusy(false);
+    }
+  };
   // ผู้เยี่ยมชม (23 พ.ย.): ดูรายการคอร์สได้ ปุ่มดูคอร์ส/ลงทะเบียน/เข้าเรียนพาไป /login?next=/courses/<id>
   const coursePath = `/courses/${course.id}`;
   if (!user) {
@@ -68,7 +101,10 @@ function CourseCard({ course }: { course: Course }) {
       <div className="section-title">
         <Badge tone="blue">{course.code}</Badge>
         {course.enrolled ? (
-          <Badge tone="teal">ลงทะเบียนแล้ว</Badge>
+          <span>
+            {course.status !== 'published' && <Badge tone={tone}>{statusLabel}</Badge>}{' '}
+            <Badge tone="teal">ลงทะเบียนแล้ว</Badge>
+          </span>
         ) : course.canManage ? (
           <Badge>คอร์สของคุณ</Badge>
         ) : course.status === 'archived' ? (
@@ -86,7 +122,7 @@ function CourseCard({ course }: { course: Course }) {
           ดูคอร์ส
         </Button>
         {!course.enrolled && !course.canManage && course.status === 'published' ? (
-          <Button disabled title={COMING_LATER}>
+          <Button disabled={busy} onClick={() => void enroll()}>
             ลงทะเบียน
           </Button>
         ) : (
@@ -100,7 +136,7 @@ function CourseCard({ course }: { course: Course }) {
   );
 }
 
-// /courses: คอร์ส published ทั้งหมด (archived เฉพาะที่ลงทะเบียนไว้ ตัดสินที่ฝั่ง learningApi)
+// /courses: คอร์ส published ทั้งหมด รวมกับ draft/archived ที่ผู้เปิดลงทะเบียนอยู่ (server เป็นผู้ตัดสิน)
 export default function CoursesPage() {
   const { data, error, loading } = useLoaded(listCourses, 'โหลดรายการคอร์สไม่สำเร็จ');
   const [query, setQuery] = useState('');
@@ -141,8 +177,54 @@ function CourseView({ courseId }: { courseId: string }) {
   const { user } = useAuth();
   const course = useLoaded(() => getCourse(courseId), 'โหลดคอร์สไม่สำเร็จ');
   const lessons = useLoaded(() => listLessons(courseId), 'โหลดบทเรียนไม่สำเร็จ');
+  const navigate = useNavigate();
+  const notify = useToast();
+  const [busy, setBusy] = useState(false);
+  // ค่าหลังลงทะเบียน/ยกเลิก ใช้แทนค่าที่โหลดตอนแรก
+  const [updated, setUpdated] = useState<Course | null>(null);
+  const [reloadedLessons, setReloadedLessons] = useState<Lesson[] | null>(null);
+  // โหลดบท (เนื้อหาล็อก/ปลดล็อกตามสิทธิ์) แล้วเปลี่ยนคอร์สกับรายการบทพร้อมกัน
+  const show = async (next: Course) => {
+    const nextLessons = await listLessons(courseId).catch(() => null);
+    setUpdated(next);
+    if (nextLessons) setReloadedLessons(nextLessons);
+  };
+  // ค่าบนหน้าอาจเก่า (เช่น ผู้สอนเพิ่งปิดรับ) โหลดใหม่ ; โหลดไม่ได้ก็คงค่าเดิม
+  const refresh = async () => {
+    const latest = await getCourse(courseId).catch(() => null);
+    if (latest) await show(latest);
+  };
+  const enroll = async () => {
+    setBusy(true);
+    try {
+      await show(await enrollCourse(courseId));
+      notify(ENROLLED_TOAST);
+    } catch (failure) {
+      notify(errorText(failure, ENROLL_FAILED));
+      await refresh();
+    }
+    setBusy(false);
+  };
+  const unenroll = async (status: Course['status']) => {
+    if (!window.confirm(unenrollQuestion(status))) return;
+    setBusy(true);
+    try {
+      const next = await unenrollCourse(courseId);
+      notify('ยกเลิกการลงทะเบียนแล้ว');
+      if (!next) {
+        navigate('/courses');
+        return;
+      }
+      await show(next);
+    } catch (failure) {
+      notify(errorText(failure, ENROLL_FAILED));
+      await refresh();
+    }
+    setBusy(false);
+  };
   if (course.loading) return <div className="page"><p className="muted small" role="status">กำลังโหลด...</p></div>;
-  const found = course.data;
+  const found = updated ?? course.data;
+  const lessonList = reloadedLessons ?? lessons.data ?? [];
   if (!found) {
     return (
       <div className="page">
@@ -181,7 +263,19 @@ function CourseView({ courseId }: { courseId: string }) {
               จัดการคอร์ส
             </Link>
           )}
-          {!canRead && found.status === 'published' && <Button disabled title={COMING_LATER}>ลงทะเบียนเรียน</Button>}
+          {!canRead && found.status === 'published' && (
+            <Button
+              disabled={busy}
+              onClick={() => (user ? void enroll() : navigate(loginPathFor(`/courses/${found.id}`)))}
+            >
+              ลงทะเบียนเรียน
+            </Button>
+          )}
+          {found.enrolled && !found.canManage && (
+            <Button kind="secondary" disabled={busy} onClick={() => void unenroll(found.status)}>
+              ยกเลิกการลงทะเบียน
+            </Button>
+          )}
         </div>
       </div>
       {found.status === 'archived' && <div className="notice">คอร์สนี้ถูกเก็บถาวร อ่านย้อนหลังได้แต่ส่งงานไม่ได้</div>}
@@ -195,11 +289,11 @@ function CourseView({ courseId }: { courseId: string }) {
           <div>
             <h2>บทเรียนในคอร์ส</h2>
             <p>
-              {lessons.data?.length ?? 0} บทเรียน · ผู้สอน {found.ownerName || 'VIPER'}
+              {lessonList.length} บทเรียน · ผู้สอน {found.ownerName || 'VIPER'}
             </p>
           </div>
         </div>
-        {(lessons.data ?? []).map((lesson) => (
+        {lessonList.map((lesson) => (
           <div className="management-row" key={lesson.id}>
             <div className={cx('course-icon', lesson.color)}>{canRead ? <BookOpen size={20} /> : <LockKeyhole size={19} />}</div>
             <div>
@@ -220,7 +314,7 @@ function CourseView({ courseId }: { courseId: string }) {
             )}
           </div>
         ))}
-        {!lessons.loading && !lessons.data?.length && <p className="muted small">ผู้สอนยังไม่ได้เพิ่มบทเรียน</p>}
+        {!lessons.loading && !lessonList.length && <p className="muted small">ผู้สอนยังไม่ได้เพิ่มบทเรียน</p>}
       </section>
     </div>
   );
@@ -298,7 +392,7 @@ function LessonView({ lessonId }: { lessonId: string }) {
               <h2>{found.activity.title || 'โจทย์ของบทนี้'}</h2>
               <p style={{ whiteSpace: 'pre-wrap' }}>{found.activity.instructions}</p>
               <div className="course-heading-actions">
-                <Button disabled title={COMING_LATER}>
+                <Button disabled title={LESSON_LAB_LATER}>
                   <Play size={16} />
                   เปิด Lab ของบทนี้
                   <ArrowRight size={15} />

@@ -39,6 +39,14 @@ export type Course = {
   publishBlockers?: string[];
 };
 
+// ผู้ลงทะเบียน (active) ของคอร์ส server ส่งให้เฉพาะเจ้าของคอร์สและผู้ดูแล
+export type CourseEnrollment = {
+  userId: string;
+  name: string;
+  email: string;
+  enrolledAt: string;
+};
+
 export type LessonColor = 'blue' | 'teal' | 'violet' | (string & {});
 export type LessonLevel = 'พื้นฐาน' | 'ปานกลาง' | 'ขั้นสูง';
 

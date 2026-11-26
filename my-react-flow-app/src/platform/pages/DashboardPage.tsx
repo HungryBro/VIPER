@@ -1,14 +1,16 @@
 // Dashboard ผู้เรียน (T17) ย้ายจาก Dashboard ของ mockup v2 ตัวเลขมาจาก /api/me/summary และ
 // "การประมวลผลล่าสุด" มาจาก audit processing.run ของตัวเองผ่าน /api/me/activity?action=processing.run&runs=true
 // (เฉพาะที่สั่งรัน ไม่นับการ poll งานเทรน B2)
-// ส่วนคอร์ส ไทม์ไลน์ ความคืบหน้า ฟีดแบค ยังไม่มีระบบรองรับ จึงเป็นสถานะว่าง
+// ส่วนคอร์สแสดงคอร์สที่ลงทะเบียนอยู่จาก learningApi ส่วนไทม์ไลน์ ความคืบหน้า งานกำหนดส่ง และฟีดแบค ยังไม่มีระบบรองรับ
 import { useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, BarChart3, BookOpen, ChevronRight, CircleHelp, GraduationCap, History, Workflow } from 'lucide-react';
 
+import { listCourses } from '../../lib/learningApi';
 import { listMyActivityPage, getMySummary, type MeActivity } from '../../lib/meApi';
+import { courseStatusBadge } from '../types';
 import { num, useLoaded } from '../useLoaded';
-import { Button, Empty, cx, time } from '../ui';
+import { Badge, Button, Empty, cx, time } from '../ui';
 
 const RECENT_RUNS = 3;
 
@@ -27,6 +29,8 @@ export default function DashboardPage() {
   );
   const recent = useLoaded(recentLoader, 'โหลดการประมวลผลล่าสุดไม่สำเร็จ');
   const stats = summary.data;
+  const courses = useLoaded(listCourses, 'โหลดคอร์สของคุณไม่สำเร็จ');
+  const enrolled = (courses.data?.items ?? []).filter((course) => course.enrolled);
 
   return (
     <div className="page dashboard">
@@ -48,9 +52,45 @@ export default function DashboardPage() {
                 <p>ลำดับบทเรียนและความคืบหน้าของคุณ</p>
               </div>
             </div>
-            <Empty icon={BookOpen} title="ยังไม่มีคอร์ส">
-              เมื่อมีระบบคอร์ส ไทม์ไลน์การเรียนและบทเรียนที่ลงทะเบียนจะแสดงที่นี่ ระหว่างนี้ทดลอง Workflow ได้ใน Lab
-            </Empty>
+            {courses.loading && <p className="muted small" role="status">กำลังโหลด…</p>}
+            {courses.error && (
+              <p className="muted small" role="alert">
+                {courses.error}
+              </p>
+            )}
+            {enrolled.map((course) => {
+              const [label, tone] = courseStatusBadge(course.status);
+              return (
+                <div className="management-row" key={course.id}>
+                  <div className="course-icon blue">
+                    <BookOpen size={20} />
+                  </div>
+                  <div>
+                    <h3>
+                      {course.title} <small className="muted">{course.code}</small>
+                    </h3>
+                    <p>{course.lessonCount} บทเรียน</p>
+                  </div>
+                  {course.status !== 'published' && <Badge tone={tone}>{label}</Badge>}
+                  <Link className="btn secondary" to={`/courses/${course.id}`}>
+                    เข้าเรียน
+                  </Link>
+                </div>
+              );
+            })}
+            {courses.data && !enrolled.length && (
+              <Empty
+                icon={BookOpen}
+                title="ยังไม่มีคอร์ส"
+                action={
+                  <Button kind="secondary" onClick={() => navigate('/courses')}>
+                    ดูคอร์สทั้งหมด
+                  </Button>
+                }
+              >
+                ยังไม่ได้ลงทะเบียนคอร์ส เลือกคอร์สที่สนใจในหน้า Courses ระหว่างนี้ทดลอง Workflow ได้ใน Lab
+              </Empty>
+            )}
             <Button onClick={() => navigate('/lab')}>
               <Workflow size={16} />
               เปิด VIPER Lab

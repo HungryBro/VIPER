@@ -25,6 +25,7 @@ import {
   createLesson,
   deleteLesson,
   getCourse,
+  listEnrollments,
   listLessons,
   listManagedCourses,
   moveLesson,
@@ -33,7 +34,7 @@ import {
   updateLesson,
 } from '../../lib/learningApi';
 import { canTeach, isAdmin } from '../permissions';
-import { errorText, useLoaded } from '../useLoaded';
+import { errorText, num, useLoaded } from '../useLoaded';
 import { useToast } from '../toast';
 import { courseStatusBadge, type Course, type CourseStatus, type Lesson, type LessonLevel } from '../types';
 import { Badge, Button, Empty, Markdown, Modal, cx, time } from '../ui';
@@ -532,6 +533,47 @@ function CourseStatusPanel({ course, onChange }: { course: Course; onChange: (ne
   );
 }
 
+// TODO(course-remove-learner): ผู้สอนเอาผู้เรียนออก (ดู tasks/plan.md คำถามที่ยังเปิด)
+function EnrollmentSection({ courseId }: { courseId: string }) {
+  const { data, error, loading } = useLoaded(() => listEnrollments(courseId), 'โหลดรายชื่อผู้ลงทะเบียนไม่สำเร็จ');
+  const rows = data ?? [];
+  return (
+    <section className="panel course-roster-panel">
+      <div className="section-title">
+        <div>
+          <h2>ผู้ลงทะเบียน ({num(data?.length)})</h2>
+        </div>
+      </div>
+      {error && <div className="validation-message" role="alert">{error}</div>}
+      {loading && <p className="muted small" role="status">กำลังโหลด...</p>}
+      {rows.length > 0 && (
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>ชื่อ</th>
+                <th>อีเมล</th>
+                <th>วันที่ลงทะเบียน</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.userId}>
+                  <td>{row.name}</td>
+                  <td>{row.email}</td>
+                  <td>{time(row.enrolledAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {data && !rows.length && <p className="muted small">ยังไม่มีผู้ลงทะเบียน</p>}
+      <p className="muted small">การนำผู้เรียนออกจากคอร์สจะเพิ่มภายหลัง</p>
+    </section>
+  );
+}
+
 function CourseEditor({ courseId }: { courseId: string }) {
   const course = useLoaded(() => getCourse(courseId), 'โหลดคอร์สไม่สำเร็จ');
   const notify = useToast();
@@ -594,6 +636,7 @@ function CourseEditor({ courseId }: { courseId: string }) {
           if (next) setSaved(next);
         }}
       />
+      <EnrollmentSection courseId={found.id} />
       {editing && (
         <CourseForm
           title="แก้ข้อมูลคอร์ส"
