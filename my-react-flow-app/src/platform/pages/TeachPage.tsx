@@ -46,6 +46,15 @@ const LAB_DESIGNER_LATER = 'ตัวออกแบบ Lab จะเพิ่�
 
 type CourseFields = { code: string; title: string; description: string };
 
+// ปิดโดยยังไม่บันทึก (Esc, พื้นหลัง, ปุ่ม X, ยกเลิก) ต้องถามก่อนเมื่อค่าต่างจากตอนเปิด
+// การปิดหลังบันทึกสำเร็จไม่ผ่านทางนี้ จึงไม่ถาม
+function closeUnlessDiscarding<T extends object>(initial: T, fields: T, onClose: () => void) {
+  return () => {
+    const dirty = (Object.keys(fields) as Array<keyof T>).some((key) => fields[key] !== initial[key]);
+    if (!dirty || window.confirm('ทิ้งการแก้ไขที่ยังไม่บันทึก?')) onClose();
+  };
+}
+
 // onSubmit ที่สำเร็จเป็นคนปิด modal ; ถ้า throw จะ toast ข้อความ และคงค่าในฟอร์มไว้
 function CourseForm({
   initial,
@@ -65,6 +74,7 @@ function CourseForm({
   const [busy, setBusy] = useState(false);
   const set = (key: keyof CourseFields) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setFields((previous) => ({ ...previous, [key]: event.target.value }));
+  const close = closeUnlessDiscarding(initial, fields, onClose);
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setBusy(true);
@@ -76,7 +86,7 @@ function CourseForm({
     }
   };
   return (
-    <Modal title={title} onClose={onClose}>
+    <Modal title={title} onClose={close}>
       <form onSubmit={submit}>
         <div className="modal-body">
           <label className="field">
@@ -99,7 +109,7 @@ function CourseForm({
           <p className="muted small">คอร์สใหม่เริ่มเป็น Draft ผู้เรียนยังไม่เห็นจนกว่าจะ Publish</p>
         </div>
         <div className="modal-actions">
-          <Button kind="secondary" onClick={onClose}>
+          <Button kind="secondary" onClick={close}>
             ยกเลิก
           </Button>
           <Button type="submit" disabled={busy || !fields.title.trim() || !fields.description.trim()}>
@@ -230,19 +240,21 @@ const LESSON_LEVELS: LessonLevel[] = ['พื้นฐาน', 'ปานกล�
 
 function LessonEditor({ lesson, onSaved, onClose }: { lesson: Lesson; onSaved: () => void; onClose: () => void }) {
   const notify = useToast();
-  const [fields, setFields] = useState({
+  const [initial] = useState({
     title: lesson.title,
     subtitle: lesson.subtitle,
     minutes: String(lesson.minutes),
     level: lesson.level,
     contentMd: lesson.contentMd,
   });
+  const [fields, setFields] = useState(initial);
   const [preview, setPreview] = useState(false);
   const [busy, setBusy] = useState(false);
   const set =
     (key: keyof typeof fields) =>
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
       setFields((previous) => ({ ...previous, [key]: event.target.value }));
+  const close = closeUnlessDiscarding(initial, fields, onClose);
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setBusy(true);
@@ -256,7 +268,7 @@ function LessonEditor({ lesson, onSaved, onClose }: { lesson: Lesson; onSaved: (
     }
   };
   return (
-    <Modal title={`แก้ไขบทเรียน · ${lesson.title}`} onClose={onClose} wide>
+    <Modal title={`แก้ไขบทเรียน · ${lesson.title}`} onClose={close} wide>
       <form onSubmit={submit}>
         <div className="modal-body">
           <label className="field">
@@ -305,7 +317,7 @@ function LessonEditor({ lesson, onSaved, onClose }: { lesson: Lesson; onSaved: (
           </div>
         </div>
         <div className="modal-actions">
-          <Button kind="secondary" onClick={onClose}>
+          <Button kind="secondary" onClick={close}>
             ยกเลิก
           </Button>
           <Button type="submit" disabled={busy || !fields.title.trim()}>
@@ -457,7 +469,10 @@ const STATUS_ACTIONS = {
 function CourseStatusPanel({ course, onChange }: { course: Course; onChange: (next: Course) => void }) {
   const notify = useToast();
   const [busy, setBusy] = useState(false);
-  const blockers = course.status === 'published' ? [] : (course.publishBlockers ?? []);
+  const published = course.status === 'published';
+  const unmet = course.publishBlockers ?? [];
+  // คอร์สที่ Published แล้วแก้/ลบบทได้ จึงแค่เตือนเมื่อไม่ผ่านเงื่อนไขแล้ว (ไม่บล็อก)
+  const blockers = published ? [] : unmet;
   const apply = async ({ to, ask, done }: (typeof STATUS_ACTIONS)[keyof typeof STATUS_ACTIONS]) => {
     if (!window.confirm(ask)) return;
     setBusy(true);
@@ -482,6 +497,13 @@ function CourseStatusPanel({ course, onChange }: { course: Course; onChange: (ne
           </p>
         </div>
       </div>
+      {published && unmet.length > 0 && (
+        <div className="validation-message" role="status">
+          <span>
+            คอร์สนี้เผยแพร่อยู่แต่ไม่ผ่านเงื่อนไขแล้ว: {unmet.join(' · ')} ผู้เรียนจะเห็นคอร์สที่ไม่มีเนื้อหา
+          </span>
+        </div>
+      )}
       {blockers.length > 0 && (
         <div className="validation-message" role="status">
           {blockers.map((blocker) => (

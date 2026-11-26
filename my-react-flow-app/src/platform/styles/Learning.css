@@ -8,7 +8,7 @@
 /* ---- Courses / Teach / Activity designer (mockup fix) ---- */
 .viper-platform .markdown-body h2,.viper-platform .markdown-body h3,.viper-platform .markdown-body h4{margin:16px 0 6px;font-size:15px}
 .viper-platform .markdown-body p{margin:6px 0;line-height:1.65}
-.viper-platform .markdown-body ul{margin:6px 0 6px 20px;padding:0;line-height:1.7}
+.viper-platform .markdown-body ul{margin:6px 0;padding:0 0 0 20px;list-style:disc;line-height:1.7}
 .viper-platform .markdown-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
 .viper-platform .markdown-preview{padding:12px 16px;max-height:320px;overflow:auto}
 .viper-platform .activity-steps{margin:6px 0 10px 20px;padding:0;line-height:1.7}
