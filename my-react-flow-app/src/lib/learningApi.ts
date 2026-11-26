@@ -230,6 +230,28 @@ export async function listEnrollments(courseId: string): Promise<CourseEnrollmen
   }));
 }
 
+// เหตุที่ลบไม่ได้ (409) หรือยังขาดเหตุผล (422) มาเป็น code ใน body
+const DELETE_REFUSALS: Record<string, string> = {
+  delete_not_draft: 'ลบได้เฉพาะคอร์สที่เป็น Draft',
+  delete_has_learners: 'คอร์สนี้มีผู้ลงทะเบียนแล้ว ลบไม่ได้',
+  reason_required: 'กรุณาระบุเหตุผลการลบ',
+};
+
+export async function deleteCourse(courseId: string, reason?: string): Promise<void> {
+  const response = await courseFetch(`/api/courses/${encodeURIComponent(courseId)}`, {
+    method: 'DELETE',
+    ...(reason ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason }) } : {}),
+  });
+  if (response.status === 409 || response.status === 422) {
+    const body = await response.clone().json().catch(() => null);
+    const message = DELETE_REFUSALS[body?.detail?.code];
+    if (message) throw new Error(message);
+    // 409 ที่ไม่รู้จักต้องไม่กลายเป็นข้อความ "รหัสซ้ำ"
+    if (response.status === 409) throw new Error(COURSE_ERROR_OTHER);
+  }
+  checkResponse(response, COURSE_ERRORS);
+}
+
 // บทเรียนของคอร์ส เรียงตาม position
 export async function listLessons(courseId: string): Promise<Lesson[]> {
   const response = await courseFetch(`/api/courses/${encodeURIComponent(courseId)}/lessons`);

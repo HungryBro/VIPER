@@ -18,6 +18,7 @@ export async function setCourseStatus() { return course('c9', 'published'); }
 export async function enrollCourse() { return course('c1', 'published'); }
 export async function unenrollCourse() { return null; }
 export async function listEnrollments() { return []; }
+export async function deleteCourse() {}
 export async function listLessons() { return []; }
 export async function createLesson() { return null; }
 export async function updateLesson() { return null; }

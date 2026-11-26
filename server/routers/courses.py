@@ -10,6 +10,7 @@ from ..database import get_db
 from ..models import AuditLog, Course, Enrollment, Lesson, User
 from ..schemas import (
     CourseCreate,
+    CourseDelete,
     CoursePage,
     CoursePublic,
     CourseStatusUpdate,
@@ -458,6 +459,56 @@ def set_course_status(
         )
         db.commit()
     return _public_one(db, db.scalar(_course_query().where(Course.id == course_id)), user)
+
+
+def _delete_refused(code: str, status_code: int = status.HTTP_409_CONFLICT) -> HTTPException:
+    return HTTPException(status_code=status_code, detail={"code": code})
+
+
+@router.delete("/{course_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_course(
+    course_id: int,
+    request: Request,
+    payload: CourseDelete | None = None,
+    user: User = Depends(require_active_user),
+    db: Session = Depends(get_db),
+):
+    course = _require_managed_course(db, course_id, user)
+    # Same lock as status changes and lesson edits: neither can interleave with the checks below.
+    lessons = _lock_lessons(db, course.id)
+    db.refresh(course, attribute_names=["status"])
+    enrolled_count = _enrollment_stats(db, [course.id], user).get(course.id, (0, False))[0]
+    reason = payload.reason if payload else None
+    by_admin = user.role == "admin"
+    if by_admin:
+        if (course.status != "draft" or enrolled_count) and reason is None:
+            raise _delete_refused("reason_required", status.HTTP_422_UNPROCESSABLE_CONTENT)
+    elif course.status != "draft":
+        raise _delete_refused("delete_not_draft")
+    elif enrolled_count:
+        raise _delete_refused("delete_has_learners")
+
+    # Soft delete. Enrollment rows stay untouched: _course_query already hides a deleted
+    # course (and _lesson_query its lessons) from everyone.
+    deleted_at = utc_now()
+    course.deleted_at = deleted_at
+    for lesson in lessons:
+        lesson.deleted_at = deleted_at
+    _add_audit(
+        db,
+        actor_id=user.id,
+        action="course.delete",
+        target_id=course.id,
+        request=request,
+        details={
+            "status": course.status,
+            "enrolled_count": enrolled_count,
+            "reason": reason,
+            "by_admin": by_admin,
+        },
+        status_code=status.HTTP_204_NO_CONTENT,
+    )
+    db.commit()
 
 
 def _enrollment_conflict(code: str) -> HTTPException:

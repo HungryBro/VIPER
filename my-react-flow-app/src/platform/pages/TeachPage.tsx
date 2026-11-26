@@ -23,6 +23,7 @@ import { useAuth } from '../../auth/AuthContext';
 import {
   createCourse,
   createLesson,
+  deleteCourse,
   deleteLesson,
   getCourse,
   listEnrollments,
@@ -467,9 +468,92 @@ const STATUS_ACTIONS = {
   },
 } satisfies Record<string, { to: CourseStatus; ask: string; done: string }>;
 
+const DELETE_DRAFT_ASK = 'ลบคอร์ส Draft นี้? บทเรียนทั้งหมดจะถูกลบด้วย';
+
+// ใช้เฉพาะ admin ลบคอร์สที่ไม่ใช่ Draft หรือมีผู้ลงทะเบียน: ต้องกรอกเหตุผล (เก็บใน audit log)
+function DeleteCourseModal({
+  course,
+  onDelete,
+  onClose,
+}: {
+  course: Course;
+  onDelete: (reason: string) => Promise<void>;
+  onClose: () => void;
+}) {
+  const notify = useToast();
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const close = closeUnlessDiscarding({ reason: '' }, { reason }, onClose);
+  const [statusLabel] = courseStatusBadge(course.status);
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBusy(true);
+    try {
+      await onDelete(reason.trim());
+    } catch (failure) {
+      notify(errorText(failure, 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง'));
+      setBusy(false);
+    }
+  };
+  return (
+    <Modal title={`ลบคอร์ส ${course.title}`} onClose={close}>
+      <form onSubmit={submit}>
+        <div className="modal-body">
+          <p>
+            สถานะ {statusLabel} · มีผู้ลงทะเบียน {course.enrolledCount} คน จะเข้าถึงคอร์สนี้ไม่ได้อีก
+          </p>
+          <label className="field">
+            เหตุผลการลบ
+            <textarea required maxLength={500} rows={4} value={reason} onChange={(event) => setReason(event.target.value)} />
+          </label>
+        </div>
+        <div className="modal-actions">
+          <Button kind="secondary" onClick={close}>
+            ยกเลิก
+          </Button>
+          <Button type="submit" kind="secondary" className="danger" disabled={busy || !reason.trim()}>
+            <Trash2 size={14} />
+            ลบคอร์ส
+          </Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 function CourseStatusPanel({ course, onChange }: { course: Course; onChange: (next: Course) => void }) {
   const notify = useToast();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const admin = isAdmin(user);
   const [busy, setBusy] = useState(false);
+  // คอร์สที่กำลังขอเหตุผลการลบ (ค่าล่าสุดตอนกดปุ่ม)
+  const [deleting, setDeleting] = useState<Course | null>(null);
+  // ผู้สอนลบได้เฉพาะ Draft ที่ไม่มีผู้ลงทะเบียน ; admin ลบได้ทุกสถานะ (server ตรวจซ้ำ)
+  const canDelete = admin || (course.status === 'draft' && course.enrolledCount === 0);
+  const destroy = async (reason?: string) => {
+    await deleteCourse(course.id, reason);
+    notify('ลบคอร์สแล้ว');
+    navigate('/teach');
+  };
+  const askDelete = async () => {
+    setBusy(true);
+    try {
+      // จำนวนผู้ลงทะเบียนและสถานะอาจเปลี่ยนตั้งแต่เปิดหน้า ใช้ค่าล่าสุดก่อนถาม
+      const latest = (await getCourse(course.id)) ?? course;
+      onChange(latest);
+      if (admin && (latest.status !== 'draft' || latest.enrolledCount > 0)) {
+        setDeleting(latest);
+      } else if (window.confirm(DELETE_DRAFT_ASK)) {
+        // ผู้สอนที่หน้าเก่า (คอร์สลบไม่ได้แล้ว) จะได้เหตุผลจาก server
+        await destroy();
+        return;
+      }
+    } catch (failure) {
+      notify(errorText(failure, 'บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง'));
+    }
+    setBusy(false);
+  };
   const published = course.status === 'published';
   const unmet = course.publishBlockers ?? [];
   // คอร์สที่ Published แล้วแก้/ลบบทได้ จึงแค่เตือนเมื่อไม่ผ่านเงื่อนไขแล้ว (ไม่บล็อก)
@@ -528,7 +612,14 @@ function CourseStatusPanel({ course, onChange }: { course: Course; onChange: (ne
             </Button>
           </>
         )}
+        {canDelete && (
+          <Button kind="secondary" className="danger" disabled={busy} onClick={() => void askDelete()}>
+            <Trash2 size={14} />
+            ลบคอร์ส
+          </Button>
+        )}
       </div>
+      {deleting && <DeleteCourseModal course={deleting} onDelete={destroy} onClose={() => setDeleting(null)} />}
     </section>
   );
 }

@@ -300,6 +300,17 @@ class CourseStatusUpdate(BaseModel):
     status: Literal["draft", "published", "archived"]
 
 
+class CourseDelete(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: str | None = Field(default=None, max_length=500)
+
+    # A blank reason is no reason.
+    _reason = field_validator("reason", mode="before")(
+        lambda value: (value.strip() or None) if isinstance(value, str) else value
+    )
+
+
 class EnrollmentPublic(BaseModel):
     # Carries learner emails: only the course's managers may receive it.
     user_id: int

@@ -748,3 +748,151 @@ def test_deleted_course_cannot_be_enrolled_or_left(env):
     assert join(login, course_id).status_code == 404
     assert leave(login, course_id).status_code == 404
     assert login("admin").get(f"/api/courses/{course_id}/enrollments").status_code == 404
+
+
+def remove(login, course_id: int, who: str | None = "a", reason: str | None = None):
+    body_ = {} if reason is None else {"json": {"reason": reason}}
+    return login(who).request("DELETE", f"/api/courses/{course_id}", **body_)
+
+
+def everything_is_gone(login, course_id: int, lesson_id: int, who: str) -> None:
+    client = login(who)
+    base = f"/api/courses/{course_id}"
+    responses = [
+        client.get(base),
+        client.patch(base, json={"title": "x"}),
+        client.delete(base),
+        client.post(f"{base}/status", json={"status": "published"}),
+        client.post(f"{base}/enroll"),
+        client.post(f"{base}/unenroll"),
+        client.get(f"{base}/enrollments"),
+        client.get(f"{base}/lessons"),
+        client.post(f"{base}/lessons"),
+        client.get(f"/api/lessons/{lesson_id}"),
+        client.patch(f"/api/lessons/{lesson_id}", json={"title": "x"}),
+        client.delete(f"/api/lessons/{lesson_id}"),
+        client.post(f"/api/lessons/{lesson_id}/move", json={"direction": 1}),
+    ]
+    assert [r.status_code for r in responses] == [404] * len(responses)
+    assert not listed(login, course_id, who)
+    if who != "learner":
+        assert course_id not in [c["id"] for c in client.get("/api/courses/managed").json()["items"]]
+
+
+def delete_audits(engine) -> list[AuditLog]:
+    with Session(engine) as db:
+        rows = db.scalars(select(AuditLog).where(AuditLog.action == "course.delete").order_by(AuditLog.id)).all()
+        for row in rows:
+            db.expunge(row)
+        return list(rows)
+
+
+def test_owner_deletes_an_empty_draft(env):
+    engine, users, login = env
+    course_id, lesson_id = publishable(login)
+    removed_lesson = add_lesson(login, course_id)["id"]
+    login("a").delete(f"/api/lessons/{removed_lesson}")
+    with Session(engine) as db:
+        earlier = db.get(Lesson, removed_lesson).deleted_at
+    response = remove(login, course_id)
+    assert (response.status_code, response.content) == (204, b"")
+    for who in ("a", "admin"):
+        everything_is_gone(login, course_id, lesson_id, who)
+    with Session(engine) as db:
+        course = db.get(Course, course_id)
+        assert course.deleted_at is not None
+        assert db.get(Lesson, lesson_id).deleted_at == course.deleted_at
+        assert db.get(Lesson, removed_lesson).deleted_at == earlier
+    (row,) = delete_audits(engine)
+    assert (row.actor_id, row.target_type, row.target_id, row.status_code) == (users["a"].id, "course", str(course_id), 204)
+    assert row.details == {"status": "draft", "enrolled_count": 0, "reason": None, "by_admin": False}
+
+
+def test_owner_cannot_delete_published_or_enrolled_courses(env):
+    engine, _, login = env
+    course_id, _ = published_course(login)
+
+    def refused(code: str) -> None:
+        response = remove(login, course_id, "a", "even with a reason")
+        assert (response.status_code, response.json()["detail"]) == (409, {"code": code})
+
+    refused("delete_not_draft")
+    join(login, course_id)
+    change_status(login, course_id, "archived")
+    refused("delete_not_draft")
+    change_status(login, course_id, "draft")
+    refused("delete_has_learners")
+    assert delete_audits(engine) == []
+    # A cancelled enrollment no longer blocks the owner.
+    leave(login, course_id)
+    assert remove(login, course_id).status_code == 204
+
+
+def test_delete_permissions(env):
+    engine, users, login = env
+    draft = create(login).json()["id"]
+    published, _ = published_course(login)
+    assert remove(login, draft, "b").status_code == 404
+    assert remove(login, draft, "learner").status_code == 404
+    assert remove(login, published, "b").status_code == 403
+    assert remove(login, published, "learner").status_code == 403
+    assert remove(login, published, None).status_code == 401
+    set_user(engine, users["a"].id, can_teach=False)
+    assert remove(login, published, "a").status_code == 403
+    assert remove(login, draft, "a").status_code == 404
+    assert delete_audits(engine) == []
+
+
+@pytest.mark.parametrize("final_status", ["published", "draft", "archived"])
+def test_admin_needs_a_reason_when_learners_or_not_draft(env, final_status):
+    engine, users, login = env
+    course_id, lesson_id = published_course(login)
+    join(login, course_id)
+    join(login, course_id, "learner2")
+    change_status(login, course_id, final_status)
+    for reason in (None, "", "   "):
+        response = remove(login, course_id, "admin", reason)
+        assert (response.status_code, response.json()["detail"]) == (422, {"code": "reason_required"})
+    assert remove(login, course_id, "admin", "x" * 501).status_code == 422
+    assert login("admin").request("DELETE", f"/api/courses/{course_id}", json={"why": "x"}).status_code == 422
+    assert login("admin").get(f"/api/courses/{course_id}").status_code == 200
+    assert delete_audits(engine) == []
+
+    before = enrollment_rows(engine)
+    assert remove(login, course_id, "admin", "  " + "y" * 500 + "  ").status_code == 204
+    assert enrollment_rows(engine) == before  # enrollment rows are left as they were
+    (row,) = delete_audits(engine)
+    assert row.actor_id == users["admin"].id
+    assert row.details == {"status": final_status, "enrolled_count": 2, "reason": "y" * 500, "by_admin": True}
+    for who in ("learner", "a"):
+        everything_is_gone(login, course_id, lesson_id, who)
+    assert login("learner").get("/api/courses").json()["items"] == []
+
+
+def test_admin_deletes_an_empty_draft_without_a_reason(env):
+    engine, _, login = env
+    course_id = create(login).json()["id"]
+    assert remove(login, course_id, "admin").status_code == 204
+    assert delete_audits(engine)[0].details == {"status": "draft", "enrolled_count": 0, "reason": None, "by_admin": True}
+
+
+def test_admin_needs_a_reason_for_an_empty_published_course(env):
+    _, _, login = env
+    course_id, _ = published_course(login)
+    assert remove(login, course_id, "admin").status_code == 422
+    assert remove(login, course_id, "admin", "r").status_code == 204
+
+
+def test_deleted_code_can_be_used_again_and_other_courses_keep_their_counts(env):
+    _, _, login = env
+    other, _ = published_course(login)
+    add_lesson(login, other)
+    join(login, other)
+    gone = create(login, code="IMG-101").json()["id"]
+    add_lesson(login, gone)
+    before = login("a").get(f"/api/courses/{other}").json()
+    assert remove(login, gone).status_code == 204
+    again = create(login, "b", code="img-101")
+    assert (again.status_code, again.json()["code"], again.json()["lesson_count"]) == (201, "IMG-101", 0)
+    after = login("a").get(f"/api/courses/{other}").json()
+    assert (after["lesson_count"], after["enrolled_count"]) == (before["lesson_count"], before["enrolled_count"]) == (2, 1)
