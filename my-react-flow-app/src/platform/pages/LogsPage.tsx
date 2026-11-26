@@ -1,7 +1,7 @@
 // หน้า Platform Logs (T11) ย้ายจาก PlatformLogs + LogDetail ของ mockup v2 ต่อ audit_logs จริง
 // ผ่าน GET /api/admin/audit-logs (แบ่งหน้า ตัวกรอง คำค้น ยอดรวมทำที่ server ตาม T10)
 // ไม่ย้าย LOG_INFO และ action สมมติของ mockup: ป้ายชื่อใช้ actionLabels ของ AdminAuditLogView
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ChevronRight, Clock3, LockKeyhole, ScrollText, Search, ShieldAlert } from 'lucide-react';
 
@@ -13,6 +13,7 @@ import {
   type AdminAuditActionCount,
   type AdminAuditLog,
 } from '../../lib/adminApi';
+import { AUDIT_CATEGORIES, categoryOfAction, type AuditCategoryKey } from '../../lib/auditCategories';
 import { isAdmin } from '../permissions';
 import { Badge, Button, Empty, Modal, time } from '../ui';
 
@@ -94,7 +95,7 @@ function LogsTable() {
   const [items, setItems] = useState<AdminAuditLog[]>([]);
   const [total, setTotal] = useState(0);
   const [actions, setActions] = useState<AdminAuditActionCount[]>([]);
-  const [action, setAction] = useState('all');
+  const [category, setCategory] = useState<'all' | AuditCategoryKey>('all');
   const [query, setQuery] = useState('');
   const [term, setTerm] = useState('');
   const [loading, setLoading] = useState(true);
@@ -115,6 +116,23 @@ function LogsTable() {
       .catch(() => setActions([]));
   }, []);
 
+  // action ที่มีจริงและจำนวนรวมของแต่ละหมวด
+  const groups = useMemo(() => {
+    const result = new Map<AuditCategoryKey, { actions: string[]; count: number }>();
+    for (const item of actions) {
+      const key = categoryOfAction(item.action);
+      const group = result.get(key) ?? { actions: [], count: 0 };
+      group.actions.push(item.action);
+      group.count += item.count;
+      result.set(key, group);
+    }
+    return result;
+  }, [actions]);
+  const allCount = actions.reduce((sum, item) => sum + item.count, 0);
+  // undefined (ทั้งหมด) คงค่าเดิมเมื่อรายการ action โหลดเสร็จ จึงไม่ยิง audit-logs ซ้ำ
+  // หมวดอื่นเลือกได้หลังรายการ action มาแล้วเท่านั้น (ช่องเลือกมีเฉพาะหมวดที่มี action) รายการจึงไม่ว่าง
+  const selectedActions = category === 'all' ? undefined : groups.get(category)?.actions;
+
   const load = useCallback(async () => {
     const id = ++requestId.current;
     setLoading(true);
@@ -125,7 +143,7 @@ function LogsTable() {
       const page = await listAdminAuditLogPage({
         limit: PAGE_SIZE,
         offset: 0,
-        action: action === 'all' ? undefined : [action],
+        action: selectedActions,
         q: term,
       });
       if (id !== requestId.current) return;
@@ -137,7 +155,7 @@ function LogsTable() {
     } finally {
       if (id === requestId.current) setLoading(false);
     }
-  }, [action, term]);
+  }, [selectedActions, term]);
 
   useEffect(() => {
     void load();
@@ -150,7 +168,7 @@ function LogsTable() {
       const page = await listAdminAuditLogPage({
         limit: PAGE_SIZE,
         offset: items.length,
-        action: action === 'all' ? undefined : [action],
+        action: selectedActions,
         q: term,
       });
       if (id !== requestId.current) return;
@@ -184,14 +202,20 @@ function LogsTable() {
       <div className="filter-toolbar">
         <label className="log-action-filter">
           ประเภทเหตุการณ์
-          <select aria-label="กรองประเภทเหตุการณ์" value={action} onChange={(event) => setAction(event.target.value)}>
-            <option value="all">ทั้งหมด</option>
-            {actions.map((item) => (
-              <option value={item.action} key={item.action}>
-                {/* action ที่ยังไม่มีป้ายชื่อแสดงโค้ดครั้งเดียว ไม่ซ้ำในวงเล็บ */}
-                {labelOf(item.action) === item.action ? item.action : `${labelOf(item.action)} (${item.action})`} · {item.count}
-              </option>
-            ))}
+          <select
+            aria-label="กรองประเภทเหตุการณ์"
+            value={category}
+            onChange={(event) => setCategory(event.target.value as 'all' | AuditCategoryKey)}
+          >
+            <option value="all">{actions.length ? `ทั้งหมด · ${allCount}` : 'ทั้งหมด'}</option>
+            {AUDIT_CATEGORIES.map(({ key, label }) => {
+              const count = groups.get(key)?.count ?? 0;
+              return count > 0 ? (
+                <option value={key} key={key}>
+                  {label} · {count}
+                </option>
+              ) : null;
+            })}
           </select>
         </label>
         <label className="search-field">

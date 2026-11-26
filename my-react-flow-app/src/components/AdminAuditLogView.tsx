@@ -4,9 +4,10 @@ import {
   listAdminAuditLogs,
   type AdminAuditLog,
 } from '../lib/adminApi';
+import { categoryOfAction, type AuditCategoryKey } from '../lib/auditCategories';
 
 
-type AuditCategory = 'all' | 'login' | 'template' | 'comment' | 'ban' | 'permission' | 'processing' | 'course';
+type AuditCategory = 'all' | AuditCategoryKey;
 
 const categoryOptions: Array<{ value: AuditCategory; label: string }> = [
   { value: 'all', label: 'All activity' },
@@ -17,6 +18,7 @@ const categoryOptions: Array<{ value: AuditCategory; label: string }> = [
   { value: 'permission', label: 'Permission' },
   { value: 'processing', label: 'Processing' },
   { value: 'course', label: 'Course' },
+  { value: 'other', label: 'Other' },
 ];
 
 // หน้า Platform Logs (T11) ใช้ป้ายชื่อชุดเดียวกัน
@@ -53,22 +55,13 @@ export const actionLabels: Record<string, string> = {
 };
 
 
-function auditCategory(log: AdminAuditLog): Exclude<AuditCategory, 'all'> {
-  if (log.action.startsWith('auth.')) return 'login';
-  if (log.action.startsWith('template.')) return 'template';
-  if (log.action.startsWith('comment.')) return 'comment';
-  if (log.action.startsWith('ban.') || log.action === 'account.ban_expired') return 'ban';
-  if (log.action.startsWith('permission.')) return 'permission';
-  if (log.action.startsWith('processing.')) return 'processing';
-  if (log.action.startsWith('course.') || log.action.startsWith('lesson.') || log.action.startsWith('enrollment.')) return 'course';
-
+function auditCategory(log: AdminAuditLog): AuditCategoryKey {
+  // แผงนี้มี details ของแต่ละแถว จึงแยกการแบนออกจากการแก้สิทธิ์ได้
   if (log.action === 'admin.user_access_updated') {
     const changes = log.details.changes;
     if (changes && typeof changes === 'object' && 'ban' in changes) return 'ban';
-    return 'permission';
   }
-  if (log.action === 'admin.template_comments_updated') return 'permission';
-  return 'template';
+  return categoryOfAction(log.action);
 }
 
 
@@ -89,6 +82,7 @@ function categoryStyle(category: Exclude<AuditCategory, 'all'>): string {
     permission: 'bg-fuchsia-500/15 text-fuchsia-300',
     processing: 'bg-teal-500/15 text-teal-300',
     course: 'bg-indigo-500/15 text-indigo-300',
+    other: 'bg-slate-500/15 text-slate-300',
   };
   return styles[category];
 }

@@ -159,7 +159,10 @@ def run():
         page.wait_for_selector("tr[data-log-id]")
         page.get_by_role("button", name="โหลดเพิ่ม").click()
         page.wait_for_timeout(200)
-        page.get_by_label("กรองประเภทเหตุการณ์").select_option("template.create")
+        options = page.get_by_label("กรองประเภทเหตุการณ์").locator("option").all_inner_texts()
+        check("A2 filter lists categories with counts", "Template · 10" in options and "Login · 300" in options,
+              f"options={options}")
+        page.get_by_label("กรองประเภทเหตุการณ์").select_option("template")
         page.wait_for_timeout(3000)
         button = page.get_by_role("button", name="โหลดเพิ่ม")
         actions = page.eval_on_selector_all("tr[data-log-id]", "rows => rows.map(r => r.innerText)")
