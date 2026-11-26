@@ -49,7 +49,7 @@ export default function InstructorDashboard() {
         <div className="section-title">
           <div>
             <h2>คอร์สของคุณ</h2>
-            <p>คลิกจัดการเพื่อแก้บทเรียนและออกแบบ Lab</p>
+            <p>คลิกจัดการเพื่อแก้ข้อมูลคอร์สและบทเรียน</p>
           </div>
           {latest.length > 0 && (
             <Link className="text-btn" to="/teach">

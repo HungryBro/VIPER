@@ -1,6 +1,6 @@
 // หน้า Teach (T19) ย้ายจาก TeachHome / CourseEditor ของ mockup v2 และ guard blockedTeach ของ App
 // route: /teach (คอร์สที่ฉันสอน) และ /teach/:courseId ข้อมูลคอร์สมาจาก src/lib/learningApi.ts เท่านั้น
-// สิทธิ์: can_teach จาก /api/auth/me หรือเป็นผู้ดูแล ไม่งั้นเห็น "ต้องได้รับสิทธิ์ผู้สอน" (server ตรวจสิทธิ์จริงเมื่อมีระบบคอร์ส)
+// สิทธิ์: can_teach จาก /api/auth/me หรือเป็นผู้ดูแล ไม่งั้นเห็น "ต้องได้รับสิทธิ์ผู้สอน" (server ตรวจสิทธิ์ซ้ำทุกคำขอ)
 // สร้าง/แก้ข้อมูลคอร์สและจัดการบทเรียนได้แล้ว ตัวออกแบบ Lab ยังไม่เปิดใช้
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -152,7 +152,7 @@ function TeachHome() {
   const navigate = useNavigate();
   const notify = useToast();
   const [creating, setCreating] = useState(false);
-  // แสดงหน้าแรกของรายการ (data.next ใช้ต่อเมื่อมีระบบคอร์ส)
+  // แสดงหน้าแรกของรายการ (data.next ใช้ต่อเมื่อมีการแบ่งหน้าด้วย cursor)
   const courses = data?.items ?? [];
   return (
     <div className="page">

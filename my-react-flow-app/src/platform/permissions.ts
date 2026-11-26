@@ -46,7 +46,7 @@ export function navItemsFor(user: MaybeUser): NavItem[] {
   items.push({ to: '/templates', label: 'Templates' });
   if (admin) items.push({ to: '/users', label: 'Users' });
   // ตาม mockup: My Submissions แสดงเมื่อ !admin && (!teacher || learnsSomething) (ผู้ใช้ยืนยันหลังจุดตรวจ 1 ให้ซ่อนของ admin)
-  // ของจริงยังไม่มีการลงทะเบียนเรียน (learnsSomething = false) จนกว่าจะมีระบบคอร์ส ผู้สอนจึงไม่เห็นเมนูนี้
+  // การลงทะเบียนเรียนมีแล้ว แต่ learnsSomething ยังเป็น false เพราะ My Submissions ของผู้สอนรอระบบส่งงาน ผู้สอนจึงยังไม่เห็นเมนูนี้
   const learnsSomething = false;
   // My Submissions เปิดฝั่งผู้เรียนด้วย ?side=mine เสมอ ผู้สอนที่ลงทะเบียนเรียนจึงเห็นงานของตัวเองได้ (R3)
   if (!admin && (!teacher || learnsSomething)) {

@@ -6,7 +6,7 @@ import {
 } from '../lib/adminApi';
 
 
-type AuditCategory = 'all' | 'login' | 'template' | 'comment' | 'ban' | 'permission' | 'processing';
+type AuditCategory = 'all' | 'login' | 'template' | 'comment' | 'ban' | 'permission' | 'processing' | 'course';
 
 const categoryOptions: Array<{ value: AuditCategory; label: string }> = [
   { value: 'all', label: 'All activity' },
@@ -16,6 +16,7 @@ const categoryOptions: Array<{ value: AuditCategory; label: string }> = [
   { value: 'ban', label: 'Ban' },
   { value: 'permission', label: 'Permission' },
   { value: 'processing', label: 'Processing' },
+  { value: 'course', label: 'Course' },
 ];
 
 // หน้า Platform Logs (T11) ใช้ป้ายชื่อชุดเดียวกัน
@@ -59,6 +60,7 @@ function auditCategory(log: AdminAuditLog): Exclude<AuditCategory, 'all'> {
   if (log.action.startsWith('ban.') || log.action === 'account.ban_expired') return 'ban';
   if (log.action.startsWith('permission.')) return 'permission';
   if (log.action.startsWith('processing.')) return 'processing';
+  if (log.action.startsWith('course.') || log.action.startsWith('lesson.') || log.action.startsWith('enrollment.')) return 'course';
 
   if (log.action === 'admin.user_access_updated') {
     const changes = log.details.changes;
@@ -86,6 +88,7 @@ function categoryStyle(category: Exclude<AuditCategory, 'all'>): string {
     ban: 'bg-red-500/15 text-red-300',
     permission: 'bg-fuchsia-500/15 text-fuchsia-300',
     processing: 'bg-teal-500/15 text-teal-300',
+    course: 'bg-indigo-500/15 text-indigo-300',
   };
   return styles[category];
 }

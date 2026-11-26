@@ -141,7 +141,7 @@ export default function CoursesPage() {
   const { data, error, loading } = useLoaded(listCourses, 'โหลดรายการคอร์สไม่สำเร็จ');
   const [query, setQuery] = useState('');
   const needle = query.trim().toLowerCase();
-  // แสดงหน้าแรกของรายการ (data.next ใช้ต่อเมื่อมีระบบคอร์สและปุ่มโหลดเพิ่ม)
+  // แสดงหน้าแรกของรายการ (data.next ใช้ต่อเมื่อมีการแบ่งหน้าด้วย cursor และปุ่มโหลดเพิ่ม)
   const courses = (data?.items ?? []).filter((course) => `${course.title} ${course.description} ${course.code}`.toLowerCase().includes(needle));
   return (
     <div className="page">

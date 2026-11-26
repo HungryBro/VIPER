@@ -258,7 +258,7 @@ export default function ProfilePage() {
               <Badge>0</Badge>
             </div>
             <Empty icon={FileText} title="ยังไม่มีงานที่ส่ง">
-              เมื่อมีระบบคอร์ส งานที่คุณส่งและผลตรวจจะแสดงที่นี่
+              ระบบส่งงานจะเพิ่มภายหลัง งานที่คุณส่งและผลตรวจจะแสดงที่นี่
             </Empty>
           </section>
           <ActivityList />
@@ -270,7 +270,7 @@ export default function ProfilePage() {
               <h2>บทเรียนและผลการเรียน</h2>
             </div>
             <Empty icon={BookOpen} title="ยังไม่มีบทเรียน">
-              เมื่อมีระบบคอร์ส บทเรียนที่ลงทะเบียนและผลการเรียนจะแสดงที่นี่
+              ผลการเรียนจะแสดงที่นี่เมื่อมีระบบส่งงาน ดูคอร์สที่ลงทะเบียนได้ที่ Dashboard
             </Empty>
           </section>
           <section className="panel">

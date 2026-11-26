@@ -102,7 +102,7 @@ function LearningHistory({ switcher }: { switcher: React.ReactNode }) {
   const reviews = useLoaded(() => listReviews('mine'), 'โหลดผลตรวจไม่สำเร็จ');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lessonFilter, setLessonFilter] = useState('all');
-  // หน้าแรกของรายการ (data.next ใช้ต่อเมื่อมีระบบคอร์ส)
+  // หน้าแรกของรายการ (data.next ใช้ต่อเมื่อมีระบบส่งงาน)
   const own = submissions.data?.items ?? [];
   const reviewOf = useReviewIndex(reviews.data?.items);
   const items = own.filter((item) => lessonFilter === 'all' || item.lessonId === lessonFilter);
