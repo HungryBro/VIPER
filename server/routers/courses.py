@@ -1,19 +1,20 @@
 import secrets
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import func, select
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from ..auth import optional_active_user, require_active_user, utc_now
 from ..database import get_db
-from ..models import AuditLog, Course, Lesson, User
+from ..models import AuditLog, Course, Enrollment, Lesson, User
 from ..schemas import (
     CourseCreate,
     CoursePage,
     CoursePublic,
     CourseStatusUpdate,
     CourseUpdate,
+    EnrollmentPublic,
     LessonLookupPublic,
     LessonMove,
     LessonPreviewPublic,
@@ -50,10 +51,45 @@ def _course_query():
     return select(Course).options(joinedload(Course.owner)).where(Course.deleted_at.is_(None))
 
 
+def _enrollment_row(db: Session, course_id: int, user_id: int) -> Enrollment | None:
+    # Locked so two requests cannot both flip the same row (PostgreSQL; SQLite ignores it).
+    return db.scalar(
+        select(Enrollment)
+        .where(Enrollment.course_id == course_id, Enrollment.user_id == user_id)
+        .with_for_update()
+    )
+
+
+def _active_enrollment(db: Session, course_id: int, user: User | None) -> Enrollment | None:
+    if user is None:
+        return None
+    return db.scalar(
+        select(Enrollment).where(
+            Enrollment.course_id == course_id,
+            Enrollment.user_id == user.id,
+            Enrollment.status == "active",
+        )
+    )
+
+
+def _is_enrolled(db: Session, course: Course, user: User | None) -> bool:
+    return _active_enrollment(db, course.id, user) is not None
+
+
+def _can_read(db: Session, course: Course, user: User | None) -> bool:
+    # Who may read the lesson content.
+    return _can_manage(user, course) or _is_enrolled(db, course, user)
+
+
+def _is_open_to(course: Course, user: User | None) -> bool:
+    # Visible without an enrollment.
+    return course.status == "published" or _can_manage(user, course)
+
+
 def _get_visible_course(db: Session, course_id: int, user: User | None) -> Course:
     course = db.scalar(_course_query().where(Course.id == course_id))
-    if course is None or not (course.status == "published" or _can_manage(user, course)):
-        # Hide a draft or archived course from anyone who cannot manage it.
+    if course is None or not (_is_open_to(course, user) or _is_enrolled(db, course, user)):
+        # Hide a draft or archived course from anyone who neither manages it nor is enrolled.
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Course not found")
     return course
 
@@ -115,7 +151,6 @@ def _touch(course: Course) -> None:
 
 def _lesson_view(lesson: Lesson, *, full: bool) -> LessonPublic:
     view = LessonPublic.model_validate(lesson)
-    # T6 also gives the full content to learners with an active enrollment.
     return view if full else view.model_copy(update={"content_md": ""})
 
 
@@ -142,9 +177,29 @@ def _publish_blockers(db: Session, course: Course) -> list[str]:
     return _blockers_for([lesson.content_md for lesson in _course_lessons(db, course.id)])
 
 
+def _enrollment_stats(db: Session, course_ids: list[int], user: User | None) -> dict[int, tuple[int, bool]]:
+    # {course_id: (active enrollments, is this user one of them)} in a single query.
+    user_id = user.id if user is not None else None
+    rows = db.execute(
+        select(
+            Enrollment.course_id,
+            func.count(Enrollment.id),
+            func.count(case((Enrollment.user_id == user_id, 1))),
+        )
+        .where(Enrollment.course_id.in_(course_ids), Enrollment.status == "active")
+        .group_by(Enrollment.course_id)
+    )
+    return {course_id: (total, mine > 0) for course_id, total, mine in rows}
+
+
 def _public(
-    course: Course, user: User | None, lesson_count: int, publish_blockers: list[str] | None
+    course: Course,
+    user: User | None,
+    lesson_count: int,
+    publish_blockers: list[str] | None,
+    enrollment: tuple[int, bool],
 ) -> CoursePublic:
+    enrolled_count, enrolled = enrollment
     return CoursePublic(
         id=course.id,
         owner_id=course.owner_id,
@@ -156,9 +211,8 @@ def _public(
         created_at=course.created_at,
         updated_at=course.updated_at,
         lesson_count=lesson_count,
-        # T6 fills enrolled_count and enrolled.
-        enrolled_count=0,
-        enrolled=False,
+        enrolled_count=enrolled_count,
+        enrolled=enrolled,
         can_manage=_can_manage(user, course),
         publish_blockers=publish_blockers,
     )
@@ -166,12 +220,19 @@ def _public(
 
 def _public_one(db: Session, course: Course, user: User | None) -> CoursePublic:
     blockers = _publish_blockers(db, course) if _can_manage(user, course) else None
-    return _public(course, user, _lesson_counts(db, [course.id]).get(course.id, 0), blockers)
+    return _public(
+        course,
+        user,
+        _lesson_counts(db, [course.id]).get(course.id, 0),
+        blockers,
+        _enrollment_stats(db, [course.id], user).get(course.id, (0, False)),
+    )
 
 
 def _page(db: Session, query, user: User | None) -> CoursePage:
     courses = db.scalars(query.order_by(Course.updated_at.desc(), Course.id.desc())).all()
     counts = _lesson_counts(db, [course.id for course in courses])
+    enrollments = _enrollment_stats(db, [course.id for course in courses], user)
     # One query for the lesson contents of every course this user manages (publish blockers).
     contents: dict[int, list[str]] = {course.id: [] for course in courses if _can_manage(user, course)}
     for course_id, content in db.execute(
@@ -187,6 +248,7 @@ def _page(db: Session, query, user: User | None) -> CoursePage:
                 user,
                 counts.get(course.id, 0),
                 _blockers_for(contents[course.id]) if course.id in contents else None,
+                enrollments.get(course.id, (0, False)),
             )
             for course in courses
         ],
@@ -256,7 +318,18 @@ def list_courses(
     db: Session = Depends(get_db),
 ):
     # shortcut: หน้าเดียว ไม่มี cursor, ทำ cursor เมื่อคอร์สเกิน 100
-    return _page(db, _course_query().where(Course.status == "published").limit(LIST_LIMIT), user)
+    visible = Course.status == "published"
+    if user is not None:
+        # Learners keep draft and archived courses they are enrolled in.
+        visible = or_(
+            visible,
+            Course.id.in_(
+                select(Enrollment.course_id).where(
+                    Enrollment.user_id == user.id, Enrollment.status == "active"
+                )
+            ),
+        )
+    return _page(db, _course_query().where(visible).limit(LIST_LIMIT), user)
 
 
 @router.get("/managed", response_model=CoursePage)
@@ -387,6 +460,98 @@ def set_course_status(
     return _public_one(db, db.scalar(_course_query().where(Course.id == course_id)), user)
 
 
+def _enrollment_conflict(code: str) -> HTTPException:
+    return HTTPException(status_code=status.HTTP_409_CONFLICT, detail={"code": code})
+
+
+@router.post("/{course_id}/enroll", response_model=CoursePublic)
+def enroll(
+    course_id: int,
+    request: Request,
+    user: User = Depends(require_active_user),
+    db: Session = Depends(get_db),
+):
+    course = _get_visible_course(db, course_id, user)
+    if _can_manage(user, course):
+        raise _enrollment_conflict("manager_cannot_enroll")
+    if course.status != "published":
+        raise _enrollment_conflict("course_closed")
+
+    row = _enrollment_row(db, course_id, user.id)
+    if row is None or row.status != "active":
+        if row is None:
+            db.add(Enrollment(course_id=course_id, user_id=user.id, status="active"))
+        else:
+            row.status = "active"
+        try:
+            db.flush()
+        except IntegrityError:
+            # A parallel request inserted the row first (and wrote the audit entry).
+            db.rollback()
+            row = _enrollment_row(db, course_id, user.id)
+            if row is None or row.status != "active":
+                raise
+        else:
+            _add_audit(
+                db,
+                actor_id=user.id,
+                action="enrollment.create",
+                target_id=course_id,
+                request=request,
+                details={},
+            )
+            db.commit()
+    return _public_one(db, db.scalar(_course_query().where(Course.id == course_id)), user)
+
+
+@router.post("/{course_id}/unenroll", response_model=CoursePublic)
+def unenroll(
+    course_id: int,
+    request: Request,
+    user: User = Depends(require_active_user),
+    db: Session = Depends(get_db),
+):
+    course = db.scalar(_course_query().where(Course.id == course_id))
+    row = _enrollment_row(db, course_id, user.id) if course is not None else None
+    if row is None or row.status != "active":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Enrollment not found")
+    row.status = "cancelled"
+    still_visible = _is_open_to(course, user)
+    _add_audit(
+        db,
+        actor_id=user.id,
+        action="enrollment.cancel",
+        target_id=course_id,
+        request=request,
+        details={"course_status": course.status},
+        status_code=status.HTTP_200_OK if still_visible else status.HTTP_204_NO_CONTENT,
+    )
+    db.commit()
+    if not still_visible:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    return _public_one(db, db.scalar(_course_query().where(Course.id == course_id)), user)
+
+
+@router.get("/{course_id}/enrollments", response_model=list[EnrollmentPublic])
+def list_enrollments(
+    course_id: int,
+    user: User = Depends(require_active_user),
+    db: Session = Depends(get_db),
+):
+    course = _require_managed_course(db, course_id, user)
+    rows = db.execute(
+        select(User.id, User.display_name, User.email, Enrollment.updated_at)
+        .join(Enrollment, Enrollment.user_id == User.id)
+        .where(Enrollment.course_id == course.id, Enrollment.status == "active")
+        # updated_at is when the learner last joined: re-enrolling moves it.
+        .order_by(Enrollment.updated_at, Enrollment.id)
+    )
+    return [
+        EnrollmentPublic(user_id=uid, name=name, email=email, enrolled_at=joined)
+        for uid, name, email, joined in rows
+    ]
+
+
 @router.get("/{course_id}/lessons", response_model=list[LessonPublic])
 def list_lessons(
     course_id: int,
@@ -394,7 +559,7 @@ def list_lessons(
     db: Session = Depends(get_db),
 ):
     course = _get_visible_course(db, course_id, user)
-    full = _can_manage(user, course)
+    full = _can_read(db, course, user)
     return [_lesson_view(lesson, full=full) for lesson in _course_lessons(db, course.id)]
 
 
@@ -433,7 +598,7 @@ def get_lesson(
     db: Session = Depends(get_db),
 ):
     lesson, course = _get_visible_lesson(db, lesson_id, user)
-    if _can_manage(user, course):
+    if _can_read(db, course, user):
         return LessonLookupPublic(locked=False, lesson=_lesson_view(lesson, full=True))
     return LessonLookupPublic(locked=True, lesson=LessonPreviewPublic.model_validate(lesson))
 

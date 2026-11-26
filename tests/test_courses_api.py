@@ -5,14 +5,14 @@ os.environ["AUTO_CREATE_TABLES"] = "false"
 import re
 
 import pytest
-from sqlalchemy import select
+from sqlalchemy import event, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from server.auth import utc_now
 from server.database import Base
 from server.main import app
-from server.models import AuditLog, Course, Lesson, User
+from server.models import AuditLog, Course, Enrollment, Lesson, User
 from server.routers import courses as courses_router
 from test_templates_api import add_user, authenticate, make_client, make_engine
 
@@ -49,6 +49,7 @@ def env():
         "a": add_user(engine, "c-a", "teacher-a@example.com"),
         "b": add_user(engine, "c-b", "teacher-b@example.com"),
         "learner": add_user(engine, "c-learner", "learner@example.com"),
+        "learner2": add_user(engine, "c-learner2", "learner2@example.com"),
     }
     for key in ("a", "b"):
         set_user(engine, users[key].id, can_teach=True)
@@ -518,3 +519,232 @@ def test_publish_requires_lab_switch_is_wired(env, monkeypatch):
     monkeypatch.setattr(courses_router, "PUBLISH_REQUIRES_LAB", True)
     with pytest.raises(NotImplementedError):
         change_status(login, course_id, "published")
+
+
+def join(login, course_id: int, who: str | None = "learner"):
+    return login(who).post(f"/api/courses/{course_id}/enroll")
+
+
+def leave(login, course_id: int, who: str | None = "learner"):
+    return login(who).post(f"/api/courses/{course_id}/unenroll")
+
+
+def published_course(login) -> tuple[int, int]:
+    course_id, lesson_id = publishable(login)
+    assert change_status(login, course_id, "published").status_code == 200
+    return course_id, lesson_id
+
+
+def reading(login, course_id: int, lesson_id: int, who: str | None = "learner"):
+    """(course status code, list contents or status code, lesson locked or status code)"""
+    course = login(who).get(f"/api/courses/{course_id}").status_code
+    rows = login(who).get(f"/api/courses/{course_id}/lessons")
+    lookup = login(who).get(f"/api/lessons/{lesson_id}")
+    return (
+        course,
+        [row["content_md"] for row in rows.json()] if rows.status_code == 200 else rows.status_code,
+        lookup.json()["locked"] if lookup.status_code == 200 else lookup.status_code,
+    )
+
+
+CAN_READ = (200, ["## content"], False)
+LOCKED = (200, [""], True)
+HIDDEN = (404, 404, 404)
+
+
+def enrollment_rows(engine) -> list[tuple[int, int, str]]:
+    with Session(engine) as db:
+        return [(r.id, r.user_id, r.status) for r in db.scalars(select(Enrollment).order_by(Enrollment.id))]
+
+
+def audit_actions(engine) -> list[str]:
+    with Session(engine) as db:
+        query = select(AuditLog.action).where(AuditLog.action.like("enrollment.%")).order_by(AuditLog.id)
+        return list(db.scalars(query))
+
+
+def listed(login, course_id: int, who: str | None = "learner") -> bool:
+    return course_id in [item["id"] for item in login(who).get("/api/courses").json()["items"]]
+
+
+def test_enroll_opens_the_lessons_and_is_idempotent(env):
+    engine, users, login = env
+    course_id, lesson_id = published_course(login)
+    assert reading(login, course_id, lesson_id) == LOCKED
+    joined = join(login, course_id)
+    assert joined.status_code == 200
+    assert (joined.json()["enrolled"], joined.json()["enrolled_count"], joined.json()["can_manage"]) == (True, 1, False)
+    assert joined.json()["publish_blockers"] is None
+    assert reading(login, course_id, lesson_id) == CAN_READ
+    assert reading(login, course_id, lesson_id, "learner2") == LOCKED
+    assert reading(login, course_id, lesson_id, None) == LOCKED
+    assert join(login, course_id).status_code == 200
+    assert [row[1:] for row in enrollment_rows(engine)] == [(users["learner"].id, "active")]
+    assert audit_actions(engine) == ["enrollment.create"]
+
+
+def test_unenroll_locks_and_reenroll_reuses_the_row(env):
+    engine, users, login = env
+    course_id, lesson_id = published_course(login)
+    join(login, course_id)
+    row_id = enrollment_rows(engine)[0][0]
+    left = leave(login, course_id)
+    assert (left.status_code, left.json()["enrolled"], left.json()["enrolled_count"]) == (200, False, 0)
+    assert reading(login, course_id, lesson_id) == LOCKED
+    assert enrollment_rows(engine) == [(row_id, users["learner"].id, "cancelled")]
+    assert leave(login, course_id).status_code == 404
+    assert leave(login, course_id, "learner2").status_code == 404
+    assert join(login, course_id).status_code == 200
+    assert enrollment_rows(engine) == [(row_id, users["learner"].id, "active")]
+    assert reading(login, course_id, lesson_id) == CAN_READ
+    with Session(engine) as db:
+        rows = db.scalars(select(AuditLog).where(AuditLog.action.like("enrollment.%")).order_by(AuditLog.id)).all()
+        assert [(r.action, r.actor_id, r.target_type, r.target_id, r.status_code) for r in rows] == [
+            (action, users["learner"].id, "course", str(course_id), 200)
+            for action in ("enrollment.create", "enrollment.cancel", "enrollment.create")
+        ]
+        assert rows[1].details == {"course_status": "published"}
+
+
+def test_unpublished_course_stays_open_to_enrolled_learners(env):
+    _, _, login = env
+    course_id, lesson_id = published_course(login)
+    join(login, course_id)
+    change_status(login, course_id, "draft")
+    assert reading(login, course_id, lesson_id) == CAN_READ
+    assert listed(login, course_id)
+    assert login("learner").get("/api/courses").json()["items"][0]["status"] == "draft"
+    for who in ("learner2", None):
+        assert not listed(login, course_id, who)
+        assert reading(login, course_id, lesson_id, who) == HIDDEN
+    assert join(login, course_id, "learner2").status_code == 404
+    # Enrolled on a closed course: enrolling again is refused, and editing is visible but forbidden.
+    again = join(login, course_id)
+    assert (again.status_code, again.json()["detail"]) == (409, {"code": "course_closed"})
+    assert login("learner").patch(f"/api/courses/{course_id}", json={"title": "x"}).status_code == 403
+    assert leave(login, course_id).status_code == 204
+    assert reading(login, course_id, lesson_id) == HIDDEN
+
+
+def test_archived_course_is_read_only_for_enrolled_learners(env):
+    engine, _, login = env
+    course_id, lesson_id = published_course(login)
+    join(login, course_id)
+    change_status(login, course_id, "archived")
+    assert reading(login, course_id, lesson_id) == CAN_READ
+    assert listed(login, course_id)
+    assert join(login, course_id, "learner2").status_code == 404
+    left = leave(login, course_id)
+    assert (left.status_code, left.content) == (204, b"")
+    assert join(login, course_id).status_code == 404
+    assert reading(login, course_id, lesson_id) == HIDDEN
+    assert not listed(login, course_id)
+    with Session(engine) as db:
+        row = db.scalars(select(AuditLog).where(AuditLog.action == "enrollment.cancel")).one()
+        assert (row.details, row.status_code) == ({"course_status": "archived"}, 204)
+
+
+def test_who_may_enroll(env):
+    _, _, login = env
+    course_id, _ = published_course(login)
+    for who in ("a", "admin"):
+        refused = join(login, course_id, who)
+        assert (refused.status_code, refused.json()["detail"]) == (409, {"code": "manager_cannot_enroll"})
+    assert join(login, course_id, "b").status_code == 200
+    assert join(login, course_id, None).status_code == 401
+    assert leave(login, course_id, None).status_code == 401
+    assert join(login, 999999).status_code == 404
+
+
+def test_enrollment_list_is_for_managers_and_active_only(env):
+    engine, users, login = env
+    course_id, _ = published_course(login)
+    for who in ("learner", "learner2", "b"):
+        join(login, course_id, who)
+    leave(login, course_id, "b")
+    with Session(engine) as db:
+        for row in db.scalars(select(Enrollment)):
+            row.updated_at = utc_now().replace(year=2000 if row.user_id == users["learner2"].id else 2001)
+        db.commit()
+    url = f"/api/courses/{course_id}/enrollments"
+    for who in ("a", "admin"):
+        rows = login(who).get(url).json()
+        assert [(r["user_id"], r["name"], r["email"]) for r in rows] == [
+            (users["learner2"].id, "learner2", "learner2@example.com"),
+            (users["learner"].id, "learner", "learner@example.com"),
+        ]
+        assert rows[0]["enrolled_at"].startswith("2000")
+    for who in ("learner", "b"):
+        response = login(who).get(url)
+        assert response.status_code == 403
+        assert "@example.com" not in response.text
+    assert login(None).get(url).status_code == 401
+    change_status(login, course_id, "draft")
+    assert login("b").get(url).status_code == 404  # not enrolled any more: hidden
+    assert login("learner").get(url).status_code == 403  # enrolled: visible, still forbidden
+    # No other course response carries an email.
+    for who in ("learner", "a"):
+        assert "@example.com" not in login(who).get(f"/api/courses/{course_id}").text
+        assert "@example.com" not in login(who).get("/api/courses").text
+
+
+def test_enrolled_count_counts_active_only_without_n_plus_one(env):
+    engine, _, login = env
+    first, _ = published_course(login)
+    join(login, first)
+    join(login, first, "learner2")
+    leave(login, first, "learner2")
+
+    def queries(who: str, url: str) -> int:
+        client = login(who)
+        seen: list[str] = []
+        listener = lambda *args: seen.append(args[2])
+        event.listen(engine, "before_cursor_execute", listener)
+        try:
+            assert client.get(url).status_code == 200
+        finally:
+            event.remove(engine, "before_cursor_execute", listener)
+        return len(seen)
+
+    urls = [("learner", "/api/courses"), ("a", "/api/courses"), ("a", "/api/courses/managed")]
+    one_course = [queries(*item) for item in urls]
+    for _ in range(3):
+        other, _ = published_course(login)
+        join(login, other)
+    assert [queries(*item) for item in urls] == one_course
+    items = {item["id"]: item for item in login("learner2").get("/api/courses").json()["items"]}
+    assert (items[first]["enrolled_count"], items[first]["enrolled"]) == (1, False)
+    mine = {item["id"]: item for item in login("learner").get("/api/courses").json()["items"]}
+    assert [item["enrolled"] for item in mine.values()] == [True] * 4
+    assert login("a").get("/api/courses/managed").json()["items"][-1]["enrolled_count"] >= 1
+
+
+def test_enroll_race_at_insert_is_not_an_error(env, monkeypatch):
+    engine, _, login = env
+    course_id, _ = published_course(login)
+    join(login, course_id)
+    real = courses_router._enrollment_row
+    calls = []
+
+    def stale_first(*args):
+        calls.append(args)
+        return None if len(calls) == 1 else real(*args)
+
+    # The pre-check misses the row another request just inserted: the unique constraint stops the insert.
+    monkeypatch.setattr(courses_router, "_enrollment_row", stale_first)
+    response = join(login, course_id)
+    assert (response.status_code, response.json()["enrolled_count"]) == (200, 1)
+    assert len(calls) == 2
+    assert len(enrollment_rows(engine)) == 1
+    assert audit_actions(engine) == ["enrollment.create"]
+
+
+def test_deleted_course_cannot_be_enrolled_or_left(env):
+    engine, _, login = env
+    course_id, _ = published_course(login)
+    join(login, course_id)
+    set_course(engine, course_id, deleted_at=utc_now())
+    assert not listed(login, course_id)
+    assert join(login, course_id).status_code == 404
+    assert leave(login, course_id).status_code == 404
+    assert login("admin").get(f"/api/courses/{course_id}/enrollments").status_code == 404

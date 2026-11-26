@@ -12,6 +12,7 @@ from sqlalchemy import (
     func,
     text,
     true,
+    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
@@ -212,6 +213,37 @@ class Lesson(Base):
     )
 
     course = relationship("Course", back_populates="lessons")
+
+
+class Enrollment(Base):
+    __tablename__ = "enrollments"
+    __table_args__ = (
+        CheckConstraint("status IN ('active','cancelled')", name="ck_enrollments_status"),
+        # One row per learner and course: leaving and joining again flips the status.
+        UniqueConstraint("course_id", "user_id", name="uq_enrollments_course_user"),
+    )
+
+    id = Column(Integer, primary_key=True)
+    course_id = Column(
+        Integer,
+        ForeignKey("courses.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    status = Column(String(16), nullable=False, default="active", server_default="active")
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
 
 
 class Comment(Base):

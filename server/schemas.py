@@ -300,6 +300,14 @@ class CourseStatusUpdate(BaseModel):
     status: Literal["draft", "published", "archived"]
 
 
+class EnrollmentPublic(BaseModel):
+    # Carries learner emails: only the course's managers may receive it.
+    user_id: int
+    name: str
+    email: str
+    enrolled_at: datetime
+
+
 class CoursePage(BaseModel):
     items: list[CoursePublic]
     next: str | None

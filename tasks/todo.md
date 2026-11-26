@@ -157,18 +157,18 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
 - [x] `CHECK PASS`, tsc และสคริปต์ UI ผ่าน
 - [x] **ให้ผู้ใช้ดูภาพ flow ผู้สอนทั้งชุดก่อนทำ T6** (ผู้ใช้ให้ผ่าน)
 
-### [ ] T6 Backend: ลงทะเบียนและยกเลิก
+### [x] T6 Backend: ลงทะเบียนและยกเลิก
 - เกณฑ์รับ
-  - [ ] model `Enrollment` (unique course_id + user_id, status `active|cancelled`)
-  - [ ] `POST /api/courses/{id}/enroll`:
+  - [x] model `Enrollment` (unique course_id + user_id, status `active|cancelled`)
+  - [x] `POST /api/courses/{id}/enroll`:
     - ได้เฉพาะคอร์ส Published และผู้ที่ไม่ใช่ผู้จัดการคอร์สนั้น (ผู้จัดการได้ 409 คอร์สสถานะอื่นได้ 409)
     - ถ้าเคยยกเลิก ให้เปลี่ยนแถวเดิมกลับเป็น active และถ้า active อยู่แล้วให้คืน 200 โดยไม่สร้างแถวซ้ำ
     - audit `enrollment.create`
-  - [ ] `POST /api/courses/{id}/unenroll`: เปลี่ยนเป็น cancelled ทำได้ทุกสถานะคอร์ส แล้ว audit `enrollment.cancel`
-  - [ ] การมองเห็นตาม plan ข้อ 4: `GET /api/courses` คืน Published และคอร์ส Draft/Archived ที่ผู้เปิดลงทะเบียน active อยู่ ส่วน `enrolled` และ `enrolledCount` (นับเฉพาะ active) ต้องถูกต้อง
-  - [ ] เนื้อหาบทเรียน (lessons และ getLesson `locked:false`) เปิดให้เฉพาะผู้จัดการหรือผู้ลงทะเบียน active ส่วนผู้ที่ยกเลิกแล้วได้ locked หรือ 404 ตามสถานะคอร์ส
-  - [ ] `GET /api/courses/{id}/enrollments` (เฉพาะผู้จัดการ) คืน `[{userId, name, email, enrolledAt}]` เฉพาะ active
-  - [ ] เทสต์ (ครบทุกบทบาท):
+  - [x] `POST /api/courses/{id}/unenroll`: เปลี่ยนเป็น cancelled ทำได้ทุกสถานะคอร์ส แล้ว audit `enrollment.cancel`
+  - [x] การมองเห็นตาม plan ข้อ 4: `GET /api/courses` คืน Published และคอร์ส Draft/Archived ที่ผู้เปิดลงทะเบียน active อยู่ ส่วน `enrolled` และ `enrolledCount` (นับเฉพาะ active) ต้องถูกต้อง
+  - [x] เนื้อหาบทเรียน (lessons และ getLesson `locked:false`) เปิดให้เฉพาะผู้จัดการหรือผู้ลงทะเบียน active ส่วนผู้ที่ยกเลิกแล้วได้ locked หรือ 404 ตามสถานะคอร์ส
+  - [x] `GET /api/courses/{id}/enrollments` (เฉพาะผู้จัดการ) คืน `[{userId, name, email, enrolledAt}]` เฉพาะ active
+  - [x] เทสต์ (ครบทุกบทบาท):
     - ลงทะเบียนแล้วอ่านบทได้
     - ยกเลิกแล้วอ่านไม่ได้ แต่ลงทะเบียนใหม่ได้
     - Unpublish แล้วผู้ลงทะเบียนยังอ่านได้ แต่คนใหม่ได้ 404
@@ -181,6 +181,12 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
 - ไฟล์: `server/models.py`, `server/schemas.py`, `server/routers/courses.py`, `tests/test_courses_api.py`
 - ขึ้นกับ: T5
 - ขนาด: M
+- ผลตรวจ (26 พ.ย. 2569)
+  - `tests/test_courses_api.py` ผ่าน 46/46 (37 เดิม + 9) เทสต์เดิมผลไม่เปลี่ยน · `scripts/check.sh` `CHECK PASS` (BE ผ่าน 427, ล้ม SURF 15)
+  - ชื่อ field ใน response ของรายชื่อเป็น snake_case (`user_id`, `enrolled_at`)
+  - นับ query ด้วย event listener: `GET /api/courses` (ผู้เรียน, ผู้สอน) และ `/managed` ใช้จำนวน query เท่ากันเมื่อมี 1 และ 4 คอร์ส
+  - ผู้ที่ลงทะเบียนคอร์ส Draft/Archived "มองเห็น" คอร์ส: เรียก endpoint ของผู้จัดการได้ 403 (ไม่ใช่ 404) รวมรายชื่อผู้ลงทะเบียน และ enroll ซ้ำได้ 409 `course_closed` ตามลำดับการตรวจในงาน
+  - คำขอลงทะเบียนชนกัน: เทสต์จำลองด้วยการทำให้การอ่านแถวครั้งแรกไม่เจอ ยังไม่ได้ทดสอบการชนกันจริง
 
 ### [ ] T7 UI: ลงทะเบียน อ่านบท รายชื่อ และ Dashboard
 - เกณฑ์รับ
