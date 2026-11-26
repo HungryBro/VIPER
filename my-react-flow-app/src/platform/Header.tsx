@@ -11,7 +11,11 @@ import type { PlatformTheme } from './theme';
 import { useLoaded } from './useLoaded';
 import { Badge, Empty, cx, time } from './ui';
 
-const isInternalPath = (to: string): boolean => to.startsWith('/') && !to.startsWith('//') && !to.startsWith('/\\');
+// แผง Admin Control Center เดิม (AdminUserPanel) ซ่อนไว้ ผู้ใช้สั่งเอาออก 27 พ.ย. 2569 เพราะหน้า /users และ /logs ทำได้ครบแล้ว
+// โค้ดของแผงยังอยู่ เปิดกลับได้ด้วยค่านี้
+const SHOW_LEGACY_ADMIN_PANEL: boolean = false;
+
+const isInternalPath =(to: string): boolean => to.startsWith('/') && !to.startsWith('//') && !to.startsWith('/\\');
 
 export function Header({ theme, onToggleTheme }: { theme: PlatformTheme; onToggleTheme: () => void }) {
   const { user, logout } = useAuth();
@@ -213,7 +217,7 @@ export function Header({ theme, onToggleTheme }: { theme: PlatformTheme; onToggl
                   <UserRound size={16} />
                   โปรไฟล์และผลงาน
                 </Link>
-                {isAdmin(user) && (
+                {SHOW_LEGACY_ADMIN_PANEL && isAdmin(user) && (
                   <button
                     type="button"
                     onClick={() => {
@@ -245,7 +249,7 @@ export function Header({ theme, onToggleTheme }: { theme: PlatformTheme; onToggl
           </div>
         </div>
       </header>
-      {isAdmin(user) && (
+      {SHOW_LEGACY_ADMIN_PANEL && isAdmin(user) && (
         <AdminUserPanel open={adminPanelOpen} currentUserId={user.id} onClose={() => setAdminPanelOpen(false)} />
       )}
     </>
