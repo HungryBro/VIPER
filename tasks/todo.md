@@ -220,38 +220,54 @@ skill ที่ใช้ทุกงาน: `agent-skills:incremental-implementa
 - [x] `CHECK PASS`, tsc และสคริปต์ UI ผ่าน
 - [x] **ให้ผู้ใช้ดูภาพ flow ผู้เรียนก่อนทำ T8** (ผู้ใช้ให้ผ่าน 26 พ.ย. 2569)
 
-### [ ] T8 ลบคอร์ส (ผู้สอนและ admin)
+### [x] T8 ลบคอร์ส (ผู้สอนและ admin)
 - เกณฑ์รับ
-  - [ ] `DELETE /api/courses/{id}` รับ body `{reason?}`:
+  - [x] `DELETE /api/courses/{id}` รับ body `{reason?}`:
     - ผู้สอนเจ้าของลบได้เฉพาะ Draft ที่ไม่มีผู้ลงทะเบียน active (ไม่งั้นตอบ 409)
     - admin ลบได้ทุกสถานะ แต่ถ้าคอร์สไม่ใช่ Draft หรือมีผู้ลงทะเบียน ต้องมี reason 1–500 ตัวอักษร (ไม่งั้นตอบ 422)
     - เป็น soft delete ทั้งคอร์สและบทเรียน ตอบ 204
     - audit `course.delete` พร้อม details `{status, enrolledCount, reason}`
-  - [ ] คอร์สที่ลบแล้วหายจากทุก list และทุก endpoint ตอบ 404 รวมผู้ที่ลงทะเบียนไว้ และ Dashboard ของผู้เรียนต้องไม่แสดงคอร์สนั้น
-  - [ ] สร้างคอร์สใหม่ด้วยรหัสของคอร์สที่ลบไปแล้วได้
-  - [ ] UI:
+  - [x] คอร์สที่ลบแล้วหายจากทุก list และทุก endpoint ตอบ 404 รวมผู้ที่ลงทะเบียนไว้ และ Dashboard ของผู้เรียนต้องไม่แสดงคอร์สนั้น
+  - [x] สร้างคอร์สใหม่ด้วยรหัสของคอร์สที่ลบไปแล้วได้
+  - [x] UI:
     - ผู้สอนเห็นปุ่ม "ลบคอร์ส" เฉพาะ Draft ที่ไม่มีผู้ลงทะเบียน (confirm "ลบคอร์ส Draft นี้? บทเรียนทั้งหมดจะถูกลบด้วย")
     - admin เห็นปุ่มทุกสถานะ เปิด Modal ที่มีช่องเหตุผล (required 1–500) และข้อความ "มีผู้ลงทะเบียน N คน จะเข้าถึงคอร์สนี้ไม่ได้อีก"
     - ลบแล้วกลับไป `/teach` และ toast
-  - [ ] `learningApi.ts` เพิ่ม `deleteCourse` (stub ใน FAKE ด้วย) และเพิ่มเทสต์ครอบทุกกรณีข้างบน
+  - [x] `learningApi.ts` เพิ่ม `deleteCourse` (stub ใน FAKE ด้วย) และเพิ่มเทสต์ครอบทุกกรณีข้างบน
 - ตรวจ: เบราว์เซอร์ ผู้สอนลบ Draft ส่วน admin ลบคอร์ส Published ที่มีผู้เรียน (ลองกดลบโดยไม่กรอกเหตุผล ต้องไม่ผ่าน) แล้วผู้เรียน reload Dashboard และ `/courses/:id` ต้องไม่เห็นคอร์ส
 - ไฟล์: `server/routers/courses.py`, `server/schemas.py`, `tests/test_courses_api.py`, `src/lib/learningApi.ts`, `src/platform/pages/TeachPage.tsx` (+ FAKE)
 - ขึ้นกับ: T7
 - ขนาด: M
+- ผลตรวจ (26 พ.ย. 2569)
+  - `tests/test_courses_api.py` ผ่าน 55/55 (46 เดิม + 9) · `CHECK PASS` (BE ผ่าน 436, ล้ม SURF 15) · tsc ไม่มี error · `ui_checks.py` 18/18 (ข้าม 1) · phase3 23/23 · touch 19/19
+  - details ของ audit `course.delete` ใช้ snake_case: `{status, enrolled_count, reason, by_admin}`
+  - เบราว์เซอร์ a–d ผ่าน 26 จุด · ก่อนถามยืนยันลบ หน้าโหลดคอร์สใหม่ เพื่อให้จำนวนผู้ลงทะเบียนและสถานะเป็นค่าล่าสุด ถ้าหน้าของผู้สอนเก่า จะได้เหตุผลจาก server
+  - ข้อความ `reason_required` และกรณีลบไม่สำเร็จ ตรวจด้วยคำตอบจำลอง
+  - ภาพ: `outputs/course-system/T8__*`
 
-### [ ] T9 ป้าย audit, parity และตรวจรวม
+### [x] T9 ป้าย audit, parity และตรวจรวม
 - เกณฑ์รับ
-  - [ ] เพิ่มป้าย 9 action ใหม่ใน `components/AdminAuditLogView.tsx:26` (เช่น `'course.create': 'Created course'`) หน้า audit log ต้องไม่แสดง key ดิบ
-  - [ ] `tasks/parity.md`: ปรับสถานะแถว P-05, P-06, P-07, P-09, P-11, C-18, C-19 และ P-02 (ส่วนคอร์ส) จาก `ว่างตามแผน` เป็นของจริง พร้อมอ้างงาน T1–T8 ส่วน P-12 คงสถานะเดิม
-  - [ ] ตรวจรวมทุกบทบาท (admin, ผู้สอน A, ผู้สอน B, ผู้เรียน, ผู้เยี่ยมชม) ที่จอ 1440/375 ทั้งธีมมืดและสว่าง console ต้องไม่มี error ยกเว้น 401 ของ `/api/auth/me` สำหรับผู้เยี่ยมชม (ตั้งใจให้เกิด ตาม parity P-05)
-  - [ ] grep ต้องไม่เหลือ `ระบบคอร์สจะเพิ่มภายหลัง` ในที่ที่ระบบทำงานจริงแล้ว และ `LAB_DESIGNER_LATER` ต้องยังอยู่
+  - [x] เพิ่มป้าย 9 action ใหม่ใน `components/AdminAuditLogView.tsx:26` (เช่น `'course.create': 'Created course'`) หน้า audit log ต้องไม่แสดง key ดิบ
+  - [x] `tasks/parity.md`: ปรับสถานะแถว P-05, P-06, P-07, P-09, P-11, C-18, C-19 และ P-02 (ส่วนคอร์ส) จาก `ว่างตามแผน` เป็นของจริง พร้อมอ้างงาน T1–T8 ส่วน P-12 คงสถานะเดิม
+  - [x] ตรวจรวมทุกบทบาท (admin, ผู้สอน A, ผู้สอน B, ผู้เรียน, ผู้เยี่ยมชม) ที่จอ 1440/375 ทั้งธีมมืดและสว่าง console ต้องไม่มี error ยกเว้น 401 ของ `/api/auth/me` สำหรับผู้เยี่ยมชม (ตั้งใจให้เกิด ตาม parity P-05)
+  - [x] grep ต้องไม่เหลือ `ระบบคอร์สจะเพิ่มภายหลัง` ในที่ที่ระบบทำงานจริงแล้ว และ `LAB_DESIGNER_LATER` ต้องยังอยู่
 - ตรวจ: `scripts/check.sh`, tsc และสคริปต์ UI ทั้ง 3 ตัว พร้อมเก็บภาพครบชุดใน `outputs/course-system/`
 - ไฟล์: `src/components/AdminAuditLogView.tsx`, `tasks/parity.md`
 - ขึ้นกับ: T8
 - ขนาด: S
+- เพิ่มจากแผนเดิม (ผู้ใช้อนุมัติ): Dashboard ผู้สอนใช้ข้อมูลจริง และตรวจรวมผ่าน uvicorn + vite จริง
+- ผลตรวจ (26 พ.ย. 2569)
+  - `CHECK PASS` · tsc ไม่มี error · สคริปต์ UI 18/18 (ข้าม 1), 23/23, 19/19 · `parity_screenshots.py --check` ได้ `CHECK ROWS PASS`
+  - เบราว์เซอร์ (TestClient) e–f และ 1440/375 มืด/สว่าง ทุกหน้าที่แก้ใน T1–T9 ผ่าน 85 จุด ไม่มี scroll แนวนอน console ไม่มี error นอกจาก 401 ของผู้เยี่ยมชม
+  - uvicorn (ไม่ใช้ `--reload`) ตั้ง `DATABASE_URL` เป็น `viper_course_tmp`: แถว marker ที่มีเฉพาะในฐานชั่วคราวอ่านได้ทั้งจาก :8000 และผ่าน :5173 · `pg_stat_activity` มีการเชื่อมต่อเฉพาะ `viper_course_tmp` · `viper_db` ไม่มีตาราง `courses`, `lessons`, `enrollments`
+  - flow ย่อผ่าน vite proxy ผ่านครบ ไม่ใช้ `context.route`: 109 คำขอไปที่ `localhost:5173/api/…` ทุกคำขอส่ง cookie `viper_session` ทุกคำตอบมาจาก uvicorn และมี `Set-Cookie` · บันทึก network ด้วย Playwright แทน `read_network_requests` เพราะ pane อาจมี cookie จริงของผู้ใช้ที่ `localhost:5173` ซึ่งจะถูกล้างเมื่อ backend ต่อฐานชั่วคราว · ปิด uvicorn แล้ว :8000 ว่าง
+  - parity: `scripts` ตรวจแถวผ่าน · แก้เฉพาะคอลัมน์สถานะปัจจุบันและต่อท้ายหมายเหตุ (คอลัมน์สถานะเป้าหมายและแหล่งข้อมูลคงเดิม) · P-08 และ P-12 ไม่เปลี่ยน
+  - `ระบบคอร์สจะเพิ่มภายหลัง` ที่เหลือ: `SubmissionsPage.tsx:19` (ใช้ที่ :145, :227, :273, :350 ระบบส่งงานยังไม่มี), `AnnouncementsPage.tsx:41, :61` (ระบบประกาศยังไม่มี), `TeachPage.tsx:45` และ `CoursesPage.tsx:26` (ค่าคงที่ที่เก็บไว้ ไม่มีที่ใช้)
+  - พบแต่ยังไม่แก้: ข้อความ "เมื่อมีระบบคอร์ส…" ใน `ProfilePage.tsx:261, :273` · คอมเมนต์ใน `permissions.ts:49` ว่ายังไม่มีการลงทะเบียน (ผู้สอนจึงยังไม่เห็นเมนูฝั่งผู้เรียน) · หน้า audit เดิม (`AdminAuditLogView`) จัดหมวด action ของคอร์สเป็น Template · หัวส่วน "คอร์สของคุณ" ของ Dashboard ผู้สอนยังพูดถึง "ออกแบบ Lab"
+  - ภาพ: `outputs/course-system/T9__*`
 
 ### จุดตรวจสุดท้าย
-- [ ] `CHECK PASS` และสคริปต์ UI ผ่าน
-- [ ] รายงานรายการ endpoint จำนวนเทสต์ ภาพ flow ผู้สอนและผู้เรียน และสิ่งที่ยังไม่ได้ตรวจ
+- [x] `CHECK PASS` และสคริปต์ UI ผ่าน
+- [x] รายงานรายการ endpoint จำนวนเทสต์ ภาพ flow ผู้สอนและผู้เรียน และสิ่งที่ยังไม่ได้ตรวจ
 - [ ] ผู้ใช้ดูของจริงแล้วอนุมัติ
 - [ ] ห้าม push/merge จนกว่าผู้ใช้จะสั่ง
