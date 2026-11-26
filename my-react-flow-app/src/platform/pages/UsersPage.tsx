@@ -176,11 +176,11 @@ function UsersTable({ currentUserId }: { currentUserId: number }) {
                           aria-label={`สิทธิ์ผู้สอนของ ${account.display_name}`}
                           className={cx('toggle-switch', (isAdmin(account) || account.can_teach) && 'on')}
                           disabled={isAdmin(account) || locked || busy}
+                          title={isAdmin(account) ? 'ผู้ดูแลสอนได้เสมอ' : undefined}
                           onClick={() => askTeach(account)}
                         >
                           <span />
                         </button>
-                        <small>{isAdmin(account) ? 'ผู้ดูแลสอนได้เสมอ' : account.can_teach ? 'เปิดอยู่' : 'ปิดอยู่'}</small>
                       </div>
                     </td>
                     <td>
