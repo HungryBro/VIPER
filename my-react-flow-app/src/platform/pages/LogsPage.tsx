@@ -30,6 +30,9 @@ function relatedPath(action: string): string | null {
     || action === 'admin.template_comments_updated') return '/templates';
   if (action.startsWith('ban.') || action === 'permission.role_update' || action === 'permission.can_teach_update'
     || action === 'admin.user_access_updated' || action === 'account.ban_expired') return '/users';
+  // คอร์สที่ถูกลบไม่มีปลายทาง ส่วนเหตุการณ์อื่นของคอร์สไปหน้าสอน (admin เห็นทุกคอร์สที่นั่น)
+  if (action === 'course.delete') return null;
+  if (action.startsWith('course.') || action.startsWith('lesson.') || action.startsWith('enrollment.')) return '/teach';
   return null;
 }
 

@@ -40,6 +40,15 @@ export const actionLabels: Record<string, string> = {
   'permission.template_official_update': 'Changed official template status',
   'processing.run': 'Ran image processing',
   'processing.upload': 'Uploaded processing input',
+  'course.create': 'Created course',
+  'course.update': 'Updated course',
+  'course.status': 'Changed course status',
+  'course.delete': 'Deleted course',
+  'lesson.create': 'Created lesson',
+  'lesson.update': 'Updated lesson',
+  'lesson.delete': 'Deleted lesson',
+  'enrollment.create': 'Enrolled in course',
+  'enrollment.cancel': 'Cancelled enrollment',
 };
 
 
